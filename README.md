@@ -1,6 +1,7 @@
 # DargStack
 
 A template for Docker stack project layouts.
+Bootstrap it from [github.com/dargmuesli/dargstack_template](https://github.com/dargmuesli/dargstack_template)!
 
 This template solves the problem of separated development and production environments in the otherwise well-defined, containerized software development process.
 It focuses on the development configuration, derives the production configuration from it and makes deployments a breeze!
