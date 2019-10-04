@@ -17,11 +17,11 @@ LIGHT_RED='\e[91m'
 LIGHT_YELLOW='\e[93m'
 NC='\e[0m'
 
-if [ "$(which git > /dev/null)" == "" ]
+if [ "$(which git > /dev/null)" == "git not found" ]
 then
 	echo -e "${LIGHT_BLUE}git${LIGHT_YELLOW} is not available.${NC}"
 
-	if [ "$(which lsb_release > /dev/null)" == "" ]
+	if [ "$(which lsb_release > /dev/null)" == "lsb_release not found" ]
 	then
 		echo -e "${LIGHT_RED}Could not determine OS distribution!${NC}"
 		echo -e "${LIGHT_BLUE}lsb_release${NC} is not available."
