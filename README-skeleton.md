@@ -66,6 +66,7 @@ These files, which contain the passwords' values, need to exist inside the `[pro
 
 This file defines the complete stack, containing all services you deem necessary for development.
 Simply [deploy the development stack](https://docs.docker.com/engine/reference/commandline/stack_deploy/) using `dargstack deploy`!
+You can use the variable `${STACK_DOMAIN}` within this file, which is set to the project's name + `.test` automatically.
 
 
 ### production/
