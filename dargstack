@@ -135,6 +135,7 @@ function deploy() {
 
 		echo -e "Updating checkout..."
 
+		git fetch -t
 		git fetch --depth 1
 
 		if [ "$(git tag -l)" = "" ]
