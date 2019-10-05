@@ -16,7 +16,7 @@ They are still mentioned though to explain their roles within the template.
         1. **[stack.yml](#development-stackyml)**
     1. **[production/](#production)**
         1. **[backup/](#backup)**
-        1. **[configuration/](#configuration)**
+        1. **[configurations/](#configurations)**
         1. **[data/](#data)**
         1. **[secrets/](#production-secrets)**
         1. **[production.sed](#productionsed)**
@@ -80,7 +80,7 @@ The output of your backup services, which create regular backups of your data vo
 This allows you to set up a method like a cron job that moves the dumped backup data to a different device.
 
 
-#### configuration/
+#### configurations/
 
 This directory stores configuration files for your services.
 
