@@ -18,7 +18,7 @@ It focuses on the development configuration, derives the production configuratio
 ## Skeleton
 
 The essential idea of this template.
-Read the full and detailed skeleton's specification at [./README-skeleton.md](./README-skeleton.md).
+Read the full and detailed skeleton specification at [./README-skeleton.md](./README-skeleton.md).
 
 
 ## Helper Script
