@@ -270,8 +270,8 @@ function derive() {
 	echo -e "Applying default seds..."
 
 	sed -i "s/file:.*\.secret/external: true/g" "$OUT"
-	sed -i "s/.\/certificates\//acme_data/g" "$OUT"
-	sed -i "s/..\/production/\./g" "$OUT"
+	sed -i "s/\.\/certificates\//acme_data/g" "$OUT"
+	sed -i "s/\.\.\/production/\./g" "$OUT"
 
 	if [ -f "./production/production.sed" ]
 	then
