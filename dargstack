@@ -392,7 +392,13 @@ case "$1" in
 	fi
 
 	echo -e "Building ${LIGHT_BLUE}$PROJECT_OWNER/$project:dev${NC}..."
-	docker_sudo build -t "$PROJECT_OWNER/$project:dev" "../$project/"
+
+	if [ "$MODE" == "production" ]
+	then
+		docker_sudo build -t "$PROJECT_OWNER/$project:$VERSION" "../$project/"
+	else
+		docker_sudo build -t "$PROJECT_OWNER/$project:dev" --target=development "../$project/"
+	fi
 	;;
 "deploy")
 	deploy "$PROJECT_OWNER" "$PROJECT_NAME" "$VERSION" "$URL" "$MODE" "$ADVERTISE_ADDR"

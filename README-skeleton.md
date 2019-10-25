@@ -28,9 +28,8 @@ They are still mentioned though to explain their roles within the template.
 
 The main project folder should at least contain a `Dockerfile` in addition to the main service's source.
 
-This `Dockerfile` should be structed so that the development version is built by default.
-The build stage for the development version should thus be placed at the end of the file.
-A build of the production version, e.g. by the CI, must then be initiated by specifying `--target=...`.
+This `Dockerfile` should be structured so that the development version is marked as such, i.e. with `AS development` at the `FROM` instruction.
+This way the DargStack script builds the development version by default, unless the `-p, --production` flag is passed.
 
 
 ## Stack Project
