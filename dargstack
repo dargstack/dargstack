@@ -138,42 +138,47 @@ function deploy() {
 		git fetch -t
 		git fetch --depth 1
 
-		if [ "$(git tag -l)" = "" ]
-		then
-			echo -e "${LIGHT_RED}The stack repository has no tags!${NC}"
-			exit 1
-		fi
-
 		latest=false
 
 		if [ "$VERSION" = "latest" ]
 		then
 			latest=true
-			VERSION=$(git rev-list --tags --max-count=1)
 		fi
 
-		git_describe=$(git describe --tags $VERSION 2>/dev/null) || true
-
-		if [ "$git_describe" = "" ]
+		if [ "$(git tag -l)" = "" ]
 		then
-			echo -e "${LIGHT_RED}Git describe failed!${NC}"
-
-			if [ "$latest" = "true" ]
+			echo -e "${LIGHT_YELLOW}The stack repository has no tags!${NC}"
+			git checkout origin/master
+		else
+			if [ $latest ]
 			then
-				echo -e "${LIGHT_YELLOW}Make sure the stack repository is" \
-					"tagged.${NC}"
-			else
-				echo -e "${LIGHT_YELLOW}Make sure the stack repository has the" \
-					"${LIGHT_BLUE}$VERSION${LIGHT_YELLOW} tag.${NC}"
+				VERSION=$(git rev-list --tags --max-count=1)
 			fi
 
-			exit 1
-		fi
 
-		# Update the sparse checkout (overwrite files that changed on git,
-		# keeping files that are not part of the repository)
-		git fetch --depth 1 origin tag "$git_describe"
-		git checkout "$git_describe"
+			git_describe=$(git describe --tags $VERSION 2>/dev/null) || true
+
+			if [ "$git_describe" = "" ]
+			then
+				echo -e "${LIGHT_RED}Git describe failed!${NC}"
+
+				if [ "$latest" = "true" ]
+				then
+					echo -e "${LIGHT_YELLOW}Make sure the stack repository is" \
+						"tagged.${NC}"
+				else
+					echo -e "${LIGHT_YELLOW}Make sure the stack repository has the" \
+						"${LIGHT_BLUE}$VERSION${LIGHT_YELLOW} tag.${NC}"
+				fi
+
+				exit 1
+			fi
+
+			# Update the sparse checkout (overwrite files that changed on git,
+			# keeping files that are not part of the repository)
+			git fetch --depth 1 origin tag "$git_describe"
+			git checkout "$git_describe"
+		fi
 
 		echo -e "Searching for unset environment variables..."
 
