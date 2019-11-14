@@ -1,42 +1,72 @@
 # DargStack Skeleton
 
-The template' directory and file tree documentation.
-
-Note that `Stack Project/production/secrets/` *should* and `Stack Project/production/stack.yml` *must* not be part of a repository that follows the DargStack template.
-They are still mentioned though to explain their roles within the template.
+DargStack template's directory and file tree documentation.
 
 
-## Table of Contents
+## Project Structure
 
 1. **[Main Project](#main-project)**
 1. **[Stack Project](#stack-project)**
     1. **[development/](#development)**
-        1. **[certificates/](#certificates)**
-        1. **[secrets/](#development-secrets)**
-        1. **[stack.yml](#development-stackyml)**
+        1. **[[resource-folders]](#resource-folders)**
+        1. **[secrets/](#secrets)**
+        1. **[stack.yml](#stackyml)**
     1. **[production/](#production)**
-        1. **[backup/](#backup)**
-        1. **[configurations/](#configurations)**
-        1. **[data/](#data)**
-        1. **[secrets/](#production-secrets)**
+        1. **[[resource-folders]](#resource-folders)**
         1. **[production.sed](#productionsed)**
         1. **[production.yml](#productionyml)**
         1. **[stack.env.template](#stackenvtemplate)**
-        1. **[stack.yml](#production-stackyml)**
+        1. **stack.yml¹**
+
+¹ Generated automatically and ignored by the VCS.
+
 
 ## Main Project
 
-The main project folder should at least contain a `Dockerfile` in addition to the main service's source.
+The main project folder must contain a `Dockerfile` in addition to the main service's source.
 
-This `Dockerfile` should be structured so that the development version is marked as such, i.e. with `AS development` at the `FROM` instruction.
-This way the DargStack script builds the development version by default, unless the `-p, --production` flag is passed.
+This `Dockerfile` should be structured so that the `FROM` instruction is tagged with `AS development` so that the DargStack script's `build` command builds the main project's development version (unless the `-p, --production` flag is passed).
 
 
 ## Stack Project
 
-The stack project is separated into the fundamental development configuration and the deriving production configuration.
-An IDE configuration file *may* connect those two directories so that they can be configured together.
+The stack project is separated into the fundamental development configuration and the production derivation configuration.
+The full production configuration is created from the development and the production derivation configuration by the DargStack script.
 
+---
+
+### Resource Folders
+
+If a stack requires resources that match one of the following folder's descriptions, the *should* be placed in the corresponding folder.
+There is no need for all folders to exist.
+
+Every service *should* have its resource placed in a subfolder of each resource folder.
+The subfolder's name *should* be name of the corresponding service as used in the `stack.yml`.
+
+1. **backups/**
+
+    If the stack contains a service that backs up Docker volumes to the filesystem, the target directory *should* be this folder.
+    Another backup step *should* be set up to move all backups to a secondary location.
+
+1. **certificates/**
+
+    A DargStack will most likely serve web apps and thus *should* make use of encryption certificates for HTTPS/SSL.
+    Those can easily be generated using [FiloSottile/mkcert](https://github.com/FiloSottile/mkcert).
+
+    Real certificates *must* be used for production.
+    For example, [Traefik](https://traefik.io/) can fetch those from [Let's Encrypt](https://letsencrypt.org/) automatically.
+
+1. **configurations/**
+
+    This directory stores configuration files for your services.
+    Configuration files, which include secrets, *must* be treated as secrets!
+
+1. **data/**
+
+    This directory stores data for your services.
+    An example are SQL files, containing database schemes, which are imported by your database on its first start.
+
+---
 
 ### development/
 
@@ -45,64 +75,14 @@ Similar to "mobile first", the DargStack template works "development first".
 The modifications needed for production are incremental to the configuration defined for development.
 
 
-#### certificates/
-
-A DargStack will most likely serve web apps and thus should make use of encryption certifices for HTTPS/SSL.
-Those can easily be generated using the [new-certificates.sh](https://gist.github.com/Dargmuesli/538a2c382c009f4620803679c8172c9d) script.
-The root certificate of those self-signed certificates needs to be imported in your browser.
-
-For production real certificates must be used.
-[Traefik](https://traefik.io/) can fetch those from [Let's Encrypt](https://letsencrypt.org/).
-
-
-<div id="development-secrets" />
-
 #### secrets/
 
-Confidential data, like usernames and passwords, need to be accessible as [Docker secrets](https://docs.docker.com/engine/swarm/secrets/) to keep them out of the source code.
-These files, which contain the passwords' values, need to exist inside the `[project-name]_stack/development/secrets/` directory.
+Confidential data, like usernames and passwords, needs to be accessible as [Docker secrets](https://docs.docker.com/engine/swarm/secrets/) to keep it out of the source code or environment configuration.
+Configuration files, which include secrets, *must* be treated as secrets too!
+The development configuration *can* use the contents of files as source for the secrets' values.
 
-
-<div id="development-stackyml" />
-
-#### stack.yml
-
-This file defines the complete stack, containing all services you deem necessary for development.
-Simply [deploy the development stack](https://docs.docker.com/engine/reference/commandline/stack_deploy/) using `dargstack deploy`!
-You can use the variable `${STACK_DOMAIN}` within this file, which is set to the project's name + `.test` automatically.
-
-
-### production/
-
-This directory contains data, like raw data or environment variables, that is needed for production as well as files, which define incremental changes to the development configuration that shall result in the production configuration.
-
-
-#### backup/
-
-The output of your backup services, which create regular backups of your data volumes, *can* be placed in this directory temporarily.
-This allows you to set up a method like a cron job that moves the dumped backup data to a different device.
-
-
-#### configurations/
-
-This directory stores configuration files for your services.
-
-
-#### data/
-
-This directory stores data for your serivces, like SQL dumps of database schemes, which shall be imported to your database on its first start.
-
-
-<div id="production-secrets" />
-
-#### secrets/
-
-Don't use password files for production as it's done for development. Use the `docker secret create` command instead.
-
-Data like environment variables, which set passwords, or configuration files, which include secret keys belong, should be provided as Docker secrets.
-In case the stack contains services which do not support Docker secrets yet, the data *can* be placed in this directory.
-In favor of efforts to adapt Docker secret usage this practise is discouraged though.
-
+Secret files *must not* be used for production though.
+Use the `docker secret create` command instead.
 PowerShell on Windows may add a carriage return at the end of strings piped to the command.
 A workaround can be that you create secrets from temporary files that do not contain a trailing newline.
 hey can be written using:
@@ -112,6 +92,18 @@ hey can be written using:
 ```
 
 When done, shred those files!
+
+
+#### stack.yml
+
+This file defines the full stack, containing all services you deem necessary for development.
+Simply [deploy the development stack](https://docs.docker.com/engine/reference/commandline/stack_deploy/) using `dargstack deploy`!
+You can use the variable `${STACK_DOMAIN}` within this file, which is set to the project's name + `.test` as the TLD automatically.
+
+
+### production/
+
+This directory contains resources that are needed for production as well as files, which define incremental changes to the development configuration that shall result in the full production configuration.
 
 
 #### production.sed
@@ -129,15 +121,5 @@ For more advanced modifications, like list manipulation, refer to [spruce's docu
 
 #### stack.env.template
 
-You *may* need to clone a `[project-name]_stack/production/stack.env.template` file to a sibling `stack.env` file and specify the included environment variables.
-
-`stack.env` contains environment variables for the production stack file itself.
-
-
-<div id="production-stackyml" />
-
-#### stack.yml
-
-This file does not exist in the bare DargStack skeleton.
-Utilize the helper script [dargstack](https://github.com/dargmuesli/dargstack_template/blob/master/dargstack) for deployment.
-It derives `[project-name]_stack/production/stack.yml` from `[project-name]_stack/development/stack.yml` and deploys the latter automatically.
+The `stack.env.template` file defines environment variables that are used in the the production `stack.yml`.
+The DargStack script clones the `stack.env.template` to a sibling `stack.env` file into which the environment variables' values *must* be filled.
