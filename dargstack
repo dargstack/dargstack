@@ -274,6 +274,7 @@ function derive() {
 
 	echo -e "Applying default seds..."
 
+	sed -i "s/^.* #DARGSTACK-REMOVE$//g" "$OUT"
 	sed -i "s/file:.*\.secret/external: true/g" "$OUT"
 	sed -i "s/\.\/certificates\//acme_data/g" "$OUT"
 	sed -i "s/\.\.\/production/\./g" "$OUT"
