@@ -129,6 +129,7 @@ function deploy() {
 			git remote add origin "$URL"
 			git config advice.detachedHead false
 			git config core.sparsecheckout true
+			echo "development/stack.env.template" >> "./.git/info/sparse-checkout"
 			echo "development/stack.yml" >> "./.git/info/sparse-checkout"
 			echo "production/*" >> "./.git/info/sparse-checkout"
 		fi
@@ -230,10 +231,14 @@ function deploy() {
 		then
 			exit 1
 		else
+			if [ -f "./production/stack.env" ]; then
+				rm "./production/stack.env"
+			fi
+
 			if [ -f "./development/stack.env" ]; then
 				echo -e "Adding development environment variables..."
 
-				cat "./development/stack.env" > "./production/stack.env"
+				cat "./development/stack.env" >> "./production/stack.env"
 			fi
 
 			if [ -f "./production/production.env" ]; then
