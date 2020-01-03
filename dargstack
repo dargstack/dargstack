@@ -51,6 +51,7 @@ PROJECT_NAME="${DIRECTORY_NAME%"_stack"}"
 
 ADVERTISE_ADDR=""
 MODE="development"
+OFFLINE=false
 URL="$(git remote get-url origin || true)"
 VERSION=""
 
@@ -84,6 +85,7 @@ function usage {
 	echo -e "    -a, --advertise-addr      The address Docker Swarm advertises."
 	echo -e "    -h, --help                Display this help. Usable with" \
 		"modules: all."
+	echo -e "    -o, --offline             Do not try to update the checkout"
 	echo -e "    -p, --production <tag>    Execute in production mode." \
 		"Version must equal a tag name or ${LIGHT_BLUE}latest${NC}. Usable" \
 		"with modules: ${LIGHT_BLUE}deploy${NC}."
@@ -100,13 +102,15 @@ function docker_sudo() {
 	then
 		docker "$@"
 	else
-		ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./production/stack.env" | xargs | sed -r 's/=[^ ]+//g' | sed -r 's/ /,/g')"
+		ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./production/stack.env" | xargs" \
+			" | sed -r 's/=[^ ]+//g' | sed -r 's/ /,/g')"
 
 		if [ -z "${SUDO_PASSWORD+x}" ]
 		then
 			sudo --preserve-env="$ENV_VARS_TO_PRESERVE" docker "$@"
 		else
-			echo "$SUDO_PASSWORD" | sudo -S --preserve-env="$ENV_VARS_TO_PRESERVE" docker "$@"
+			echo "$SUDO_PASSWORD" | \
+				sudo -S --preserve-env="$ENV_VARS_TO_PRESERVE" docker "$@"
 		fi
 	fi
 }
@@ -129,56 +133,62 @@ function deploy() {
 			git remote add origin "$URL"
 			git config advice.detachedHead false
 			git config core.sparsecheckout true
-			echo "development/stack.env.template" >> "./.git/info/sparse-checkout"
+			echo "development/stack.env.template" >> \
+				"./.git/info/sparse-checkout"
 			echo "development/stack.yml" >> "./.git/info/sparse-checkout"
 			echo "production/*" >> "./.git/info/sparse-checkout"
 		fi
 
-		echo -e "Updating checkout..."
-
-		git fetch -t
-		git fetch --depth 1
-
-		latest=false
-
-		if [ "$VERSION" = "latest" ]
+		if [ "$OFFLINE" = true ]
 		then
-			latest=true
-		fi
-
-		if [ "$(git tag -l)" = "" ]
-		then
-			echo -e "${LIGHT_YELLOW}The stack repository has no tags!${NC}"
-			git checkout origin/master
+			echo -e "Skipping checkout update (offline mode)."
 		else
-			if [ $latest ]
+			echo -e "Updating checkout..."
+
+			git fetch -t
+			git fetch --depth 1
+
+			latest=false
+
+			if [ "$VERSION" = "latest" ]
 			then
-				VERSION=$(git rev-list --tags --max-count=1)
+				latest=true
 			fi
 
-
-			git_describe=$(git describe --tags $VERSION 2>/dev/null) || true
-
-			if [ "$git_describe" = "" ]
+			if [ "$(git tag -l)" = "" ]
 			then
-				echo -e "${LIGHT_RED}Git describe failed!${NC}"
-
-				if [ "$latest" = "true" ]
+				echo -e "${LIGHT_YELLOW}The stack repository has no tags!${NC}"
+				git checkout origin/master
+			else
+				if [ $latest ]
 				then
-					echo -e "${LIGHT_YELLOW}Make sure the stack repository is" \
-						"tagged.${NC}"
-				else
-					echo -e "${LIGHT_YELLOW}Make sure the stack repository has the" \
-						"${LIGHT_BLUE}$VERSION${LIGHT_YELLOW} tag.${NC}"
+					VERSION=$(git rev-list --tags --max-count=1)
 				fi
 
-				exit 1
-			fi
+				git_describe=$(git describe --tags $VERSION 2>/dev/null) || true
 
-			# Update the sparse checkout (overwrite files that changed on git,
-			# keeping files that are not part of the repository)
-			git fetch --depth 1 origin tag "$git_describe"
-			git checkout "$git_describe"
+				if [ "$git_describe" = "" ]
+				then
+					echo -e "${LIGHT_RED}Git describe failed!${NC}"
+
+					if [ "$latest" = "true" ]
+					then
+						echo -e "${LIGHT_YELLOW}Make sure the stack" \
+							"repository is tagged.${NC}"
+					else
+						echo -e "${LIGHT_YELLOW}Make sure the stack" \
+							"repository has the ${LIGHT_BLUE}$VERSION" \
+							"${LIGHT_YELLOW} tag.${NC}"
+					fi
+
+					exit 1
+				fi
+
+				# Update the sparse checkout (overwrite files that changed on
+				# git, keeping files that are not part of the repository)
+				git fetch --depth 1 origin tag "$git_describe"
+				git checkout "$git_describe"
+			fi
 		fi
 
 		echo -e "Searching for unset environment variables..."
@@ -220,9 +230,9 @@ function deploy() {
 				if [ "$awk" != "" ]
 				then
 					error=true
-					echo -e "\n${LIGHT_RED}The following environment variables" \
-						"are not set in ${LIGHT_BLUE}${x%.template}${LIGHT_RED}:" \
-						"\n${LIGHT_YELLOW}$awk${NC}"
+					echo -e "\n${LIGHT_RED}The following environment" \
+						"variables are not set in ${LIGHT_BLUE}" \
+						"${x%.template}${LIGHT_RED}:\n${LIGHT_YELLOW}$awk${NC}"
 				fi
 			fi
 		done < <(find . -type f -name '*.template' -print0)
@@ -241,7 +251,8 @@ function deploy() {
 				if [ -f "./production/production.env" ]; then
 					echo -e "Adding production environment variables..."
 
-					cat "./production/production.env" >> "./production/stack.env"
+					cat "./production/production.env" >> \
+						"./production/stack.env"
 				fi
 			fi
 
@@ -280,7 +291,8 @@ function deploy() {
 	echo -e "Deploying ${LIGHT_BLUE}$PROJECT_NAME${NC} stack for" \
 		"${LIGHT_BLUE}$MODE${NC}..."
 
-	docker_sudo stack deploy -c "../${PROJECT_NAME}_stack/$MODE/stack.yml" --with-registry-auth "$PROJECT_NAME"
+	docker_sudo stack deploy -c "../${PROJECT_NAME}_stack/$MODE/stack.yml" \
+		--with-registry-auth "$PROJECT_NAME"
 }
 
 function derive() {
@@ -332,8 +344,8 @@ then
 fi
 
 # Parse command line parameters
-OPTIONS=a:hp:u:
-LONGOPTS=advertise_addr:,help,production:,url:
+OPTIONS=a:hop:u:
+LONGOPTS=advertise_addr:,help,offline,production:,url:
 
 ! PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS \
 	--name "$0" -- "$@")
@@ -354,6 +366,10 @@ do
 			echo -e "DargStack template helper script."
 			echo -e ""
 			usage
+			;;
+		-o|--offline)
+			OFFLINE=true
+			shift 1
 			;;
 		-p|--production)
 			MODE="production"
@@ -407,7 +423,8 @@ fi
 URL=${URL/"<owner>"/$PROJECT_OWNER}
 URL=${URL/"<name>"/${PROJECT_NAME}_stack}
 
-echo -e "DargStack project ${LIGHT_BLUE}$URL${NC} for ${LIGHT_BLUE}$MODE${NC}.\n"
+echo -e "DargStack project ${LIGHT_BLUE}$URL${NC} for" \
+	"${LIGHT_BLUE}$MODE${NC}.\n"
 
 case "$1" in
 "build")
@@ -424,11 +441,13 @@ case "$1" in
 	then
 		docker_sudo build -t "$PROJECT_OWNER/$project:$VERSION" "../$project/"
 	else
-		docker_sudo build -t "$PROJECT_OWNER/$project:dev" --target=development "../$project/"
+		docker_sudo build -t "$PROJECT_OWNER/$project:dev" \
+			--target=development "../$project/"
 	fi
 	;;
 "deploy")
-	deploy "$PROJECT_OWNER" "$PROJECT_NAME" "$VERSION" "$URL" "$MODE" "$ADVERTISE_ADDR"
+	deploy "$PROJECT_OWNER" "$PROJECT_NAME" "$VERSION" "$URL" "$MODE" \
+		"$ADVERTISE_ADDR"
 	;;
 "derive")
 	derive
@@ -438,7 +457,8 @@ case "$1" in
 	docker_sudo stack rm "$PROJECT_NAME"
 	;;
 "self-update")
-	wget "https://raw.githubusercontent.com/dargmuesli/dargstack/master/dargstack" -O "$THIS/dargstack"
+	wget "https://raw.githubusercontent.com/" \
+		"dargmuesli/dargstack/master/dargstack" -O "$THIS/dargstack"
 	chmod +x "$THIS/dargstack"
 	;;
 esac
