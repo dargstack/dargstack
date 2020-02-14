@@ -160,9 +160,11 @@ function deploy() {
 				echo -e "${LIGHT_YELLOW}The stack repository has no tags!${NC}"
 				git checkout origin/master
 			else
-				if [ $latest ]
+				if [ $latest = "true" ]
 				then
 					VERSION=$(git rev-list --tags --max-count=1)
+				else
+					VERSION=$(git rev-list --max-count=1 $VERSION)
 				fi
 
 				git_describe=$(git describe --tags $VERSION 2>/dev/null) || true
