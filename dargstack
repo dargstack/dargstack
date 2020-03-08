@@ -41,7 +41,7 @@ then
 fi
 
 # Get this script's directory
-THIS=$(dirname $(readlink -f "$0"))
+THIS=$(dirname "$(readlink -f "$0")")
 
 # convert the project name to a valid DNS name
 DIRECTORY_NAME=$(echo "${PWD##*/}" | sed -e "s/[^A-Za-z_]/-/g")
@@ -133,10 +133,12 @@ function deploy() {
 			git remote add origin "$URL"
 			git config advice.detachedHead false
 			git config core.sparsecheckout true
-			echo "development/stack.env.template" >> \
-				"./.git/info/sparse-checkout"
-			echo "development/stack.yml" >> "./.git/info/sparse-checkout"
-			echo "production/*" >> "./.git/info/sparse-checkout"
+
+			{
+				echo "development/stack.env.template"
+				echo "development/stack.yml"
+				echo "production/*"
+			} >> "./.git/info/sparse-checkout"
 		fi
 
 		if [ "$OFFLINE" = true ]
@@ -164,10 +166,10 @@ function deploy() {
 				then
 					VERSION=$(git rev-list --tags --max-count=1)
 				else
-					VERSION=$(git rev-list --max-count=1 $VERSION)
+					VERSION=$(git rev-list --max-count=1 "$VERSION")
 				fi
 
-				git_describe=$(git describe --tags $VERSION 2>/dev/null) || true
+				git_describe=$(git describe --tags "$VERSION" 2>/dev/null) || true
 
 				if [ "$git_describe" = "" ]
 				then
@@ -261,7 +263,7 @@ function deploy() {
 			if [ -f "./production/stack.env" ]; then
 				echo -e "Exporting production environment variables..."
 
-				export $(grep -v '^#' "./production/stack.env" | xargs)
+				export "$(grep -v '^#' "./production/stack.env" | xargs)"
 			fi
 
 			# Ensure Docker is part of a swarm
@@ -284,7 +286,7 @@ function deploy() {
 		if [ -f "./development/stack.env" ]; then
 			echo -e "Exporting development environment variables..."
 
-			export $(grep -v '^#' "./development/stack.env" | xargs)
+			export "$(grep -v '^#' "./development/stack.env" | xargs)"
 		fi
 
 		export "STACK_DOMAIN=$PROJECT_NAME.test"
