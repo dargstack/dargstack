@@ -287,7 +287,7 @@ function deploy() {
 		if [ -f "./development/stack.env" ]; then
 			echo -e "Exporting development environment variables..."
 
-			export $(grep -v '^#' "./development/stack.env" | xargs)
+			export $(grep -v '^#' "../${PROJECT_NAME}_stack/development/stack.env" | xargs)
 		fi
 
 		export "STACK_DOMAIN=$PROJECT_NAME.test"
