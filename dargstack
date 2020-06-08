@@ -78,6 +78,7 @@ function usage {
 	echo -e "    derive                    Derives a" \
 		"${LIGHT_BLUE}./production/stack.yml${NC} from" \
 		"${LIGHT_BLUE}./development/stack.yml${NC}."
+	echo -e "    rgen                      Generate the README." \
 	echo -e "    rm                        Removes the stack."
 	echo -e "    self-update               Updates the helper script."
 	echo -e ""
@@ -339,6 +340,15 @@ function derive() {
 	fi
 }
 
+function rgen() {
+	OUT="$PWD/README.md"
+
+	echo -e "Merging ${LIGHT_BLUE}./production/production.yml${NC}..."
+	docker_sudo run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
+		dargmuesli/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" \
+		>| "$OUT"
+}
+
 # Check if getopt is available
 ! getopt --test > /dev/null
 if [[ ${PIPESTATUS[0]} -ne 4 ]]
@@ -406,7 +416,7 @@ then
 	usage
 	exit 1
 elif [[ "$1" != "build" && "$1" != "deploy" && "$1" != "derive" && \
-	"$1" != "rm" && "$1" != "self-update" ]]
+	"$1" != "rgen" && "$1" != "rm" && "$1" != "self-update" ]]
 then
 	echo -e "${LIGHT_RED}Parameter '$1' equals neither" \
 	"${LIGHT_BLUE}build${LIGHT_RED} nor ${LIGHT_BLUE}deploy${LIGHT_RED} nor" \
@@ -455,6 +465,9 @@ case "$1" in
 	;;
 "derive")
 	derive
+	;;
+"rgen")
+	rgen
 	;;
 "rm")
 	echo -e "Removing stack ${LIGHT_BLUE}$PROJECT_NAME${NC}..."
