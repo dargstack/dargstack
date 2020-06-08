@@ -446,7 +446,7 @@ case "$1" in
 
 	if [ "${2+defined}" = "defined" ]
 	then
-		project+="_$2"
+		project="$2"
 	fi
 
 	echo -e "Building ${LIGHT_BLUE}$PROJECT_OWNER/$project:dev${NC}..."
