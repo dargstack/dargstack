@@ -10,6 +10,7 @@ It focuses on the development configuration, derives the production configuratio
 ## Table of Contents
 
 1. **[Skeleton](#skeleton)**
+1. **[Installation Example](#installation-example)**
 1. **[Helper Script](#helper-script)**
 1. **[Configuration](#configuration)**
 1. **[Example Projects](#example-projects)**
@@ -19,6 +20,19 @@ It focuses on the development configuration, derives the production configuratio
 
 The essential idea of this template.
 Read the full and detailed skeleton specification at [./README-skeleton.md](./README-skeleton.md).
+
+
+## Installation Example
+
+When using bash, you could "install" this script the following way:
+
+```bash
+mkdir ~/scripts/ \
+    && wget https://raw.githubusercontent.com/dargmuesli/dargstack/master/dargstack -O ~/scripts/dargstack \
+    && chmod +x ~/scripts/dargstack \
+    && echo 'export PATH="$PATH:$HOME/scripts/"' >> ~/.bashrc \
+    && . ~/.bashrc
+```
 
 
 ## Helper Script
