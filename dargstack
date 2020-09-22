@@ -434,8 +434,8 @@ then
 	exit 1
 fi
 
-if [[ ("$1" = "build" || "$1" = "deploy") \
-	&& "$MODE" = "development" && (! -d "../$PROJECT_NAME") ]]
+if [[ ("$1" = "build") && "$MODE" = "development" && \
+	(! -d "../$PROJECT_NAME") ]]
 then
 	echo -e "${LIGHT_RED}Running in ${LIGHT_BLUE}development${LIGHT_RED}" \
 		"mode, but directory ${LIGHT_BLUE}../$PROJECT_NAME${LIGHT_RED} does" \
