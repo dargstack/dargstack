@@ -44,7 +44,8 @@ fi
 THIS=$(dirname "$(readlink -f "$0")")
 
 # convert the project name to a valid DNS name
-DIRECTORY_NAME=$(echo "${PWD##*/}" | sed -e "s/[^A-Za-z_]/-/g")
+DIRECTORY_NAME_LITERAL="${PWD##*/}"
+DIRECTORY_NAME="${DIRECTORY_NAME_LITERAL//[^A-Za-z_]/-}"
 PROJECT_OWNER="${PWD%/*}"
 PROJECT_OWNER="${PROJECT_OWNER##*/}"
 PROJECT_NAME="${DIRECTORY_NAME%"_stack"}"
@@ -264,7 +265,10 @@ function deploy() {
 			if [ -f "./production/stack.env" ]; then
 				echo -e "Exporting production environment variables..."
 
-				export $(grep -v '^#' "./production/stack.env" | xargs)
+				grep -v '^#' "./production/stack.env" | xargs | while IFS='' read -r line
+				do
+					export "$line?"
+				done
 			fi
 
 			# Ensure Docker is part of a swarm
@@ -287,7 +291,10 @@ function deploy() {
 		if [ -f "./development/stack.env" ]; then
 			echo -e "Exporting development environment variables..."
 
-			export $(grep -v '^#' "../${PROJECT_NAME}_stack/development/stack.env" | xargs)
+			grep -v '^#' "../${PROJECT_NAME}_stack/development/stack.env" | xargs | while IFS='' read -r line
+			do
+				export "$line?"
+			done
 		fi
 
 		export "STACK_DOMAIN=$PROJECT_NAME.test"
@@ -333,10 +340,10 @@ function derive() {
 	if [ -f "./production/production.yml" ]
 	then
 		echo -e "Merging ${LIGHT_BLUE}./production/production.yml${NC}..."
-		echo "$(docker_sudo run --rm -v "$OUT:/manifests/stack.yml" -v \
-		"$PWD/production/production.yml:/manifests/production.yml" \
-		gfranks/spruce spruce merge /manifests/stack.yml \
-		/manifests/production.yml)" >| "$OUT"
+		docker_sudo run --rm -v "$OUT:/manifests/stack.yml" -v \
+			"$PWD/production/production.yml:/manifests/production.yml" \
+			gfranks/spruce spruce merge /manifests/stack.yml \
+			/manifests/production.yml >| "$OUT"
 	fi
 }
 
@@ -350,6 +357,7 @@ function rgen() {
 }
 
 # Check if getopt is available
+# shellcheck disable=SC2251
 ! getopt --test > /dev/null
 if [[ ${PIPESTATUS[0]} -ne 4 ]]
 then
@@ -361,6 +369,7 @@ fi
 OPTIONS=a:hop:u:
 LONGOPTS=advertise_addr:,help,offline,production:,url:
 
+# shellcheck disable=SC2251
 ! PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS \
 	--name "$0" -- "$@")
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
