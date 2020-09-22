@@ -340,10 +340,12 @@ function derive() {
 	if [ -f "./production/production.yml" ]
 	then
 		echo -e "Merging ${LIGHT_BLUE}./production/production.yml${NC}..."
-		docker_sudo run --rm -v "$OUT:/manifests/stack.yml" -v \
-			"$PWD/production/production.yml:/manifests/production.yml" \
-			gfranks/spruce spruce merge /manifests/stack.yml \
-			/manifests/production.yml >| "$OUT"
+
+		# shellcheck disable=SC2005
+		echo "$(docker_sudo run --rm -v "$OUT:/manifests/stack.yml" -v \
+		"$PWD/production/production.yml:/manifests/production.yml" \
+		gfranks/spruce spruce merge /manifests/stack.yml \
+		/manifests/production.yml)" >| "$OUT"
 	fi
 }
 
