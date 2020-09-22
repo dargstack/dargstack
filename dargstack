@@ -343,7 +343,7 @@ function derive() {
 function rgen() {
 	OUT="$PWD/README.md"
 
-	echo -e "Merging ${LIGHT_BLUE}./production/production.yml${NC}..."
+	echo -e "Creating ${LIGHT_BLUE}README.md${NC}..."
 	docker_sudo run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
 		dargmuesli/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" \
 		>| "$OUT"
