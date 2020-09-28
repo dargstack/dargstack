@@ -104,7 +104,7 @@ function docker_sudo() {
 	then
 		docker "$@"
 	else
-		ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./production/stack.env" | xargs \
+		ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./src/production/stack.env" | xargs \
 			| sed -r 's/=[^ ]+//g' | sed -r 's/ /,/g')"
 
 		if [ -z "${SUDO_PASSWORD+x}" ]
@@ -137,9 +137,9 @@ function deploy() {
 			git config core.sparsecheckout true
 
 			{
-				echo "development/stack.env.template"
-				echo "development/stack.yml"
-				echo "production/*"
+				echo "src/development/stack.env.template"
+				echo "src/development/stack.yml"
+				echo "src/production/*"
 			} >> "./.git/info/sparse-checkout"
 		fi
 
@@ -247,25 +247,25 @@ function deploy() {
 		then
 			exit 1
 		else
-			if [ ! -f "./production/stack.env" ]; then
-				if [ -f "./development/stack.env" ]; then
+			if [ ! -f "./src/production/stack.env" ]; then
+				if [ -f "./src/development/stack.env" ]; then
 					echo -e "Adding development environment variables..."
 
-					cat "./development/stack.env" >> "./production/stack.env"
+					cat "./src/development/stack.env" >> "./src/production/stack.env"
 				fi
 
-				if [ -f "./production/production.env" ]; then
+				if [ -f "./src/production/production.env" ]; then
 					echo -e "Adding production environment variables..."
 
-					cat "./production/production.env" >> \
-						"./production/stack.env"
+					cat "./src/production/production.env" >> \
+						"./src/production/stack.env"
 				fi
 			fi
 
-			if [ -f "./production/stack.env" ]; then
+			if [ -f "./src/production/stack.env" ]; then
 				echo -e "Exporting production environment variables..."
 
-				grep -v '^#' "./production/stack.env" | xargs | while IFS='' read -r line
+				grep -v '^#' "./src/production/stack.env" | xargs | while IFS='' read -r line
 				do
 					export "$line?"
 				done
@@ -288,10 +288,10 @@ function deploy() {
 
 		derive
 	else
-		if [ -f "./development/stack.env" ]; then
+		if [ -f "./src/development/stack.env" ]; then
 			echo -e "Exporting development environment variables..."
 
-			grep -v '^#' "../${PROJECT_NAME}_stack/development/stack.env" | xargs | while IFS='' read -r line
+			grep -v '^#' "../${PROJECT_NAME}_stack/src/development/stack.env" | xargs | while IFS='' read -r line
 			do
 				export "$line?"
 			done
@@ -303,17 +303,21 @@ function deploy() {
 	echo -e "Deploying ${LIGHT_BLUE}$PROJECT_NAME${NC} stack for" \
 		"${LIGHT_BLUE}$MODE${NC}..."
 
-	docker_sudo stack deploy -c "../${PROJECT_NAME}_stack/$MODE/stack.yml" \
+	docker_sudo stack deploy -c "../${PROJECT_NAME}_stack/src/$MODE/stack.yml" \
 		--with-registry-auth "$PROJECT_NAME"
 }
 
 function derive() {
-	IN="$PWD/development/stack.yml"
-	OUT="$PWD/production/stack.yml"
+	PATH_DEV_SHORT="src/development"
+	PATH_DEV="$PWD/$PATH_DEV_SHORT/"
+	PATH_PROD_SHORT="src/production"
+	PATH_PROD="$PWD/$PATH_PROD_SHORT/"
+	IN="$PATH_DEV/stack.yml"
+	OUT="$PATH_PROD/stack.yml"
 	seds=()
 
-	echo -e "Deriving ${LIGHT_BLUE}./production/stack.yml${NC} from" \
-		"${LIGHT_BLUE}./development/stack.yml${NC}..."
+	echo -e "Deriving ${LIGHT_BLUE}./${PATH_PROD_SHORT}/stack.yml${NC} from" \
+		"${LIGHT_BLUE}./${PATH_DEV_SHORT}/stack.yml${NC}..."
 
 	cp "$IN" "$OUT"
 
@@ -324,12 +328,12 @@ function derive() {
 	sed -i "s/\.\/certificates\//acme_data/g" "$OUT"
 	sed -i "s/\.\.\/production/\./g" "$OUT"
 
-	if [ -f "./production/production.sed" ]
+	if [ -f "./${PATH_PROD_SHORT}/production.sed" ]
 	then
 		echo -e "Applying seds from" \
-			"${LIGHT_BLUE}./production/production.sed${NC}..."
+			"${LIGHT_BLUE}./${PATH_PROD_SHORT}/production.sed${NC}..."
 
-		readarray -t seds < "./production/production.sed"
+		readarray -t seds < "./${PATH_PROD_SHORT}/production.sed"
 
 		for sed_string in "${seds[@]}"
 		do
@@ -337,13 +341,13 @@ function derive() {
 		done
 	fi
 
-	if [ -f "./production/production.yml" ]
+	if [ -f "./${PATH_PROD_SHORT}/production.yml" ]
 	then
-		echo -e "Merging ${LIGHT_BLUE}./production/production.yml${NC}..."
+		echo -e "Merging ${LIGHT_BLUE}./${PATH_PROD_SHORT}/production.yml${NC}..."
 
 		# shellcheck disable=SC2005
 		echo "$(docker_sudo run --rm -v "$OUT:/manifests/stack.yml" -v \
-		"$PWD/production/production.yml:/manifests/production.yml" \
+		"$PATH_PROD/production.yml:/manifests/production.yml" \
 		gfranks/spruce spruce merge /manifests/stack.yml \
 		/manifests/production.yml)" >| "$OUT"
 	fi
@@ -487,7 +491,7 @@ case "$1" in
 "self-update")
 	wget "$(printf "%s" \
 		"https://raw.githubusercontent.com/" \
-		"dargmuesli/dargstack/master/dargstack")" -O "$THIS/dargstack"
+		"dargmuesli/dargstack/master/src/dargstack")" -O "$THIS/dargstack"
 	chmod +x "$THIS/dargstack"
 	;;
 esac
