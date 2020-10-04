@@ -265,10 +265,8 @@ function deploy() {
 			if [ -f "./src/production/stack.env" ]; then
 				echo -e "Exporting production environment variables..."
 
-				grep -v '^#' "./src/production/stack.env" | xargs | while IFS='' read -r line
-				do
-					export "$line?"
-				done
+				# shellcheck disable=SC2046
+				export $(grep -v '^#' "./src/production/stack.env" | xargs)
 			fi
 
 			# Ensure Docker is part of a swarm
@@ -291,10 +289,8 @@ function deploy() {
 		if [ -f "./src/development/stack.env" ]; then
 			echo -e "Exporting development environment variables..."
 
-			grep -v '^#' "../${PROJECT_NAME}_stack/src/development/stack.env" | xargs | while IFS='' read -r line
-			do
-				export "$line?"
-			done
+			# shellcheck disable=SC2046
+			export $(grep -v '^#' "../${PROJECT_NAME}_stack/src/development/stack.env" | xargs)
 		fi
 
 		export "STACK_DOMAIN=$PROJECT_NAME.test"
