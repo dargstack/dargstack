@@ -82,6 +82,7 @@ function usage {
 	echo -e "    rgen                      Generate the README." \
 	echo -e "    rm                        Removes the stack."
 	echo -e "    self-update               Updates the helper script."
+	echo -e "    validate                  Checks for an up-2-date README."
 	echo -e ""
 	echo -e "${LIGHT_YELLOW}options${NC}"
 	echo -e "    -a, --advertise-addr      The address Docker Swarm advertises."
@@ -358,6 +359,12 @@ function rgen() {
 		>| "$OUT"
 }
 
+function validate() {
+	echo -e "Validating ${LIGHT_BLUE}README.md${NC}..."
+	docker_sudo run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
+		dargmuesli/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" -v
+}
+
 # Check if getopt is available
 # shellcheck disable=SC2251
 ! getopt --test > /dev/null
@@ -427,12 +434,14 @@ then
 	usage
 	exit 1
 elif [[ "$1" != "build" && "$1" != "deploy" && "$1" != "derive" && \
-	"$1" != "rgen" && "$1" != "rm" && "$1" != "self-update" ]]
+	"$1" != "rgen" && "$1" != "rm" && "$1" != "self-update" && \
+	"$1" != "validate" ]]
 then
 	echo -e "${LIGHT_RED}Parameter '$1' equals neither" \
 	"${LIGHT_BLUE}build${LIGHT_RED} nor ${LIGHT_BLUE}deploy${LIGHT_RED} nor" \
 	"${LIGHT_BLUE}derive${LIGHT_RED} nor ${LIGHT_BLUE}rm${LIGHT_RED}!" \
-	"nor ${LIGHT_BLUE}self-update${LIGHT_RED}!${NC}"
+	"nor ${LIGHT_BLUE}self-update${LIGHT_RED} nor" \
+	"${LIGHT_BLUE}validate${LIGHT_RED}!${NC}"
 	exit 1
 fi
 
@@ -489,6 +498,9 @@ case "$1" in
 		"https://raw.githubusercontent.com/" \
 		"dargmuesli/dargstack/master/src/dargstack")" -O "$THIS/dargstack"
 	chmod +x "$THIS/dargstack"
+	;;
+"validate")
+	validate
 	;;
 esac
 
