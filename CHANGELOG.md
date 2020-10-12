@@ -1,3 +1,10 @@
+# [0.3.0](https://github.com/dargmuesli/dargstack/compare/0.2.1...0.3.0) (2020-10-12)
+
+
+### Features
+
+* add validation ([c082724](https://github.com/dargmuesli/dargstack/commit/c082724cb30f216b60f66b3209e32f7b56a655dd))
+
 ## [0.2.1](https://github.com/dargmuesli/dargstack/compare/0.2.0...0.2.1) (2020-10-04)
 
 
