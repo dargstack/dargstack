@@ -105,8 +105,13 @@ function docker_sudo() {
 	then
 		docker "$@"
 	else
-		ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./src/production/stack.env" | xargs \
-			| sed -r 's/=[^ ]+//g' | sed -r 's/ /,/g')"
+		ENV_VARS_TO_PRESERVE=""
+
+		if [ -f "./src/production/stack.env" ]
+		then
+			ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./src/production/stack.env" | xargs \
+				| sed -r 's/=[^ ]+//g' | sed -r 's/ /,/g')"
+		fi
 
 		if [ -z "${SUDO_PASSWORD+x}" ]
 		then
