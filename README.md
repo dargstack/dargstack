@@ -74,16 +74,17 @@ Here is an example configuration for [dnsmasq](https://en.wikipedia.org/wiki/Dns
 
 `/etc/dnsmasq.conf`
 ```conf
-# Use NetworkManager's resolv.conf
-resolv-file=/run/NetworkManager/resolv.conf
+# Files to read resolv configuration from.
+conf-file=/etc/dnsmasq-openresolv.conf
+resolv-file=/etc/dnsmasq-resolv.conf
 
-# Limit to machine-wide requests
-listen-address=127.0.0.1
+# Limit to machine-wide requests.
+listen-address=::1,127.0.0.1
 
-# Wildcard DNS
+# Wildcard DNS.
 address=/.test/127.0.0.1
 
-# Enable logging (systemctl status dnsmasq)
+# Enable logging (systemctl status dnsmasq).
 #log-queries
 ```
 
@@ -91,9 +92,21 @@ address=/.test/127.0.0.1
 ```conf
 [main]
 
-# Don't touch /etc/resolv.conf
-rc-manager=unmanaged
+# Don't touch `/etc/resolv.conf`.
+rc-manager=resolvconf
 ```
+
+`/etc/resolvconf.conf`
+```conf
+# Limit to machine-wide requests.
+name_servers="::1 127.0.0.1"
+
+# Files to output resolv configuration to.
+dnsmasq_conf=/etc/dnsmasq-openresolv.conf
+dnsmasq_resolv=/etc/dnsmasq-resolv.conf
+```
+
+Then run `sudo resolvconf -u`!
 
 
 ## Example Projects
