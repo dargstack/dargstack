@@ -291,6 +291,8 @@ function deploy() {
 		fi
 
 		derive
+
+		docker_sudo images prune
 	else
 		if [ -f "./src/development/stack.env" ]; then
 			echo -e "Exporting development environment variables..."
