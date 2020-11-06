@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/dargmuesli/dargstack/compare/0.3.1...0.4.0) (2020-11-06)
+
+
+### Features
+
+* ask to prune images ([f0c8c5c](https://github.com/dargmuesli/dargstack/commit/f0c8c5cf5a9f9c5bb802f52b08f1047a03c321af))
+
 ## [0.3.1](https://github.com/dargmuesli/dargstack/compare/0.3.0...0.3.1) (2020-11-03)
 
 
