@@ -1,3 +1,10 @@
+# [0.5.0](https://github.com/dargmuesli/dargstack/compare/0.4.0...0.5.0) (2020-11-06)
+
+
+### Features
+
+* remove stopped containers ([7352a2a](https://github.com/dargmuesli/dargstack/commit/7352a2a1373d533ec59fffca84bfbd78a5bd790e))
+
 # [0.4.0](https://github.com/dargmuesli/dargstack/compare/0.3.1...0.4.0) (2020-11-06)
 
 
