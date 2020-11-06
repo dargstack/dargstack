@@ -292,6 +292,16 @@ function deploy() {
 
 		derive
 
+		containers_exited=$(docker_sudo ps --filter "status=exited" -q)
+
+		if [ -z "$containers_exited" ]
+		then
+			echo -e "No stopped containers to remove."
+		else
+			echo -e "Removing stopped containers..."
+			docker_sudo rm $(docker_sudo ps --filter "status=exited" -q)
+		fi
+
 		docker_sudo images prune
 	else
 		if [ -f "./src/development/stack.env" ]; then
