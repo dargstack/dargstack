@@ -1,3 +1,10 @@
+## [0.5.1](https://github.com/dargmuesli/dargstack/compare/0.5.0...0.5.1) (2020-11-10)
+
+
+### Bug Fixes
+
+* correct docker command ([cbadb8f](https://github.com/dargmuesli/dargstack/commit/cbadb8f190b6986a1eba6bed2733f4ec603790a5))
+
 # [0.5.0](https://github.com/dargmuesli/dargstack/compare/0.4.0...0.5.0) (2020-11-06)
 
 
