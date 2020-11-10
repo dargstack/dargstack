@@ -302,7 +302,7 @@ function deploy() {
 			docker_sudo rm $(docker_sudo ps --filter "status=exited" -q)
 		fi
 
-		docker_sudo images prune
+		docker_sudo image prune
 	else
 		if [ -f "./src/development/stack.env" ]; then
 			echo -e "Exporting development environment variables..."
