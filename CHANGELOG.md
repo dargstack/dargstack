@@ -1,3 +1,11 @@
+## [0.5.2](https://github.com/dargmuesli/dargstack/compare/0.5.1...0.5.2) (2020-12-09)
+
+
+### Bug Fixes
+
+* derive environment variables ([1797bbc](https://github.com/dargmuesli/dargstack/commit/1797bbca50564fe1d59bb42bc36c537a9b7f16a6))
+* remove incorrect exclamation mark ([04bfd2f](https://github.com/dargmuesli/dargstack/commit/04bfd2fe260da6b344229aa75cb2313c7b0eaaa7))
+
 ## [0.5.1](https://github.com/dargmuesli/dargstack/compare/0.5.0...0.5.1) (2020-11-10)
 
 
