@@ -252,41 +252,26 @@ function deploy() {
 		if [ "$error" = true ]
 		then
 			exit 1
-		else
-			if [ ! -f "./src/production/stack.env" ]; then
-				if [ -f "./src/development/stack.env" ]; then
-					echo -e "Adding development environment variables..."
+		fi
 
-					cat "./src/development/stack.env" >> "./src/production/stack.env"
-				fi
+		if [ -f "./src/production/stack.env" ]; then
+			echo -e "Exporting production environment variables..."
 
-				if [ -f "./src/production/production.env" ]; then
-					echo -e "Adding production environment variables..."
+			# shellcheck disable=SC2046
+			export $(grep -v '^#' "./src/production/stack.env" | xargs)
+		fi
 
-					cat "./src/production/production.env" >> \
-						"./src/production/stack.env"
-				fi
-			fi
+		# Ensure Docker is part of a swarm
+		if [ "$(docker_sudo info --format '{{.Swarm.LocalNodeState}}')" = \
+			"inactive" ]
+		then
+			echo -e "Creating swarm..."
 
-			if [ -f "./src/production/stack.env" ]; then
-				echo -e "Exporting production environment variables..."
-
-				# shellcheck disable=SC2046
-				export $(grep -v '^#' "./src/production/stack.env" | xargs)
-			fi
-
-			# Ensure Docker is part of a swarm
-			if [ "$(docker_sudo info --format '{{.Swarm.LocalNodeState}}')" = \
-				"inactive" ]
+			if [ "$ADVERTISE_ADDR" == "" ]
 			then
-				echo -e "Creating swarm..."
-
-				if [ "$ADVERTISE_ADDR" == "" ]
-				then
-					docker_sudo swarm init
-				else
-					docker_sudo swarm init --advertise-addr "$ADVERTISE_ADDR"
-				fi
+				docker_sudo swarm init
+			else
+				docker_sudo swarm init --advertise-addr "$ADVERTISE_ADDR"
 			fi
 		fi
 
@@ -364,6 +349,27 @@ function derive() {
 		"$PATH_PROD/production.yml:/manifests/production.yml" \
 		gfranks/spruce spruce merge /manifests/stack.yml \
 		/manifests/production.yml)" >| "$OUT"
+	fi
+
+	echo -e "Deriving ${LIGHT_BLUE}./${PATH_PROD_SHORT}/stack.env${NC} from" \
+		"${LIGHT_BLUE}./${PATH_DEV_SHORT}/stack.env${NC} and" \
+		"${LIGHT_BLUE}./${PATH_PROD_SHORT}/production.env${NC}..."
+
+	if [ -f "./src/production/stack.env" ]; then
+		rm "./src/production/stack.env"
+	fi
+
+	if [ -f "./src/development/stack.env" ]; then
+		echo -e "Adding development environment variables..."
+
+		cat "./src/development/stack.env" >> "./src/production/stack.env"
+	fi
+
+	if [ -f "./src/production/production.env" ]; then
+		echo -e "Adding production environment variables..."
+
+		cat "./src/production/production.env" >> \
+			"./src/production/stack.env"
 	fi
 }
 
