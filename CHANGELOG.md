@@ -1,3 +1,10 @@
+## [0.5.3](https://github.com/dargmuesli/dargstack/compare/0.5.2...0.5.3) (2020-12-09)
+
+
+### Bug Fixes
+
+* correct environment variable check order ([2860cec](https://github.com/dargmuesli/dargstack/commit/2860cec5f70f2103147b9e9ad812bba4d66385c8))
+
 ## [0.5.2](https://github.com/dargmuesli/dargstack/compare/0.5.1...0.5.2) (2020-12-09)
 
 
