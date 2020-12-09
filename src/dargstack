@@ -203,6 +203,8 @@ function deploy() {
 			fi
 		fi
 
+		derive
+
 		echo -e "Searching for unset environment variables..."
 
 		# Compare .env.template and .env files to find variables that are not
@@ -274,8 +276,6 @@ function deploy() {
 				docker_sudo swarm init --advertise-addr "$ADVERTISE_ADDR"
 			fi
 		fi
-
-		derive
 
 		containers_exited=$(docker_sudo ps --filter "status=exited" -q)
 
