@@ -456,7 +456,7 @@ elif [[ "$1" != "build" && "$1" != "deploy" && "$1" != "derive" && \
 then
 	echo -e "${LIGHT_RED}Parameter '$1' equals neither" \
 	"${LIGHT_BLUE}build${LIGHT_RED} nor ${LIGHT_BLUE}deploy${LIGHT_RED} nor" \
-	"${LIGHT_BLUE}derive${LIGHT_RED} nor ${LIGHT_BLUE}rm${LIGHT_RED}!" \
+	"${LIGHT_BLUE}derive${LIGHT_RED} nor ${LIGHT_BLUE}rm${LIGHT_RED}" \
 	"nor ${LIGHT_BLUE}self-update${LIGHT_RED} nor" \
 	"${LIGHT_BLUE}validate${LIGHT_RED}!${NC}"
 	exit 1
