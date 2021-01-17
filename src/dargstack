@@ -109,8 +109,8 @@ function docker_sudo() {
 
 		if [ -f "./src/production/stack.env" ]
 		then
-			ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./src/production/stack.env" | xargs \
-				| sed -r 's/=[^ ]+//g' | sed -r 's/ /,/g')"
+			ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./src/production/stack.env" \
+				| xargs | sed -r 's/=[^ ]+//g' | sed -r 's/ /,/g')"
 		fi
 
 		if [ -z "${SUDO_PASSWORD+x}" ]
@@ -177,7 +177,8 @@ function deploy() {
 					VERSION=$(git rev-list --max-count=1 "$VERSION")
 				fi
 
-				git_describe=$(git describe --tags "$VERSION" 2>/dev/null) || true
+				git_describe=$(git describe --tags "$VERSION" 2>/dev/null) \
+					|| true
 
 				if [ "$git_describe" = "" ]
 				then
@@ -284,7 +285,8 @@ function deploy() {
 			echo -e "No stopped containers to remove."
 		else
 			echo -e "Removing stopped containers..."
-			docker_sudo rm $(docker_sudo ps --filter "status=exited" -q)
+			# shellcheck disable=SC2086
+			docker_sudo rm $containers_exited
 		fi
 
 		docker_sudo image prune
@@ -293,7 +295,8 @@ function deploy() {
 			echo -e "Exporting development environment variables..."
 
 			# shellcheck disable=SC2046
-			export $(grep -v '^#' "../${PROJECT_NAME}_stack/src/development/stack.env" | xargs)
+			export $(grep -v '^#' \
+				"../${PROJECT_NAME}_stack/src/development/stack.env" | xargs)
 		fi
 
 		export "STACK_DOMAIN=$PROJECT_NAME.test"
@@ -342,7 +345,8 @@ function derive() {
 
 	if [ -f "./${PATH_PROD_SHORT}/production.yml" ]
 	then
-		echo -e "Merging ${LIGHT_BLUE}./${PATH_PROD_SHORT}/production.yml${NC}..."
+		echo -e \
+			"Merging ${LIGHT_BLUE}./${PATH_PROD_SHORT}/production.yml${NC}..."
 
 		# shellcheck disable=SC2005
 		echo "$(docker_sudo run --rm -v "$OUT:/manifests/stack.yml" -v \
@@ -380,6 +384,31 @@ function rgen() {
 	docker_sudo run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
 		dargmuesli/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" \
 		>| "$OUT"
+}
+
+function rm() {
+	PROJECT_NAME="$1"
+	echo -e "Removing stack ${LIGHT_BLUE}$PROJECT_NAME${NC}..."
+	docker_sudo stack rm "$PROJECT_NAME"
+
+	if [[ -n "$(docker service ls \
+			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" \
+		|| -n "$(docker network ls \
+			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]]
+	then
+		echo -e "Waiting for stack to vanish..."
+		until [ -z "$(docker service ls \
+			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]
+		do
+			sleep 1;
+		done
+
+		until [ -z "$(docker network ls \
+			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]
+		do
+			sleep 1;
+		done
+	fi
 }
 
 function validate() {
@@ -457,13 +486,14 @@ then
 	usage
 	exit 1
 elif [[ "$1" != "build" && "$1" != "deploy" && "$1" != "derive" && \
-	"$1" != "rgen" && "$1" != "rm" && "$1" != "self-update" && \
-	"$1" != "validate" ]]
+	"$1" != "redeploy" && "$1" != "rgen" && "$1" != "rm" && \
+	"$1" != "self-update" && "$1" != "validate" ]]
 then
 	echo -e "${LIGHT_RED}Parameter '$1' equals neither" \
 	"${LIGHT_BLUE}build${LIGHT_RED} nor ${LIGHT_BLUE}deploy${LIGHT_RED} nor" \
-	"${LIGHT_BLUE}derive${LIGHT_RED} nor ${LIGHT_BLUE}rm${LIGHT_RED}" \
-	"nor ${LIGHT_BLUE}self-update${LIGHT_RED} nor" \
+	"${LIGHT_BLUE}derive${LIGHT_RED} nor ${LIGHT_BLUE}redeploy${LIGHT_RED}" \
+	"nor ${LIGHT_BLUE}rm${LIGHT_RED} nor" \
+	"${LIGHT_BLUE}self-update${LIGHT_RED} nor" \
 	"${LIGHT_BLUE}validate${LIGHT_RED}!${NC}"
 	exit 1
 fi
@@ -509,12 +539,16 @@ case "$1" in
 "derive")
 	derive
 	;;
+"redeploy")
+	rm "$PROJECT_OWNER"
+	deploy "$PROJECT_OWNER" "$PROJECT_NAME" "$VERSION" "$URL" "$MODE" \
+		"$ADVERTISE_ADDR"
+	;;
 "rgen")
 	rgen
 	;;
 "rm")
-	echo -e "Removing stack ${LIGHT_BLUE}$PROJECT_NAME${NC}..."
-	docker_sudo stack rm "$PROJECT_NAME"
+	rm "$PROJECT_OWNER"
 	;;
 "self-update")
 	wget "$(printf "%s" \
