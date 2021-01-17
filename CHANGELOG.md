@@ -1,3 +1,10 @@
+# [0.6.0](https://github.com/dargmuesli/dargstack/compare/0.5.3...0.6.0) (2021-01-17)
+
+
+### Features
+
+* wait for docker rm & add redeploy command ([92f5a19](https://github.com/dargmuesli/dargstack/commit/92f5a190a55d48ac237065d822fca3207cf50b54)), closes [#8](https://github.com/dargmuesli/dargstack/issues/8)
+
 ## [0.5.3](https://github.com/dargmuesli/dargstack/compare/0.5.2...0.5.3) (2020-12-09)
 
 

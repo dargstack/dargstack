@@ -1,7 +1,7 @@
 {
   "name": "dargstack",
   "private": true,
-  "version": "0.5.3",
+  "version": "0.6.0",
   "scheduleVersion": "0.1.0",
   "description": "The DargStack script along with its and the template's documentation.",
   "main": "src/dargstack",
