@@ -1,3 +1,10 @@
+# [0.7.0](https://github.com/dargmuesli/dargstack/compare/0.6.0...0.7.0) (2021-01-17)
+
+
+### Features
+
+* remove dangling images only if stack is running ([98095b2](https://github.com/dargmuesli/dargstack/commit/98095b2c919f0c3405b5c48e7cfd76dd62df58f1)), closes [#6](https://github.com/dargmuesli/dargstack/issues/6)
+
 # [0.6.0](https://github.com/dargmuesli/dargstack/compare/0.5.3...0.6.0) (2021-01-17)
 
 
