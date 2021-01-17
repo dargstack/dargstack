@@ -289,7 +289,10 @@ function deploy() {
 			docker_sudo rm $containers_exited
 		fi
 
-		docker_sudo image prune
+		if isStackRunning "$PROJECT_NAME"
+		then
+			docker_sudo image prune
+		fi
 	else
 		if [ -f "./src/development/stack.env" ]; then
 			echo -e "Exporting development environment variables..."
@@ -377,6 +380,20 @@ function derive() {
 	fi
 }
 
+function isStackRunning() {
+	PROJECT_NAME="$1"
+
+	if [[ -n "$(docker service ls \
+			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" \
+		|| -n "$(docker network ls \
+			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]]
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
 function rgen() {
 	OUT="$PWD/README.md"
 
@@ -391,10 +408,7 @@ function rm() {
 	echo -e "Removing stack ${LIGHT_BLUE}$PROJECT_NAME${NC}..."
 	docker_sudo stack rm "$PROJECT_NAME"
 
-	if [[ -n "$(docker service ls \
-			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" \
-		|| -n "$(docker network ls \
-			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]]
+	if isStackRunning "$PROJECT_NAME"
 	then
 		echo -e "Waiting for stack to vanish..."
 		until [ -z "$(docker service ls \
