@@ -1,3 +1,10 @@
+## [0.7.1](https://github.com/dargmuesli/dargstack/compare/0.7.0...0.7.1) (2021-01-20)
+
+
+### Bug Fixes
+
+* naming ([268d7e6](https://github.com/dargmuesli/dargstack/commit/268d7e628c5e1614e15f19da6810944312fb45ba))
+
 # [0.7.0](https://github.com/dargmuesli/dargstack/compare/0.6.0...0.7.0) (2021-01-17)
 
 
