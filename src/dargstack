@@ -383,9 +383,9 @@ function derive() {
 function isStackRunning() {
 	PROJECT_NAME="$1"
 
-	if [[ -n "$(docker service ls \
+	if [[ -n "$(docker_sudo service ls \
 			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" \
-		|| -n "$(docker network ls \
+		|| -n "$(docker_sudo network ls \
 			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]]
 	then
 		return 0
@@ -403,7 +403,7 @@ function rgen() {
 		>| "$OUT"
 }
 
-function rm() {
+function remove() {
 	PROJECT_NAME="$1"
 	echo -e "Removing stack ${LIGHT_BLUE}$PROJECT_NAME${NC}..."
 	docker_sudo stack rm "$PROJECT_NAME"
@@ -411,13 +411,13 @@ function rm() {
 	if isStackRunning "$PROJECT_NAME"
 	then
 		echo -e "Waiting for stack to vanish..."
-		until [ -z "$(docker service ls \
+		until [ -z "$(docker_sudo service ls \
 			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]
 		do
 			sleep 1;
 		done
 
-		until [ -z "$(docker network ls \
+		until [ -z "$(docker_sudo network ls \
 			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]
 		do
 			sleep 1;
@@ -554,7 +554,7 @@ case "$1" in
 	derive
 	;;
 "redeploy")
-	rm "$PROJECT_OWNER"
+	remove "$PROJECT_OWNER"
 	deploy "$PROJECT_OWNER" "$PROJECT_NAME" "$VERSION" "$URL" "$MODE" \
 		"$ADVERTISE_ADDR"
 	;;
@@ -562,7 +562,7 @@ case "$1" in
 	rgen
 	;;
 "rm")
-	rm "$PROJECT_OWNER"
+	remove "$PROJECT_OWNER"
 	;;
 "self-update")
 	wget "$(printf "%s" \
