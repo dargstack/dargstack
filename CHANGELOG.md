@@ -1,3 +1,10 @@
+## [0.7.2](https://github.com/dargmuesli/dargstack/compare/0.7.1...0.7.2) (2021-02-25)
+
+
+### Bug Fixes
+
+* correct removal name ([3c8a1e3](https://github.com/dargmuesli/dargstack/commit/3c8a1e39aeee082a6cb772c2f745e595b7cf158d))
+
 ## [0.7.1](https://github.com/dargmuesli/dargstack/compare/0.7.0...0.7.1) (2021-01-20)
 
 
