@@ -554,7 +554,7 @@ case "$1" in
 	derive
 	;;
 "redeploy")
-	remove "$PROJECT_OWNER"
+	remove "$PROJECT_NAME"
 	deploy "$PROJECT_OWNER" "$PROJECT_NAME" "$VERSION" "$URL" "$MODE" \
 		"$ADVERTISE_ADDR"
 	;;
@@ -562,7 +562,7 @@ case "$1" in
 	rgen
 	;;
 "rm")
-	remove "$PROJECT_OWNER"
+	remove "$PROJECT_NAME"
 	;;
 "self-update")
 	wget "$(printf "%s" \
