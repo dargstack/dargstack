@@ -1,0 +1,15 @@
+name: CI
+
+on: [create, pull_request, push]
+
+env:
+  IMAGE_ID: ${{ github.repository }}
+
+jobs:
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2.3.5
+    - name: Run ShellCheck
+      uses: ludeeus/action-shellcheck@1.1.0
