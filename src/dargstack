@@ -10,6 +10,9 @@
 # variables exist
 set -o errexit -o pipefail -o noclobber -o nounset
 
+# allow matching of files by glob directly without find
+shopt -s globstar nullglob
+
 # Set color codes for use with echo
 LIGHT_BLUE='\e[94m'
 LIGHT_GREEN='\e[92m'
@@ -114,6 +117,34 @@ function docker_sudo() {
 				sudo -S --preserve-env="$ENV_VARS_TO_PRESERVE" docker "$@"
 		fi
 	fi
+}
+
+guard_valid_config() {
+	valid=$1
+
+	if [ "$valid" -gt 0 ]; then
+		echo -e "${LIGHT_RED}Deployment of ${LIGHT_BLUE}$PROJECT_NAME" \
+			"${LIGHT_RED}stack for ${LIGHT_BLUE}$MODE${LIGHT_RED} aborted" \
+			"due to invalid configuration!${NC}"
+		exit "$valid"
+	fi
+}
+
+function check_secret_templates() {
+	env=$1
+	valid=0
+
+	for template_path in "src/$env/secrets"/**/*.secret.template; do
+		secret_path=${template_path%.template}
+		secret_base_name="${secret_path##*/}"
+
+		if [[ ! -s "$secret_path" ]]; then
+			echo -e "${LIGHT_RED}Secret ${LIGHT_BLUE}${secret_path%/*}/$secret_base_name${LIGHT_RED} is missing!${NC}"
+			valid=1
+		fi
+	done
+
+	return $valid
 }
 
 function deploy() {
@@ -277,6 +308,9 @@ function deploy() {
 			export $(grep -v '^#' \
 				"../${PROJECT_NAME}_stack/src/development/stack.env" | xargs)
 		fi
+
+		check_secret_templates "development" || valid=$?
+		guard_valid_config $valid
 
 		export "STACK_DOMAIN=$PROJECT_NAME.test"
 	fi
