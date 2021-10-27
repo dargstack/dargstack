@@ -1,3 +1,16 @@
+# [0.8.0](https://github.com/dargmuesli/dargstack/compare/0.7.2...0.8.0) (2021-10-27)
+
+
+### Bug Fixes
+
+* minor tweaks ([db9ff9b](https://github.com/dargmuesli/dargstack/commit/db9ff9baa6381dc6ab787bca5b5943ae9a32edcb))
+* shellcheck ([3ebdf9d](https://github.com/dargmuesli/dargstack/commit/3ebdf9d460760381b19f40caf2eb68a0e071fa0a))
+
+
+### Features
+
+* warn for unset development secrets ([b721237](https://github.com/dargmuesli/dargstack/commit/b721237e74c5e2b820c96f6b583b207d8c89d343))
+
 ## [0.7.2](https://github.com/dargmuesli/dargstack/compare/0.7.1...0.7.2) (2021-02-25)
 
 
