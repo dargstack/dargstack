@@ -17,20 +17,17 @@ LIGHT_RED='\e[91m'
 LIGHT_YELLOW='\e[93m'
 NC='\e[0m'
 
-if ! hash git 2>/dev/null
-then
+if ! hash git 2>/dev/null; then
 	echo -e "${LIGHT_BLUE}git${LIGHT_YELLOW} is not available.${NC}"
 
-	if ! hash lsb_release 2>/dev/null
-	then
+	if ! hash lsb_release 2>/dev/null; then
 		echo -e "${LIGHT_RED}Could not determine OS distribution!${NC}"
 		echo -e "${LIGHT_BLUE}lsb_release${NC} is not available."
 		exit 1
 	fi
 
-	if [[ ("$(lsb_release -is)" == "Debian")
-		|| ("$(lsb_release -is)" == "Ubuntu") ]]
-	then
+	if [[ ("$(lsb_release -is)" == "Debian") || (\
+	"$(lsb_release -is)" == "Ubuntu") ]]; then
 		sudo apt-get install -y git
 	else
 		echo -e "${LIGHT_RED}Could not install ${LIGHT_BLUE}git${LIGHT_RED}" \
@@ -56,12 +53,11 @@ OFFLINE=false
 URL="$(git remote get-url origin || true)"
 VERSION=""
 
-if [ "$URL" == "" ]
-then
+if [ "$URL" == "" ]; then
 	URL="https://github.com/<owner>/<name>.git"
 fi
 
-function usage {
+function usage() {
 	echo -e "usage: ${0##*/} ${LIGHT_YELLOW}<module>${NC}" \
 		"${LIGHT_YELLOW}<options>${NC}"
 	echo -e ""
@@ -79,7 +75,7 @@ function usage {
 	echo -e "    derive                    Derives a" \
 		"${LIGHT_BLUE}./production/stack.yml${NC} from" \
 		"${LIGHT_BLUE}./development/stack.yml${NC}."
-	echo -e "    rgen                      Generate the README." \
+	echo -e "    rgen                      Generate the README."
 	echo -e "    rm                        Removes the stack."
 	echo -e "    self-update               Updates the helper script."
 	echo -e "    validate                  Checks for an up-2-date README."
@@ -101,23 +97,20 @@ function usage {
 }
 
 function docker_sudo() {
-	if id -nG | grep -qw "docker"
-	then
+	if id -nG | grep -qw "docker"; then
 		docker "$@"
 	else
 		ENV_VARS_TO_PRESERVE=""
 
-		if [ -f "./src/production/stack.env" ]
-		then
-			ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./src/production/stack.env" \
-				| xargs | sed -r 's/=[^ ]+//g' | sed -r 's/ /,/g')"
+		if [ -f "./src/production/stack.env" ]; then
+			ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./src/production/stack.env" |
+				xargs | sed -r 's/=[^ ]+//g' | sed -r 's/ /,/g')"
 		fi
 
-		if [ -z "${SUDO_PASSWORD+x}" ]
-		then
+		if [ -z "${SUDO_PASSWORD+x}" ]; then
 			sudo --preserve-env="$ENV_VARS_TO_PRESERVE" docker "$@"
 		else
-			echo "$SUDO_PASSWORD" | \
+			echo "$SUDO_PASSWORD" |
 				sudo -S --preserve-env="$ENV_VARS_TO_PRESERVE" docker "$@"
 		fi
 	fi
@@ -131,10 +124,8 @@ function deploy() {
 	MODE="$5"
 	ADVERTISE_ADDR="$6"
 
-	if [ "$MODE" = "production" ]
-	then
-		if [ ! -d "./.git" ]
-		then
+	if [ "$MODE" = "production" ]; then
+		if [ ! -d "./.git" ]; then
 			echo -e "Initializing a sparse Git checkout..."
 
 			git init
@@ -146,11 +137,10 @@ function deploy() {
 				echo "src/development/stack.env.template"
 				echo "src/development/stack.yml"
 				echo "src/production/*"
-			} >> "./.git/info/sparse-checkout"
+			} >>"./.git/info/sparse-checkout"
 		fi
 
-		if [ "$OFFLINE" = true ]
-		then
+		if [ "$OFFLINE" = true ]; then
 			echo -e "Skipping checkout update (offline mode)."
 		else
 			echo -e "Updating checkout..."
@@ -160,32 +150,27 @@ function deploy() {
 
 			latest=false
 
-			if [ "$VERSION" = "latest" ]
-			then
+			if [ "$VERSION" = "latest" ]; then
 				latest=true
 			fi
 
-			if [ "$(git tag -l)" = "" ]
-			then
+			if [ "$(git tag -l)" = "" ]; then
 				echo -e "${LIGHT_YELLOW}The stack repository has no tags!${NC}"
 				git checkout origin/master
 			else
-				if [ $latest = "true" ]
-				then
+				if [ $latest = "true" ]; then
 					VERSION=$(git rev-list --tags --max-count=1)
 				else
 					VERSION=$(git rev-list --max-count=1 "$VERSION")
 				fi
 
-				git_describe=$(git describe --tags "$VERSION" 2>/dev/null) \
-					|| true
+				git_describe=$(git describe --tags "$VERSION" 2>/dev/null) ||
+					true
 
-				if [ "$git_describe" = "" ]
-				then
+				if [ "$git_describe" = "" ]; then
 					echo -e "${LIGHT_RED}Git describe failed!${NC}"
 
-					if [ "$latest" = "true" ]
-					then
+					if [ "$latest" = "true" ]; then
 						echo -e "${LIGHT_YELLOW}Make sure the stack" \
 							"repository is tagged.${NC}"
 					else
@@ -213,16 +198,13 @@ function deploy() {
 		awk=""
 		error=false
 
-		while read -r -d $'\0' x
-		do
+		while read -r -d $'\0' x; do
 			# Create environment variable file from template
-			if [ ! -s "${x%.template}" ]
-			then
+			if [ ! -s "${x%.template}" ]; then
 				cp "$x" "${x%.template}"
 			fi
 
-			if [[ "$(echo "$x" | sed -n "/.env.template$/p")" != "" ]]
-			then
+			if [[ "$(echo "$x" | sed -n "/.env.template$/p")" != "" ]]; then
 				# Check if all environment variables are set
 				awk=$(awk '
 				{
@@ -242,8 +224,7 @@ function deploy() {
 					}
 				}' "${x%.template}" "$x")
 
-				if [ "$awk" != "" ]
-				then
+				if [ "$awk" != "" ]; then
 					error=true
 					echo -e "\n${LIGHT_RED}The following environment" \
 						"variables are not set in ${LIGHT_BLUE}" \
@@ -252,8 +233,7 @@ function deploy() {
 			fi
 		done < <(find . -type f -name '*.template' -print0)
 
-		if [ "$error" = true ]
-		then
+		if [ "$error" = true ]; then
 			exit 1
 		fi
 
@@ -266,12 +246,10 @@ function deploy() {
 
 		# Ensure Docker is part of a swarm
 		if [ "$(docker_sudo info --format '{{.Swarm.LocalNodeState}}')" = \
-			"inactive" ]
-		then
+			"inactive" ]; then
 			echo -e "Creating swarm..."
 
-			if [ "$ADVERTISE_ADDR" == "" ]
-			then
+			if [ "$ADVERTISE_ADDR" == "" ]; then
 				docker_sudo swarm init
 			else
 				docker_sudo swarm init --advertise-addr "$ADVERTISE_ADDR"
@@ -280,8 +258,7 @@ function deploy() {
 
 		containers_exited=$(docker_sudo ps --filter "status=exited" -q)
 
-		if [ -z "$containers_exited" ]
-		then
+		if [ -z "$containers_exited" ]; then
 			echo -e "No stopped containers to remove."
 		else
 			echo -e "Removing stopped containers..."
@@ -289,8 +266,7 @@ function deploy() {
 			docker_sudo rm $containers_exited
 		fi
 
-		if isStackRunning "$PROJECT_NAME"
-		then
+		if isStackRunning "$PROJECT_NAME"; then
 			docker_sudo image prune
 		fi
 	else
@@ -333,29 +309,26 @@ function derive() {
 	sed -i "s/\.\/certificates\//acme_data/g" "$OUT"
 	sed -i "s/\.\.\/production/\./g" "$OUT"
 
-	if [ -f "./${PATH_PROD_SHORT}/production.sed" ]
-	then
+	if [ -f "./${PATH_PROD_SHORT}/production.sed" ]; then
 		echo -e "Applying seds from" \
 			"${LIGHT_BLUE}./${PATH_PROD_SHORT}/production.sed${NC}..."
 
-		readarray -t seds < "./${PATH_PROD_SHORT}/production.sed"
+		readarray -t seds <"./${PATH_PROD_SHORT}/production.sed"
 
-		for sed_string in "${seds[@]}"
-		do
+		for sed_string in "${seds[@]}"; do
 			sed -i "$sed_string" "$OUT"
 		done
 	fi
 
-	if [ -f "./${PATH_PROD_SHORT}/production.yml" ]
-	then
+	if [ -f "./${PATH_PROD_SHORT}/production.yml" ]; then
 		echo -e \
 			"Merging ${LIGHT_BLUE}./${PATH_PROD_SHORT}/production.yml${NC}..."
 
 		# shellcheck disable=SC2005
 		echo "$(docker_sudo run --rm -v "$OUT:/manifests/stack.yml" -v \
-		"$PATH_PROD/production.yml:/manifests/production.yml" \
-		gfranks/spruce spruce merge /manifests/stack.yml \
-		/manifests/production.yml)" >| "$OUT"
+			"$PATH_PROD/production.yml:/manifests/production.yml" \
+			gfranks/spruce spruce merge /manifests/stack.yml \
+			/manifests/production.yml)" >|"$OUT"
 	fi
 
 	echo -e "Deriving ${LIGHT_BLUE}./${PATH_PROD_SHORT}/stack.env${NC} from" \
@@ -369,7 +342,7 @@ function derive() {
 	if [ -f "./src/development/stack.env" ]; then
 		echo -e "Adding development environment variables..."
 
-		cat "./src/development/stack.env" >> "./src/production/stack.env"
+		cat "./src/development/stack.env" >>"./src/production/stack.env"
 	fi
 
 	if [ -f "./src/production/production.env" ]; then
@@ -384,10 +357,9 @@ function isStackRunning() {
 	PROJECT_NAME="$1"
 
 	if [[ -n "$(docker_sudo service ls \
-			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" \
-		|| -n "$(docker_sudo network ls \
-			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]]
-	then
+		--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" || -n \
+	"$(docker_sudo network ls \
+		--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]]; then
 		return 0
 	else
 		return 1
@@ -400,7 +372,7 @@ function rgen() {
 	echo -e "Creating ${LIGHT_BLUE}README.md${NC}..."
 	docker_sudo run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
 		dargmuesli/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" \
-		>| "$OUT"
+		>|"$OUT"
 }
 
 function remove() {
@@ -408,19 +380,16 @@ function remove() {
 	echo -e "Removing stack ${LIGHT_BLUE}$PROJECT_NAME${NC}..."
 	docker_sudo stack rm "$PROJECT_NAME"
 
-	if isStackRunning "$PROJECT_NAME"
-	then
+	if isStackRunning "$PROJECT_NAME"; then
 		echo -e "Waiting for stack to vanish..."
 		until [ -z "$(docker_sudo service ls \
-			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]
-		do
-			sleep 1;
+			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]; do
+			sleep 1
 		done
 
 		until [ -z "$(docker_sudo network ls \
-			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]
-		do
-			sleep 1;
+			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]; do
+			sleep 1
 		done
 	fi
 }
@@ -433,9 +402,8 @@ function validate() {
 
 # Check if getopt is available
 # shellcheck disable=SC2251
-! getopt --test > /dev/null
-if [[ ${PIPESTATUS[0]} -ne 4 ]]
-then
+! getopt --test >/dev/null
+if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
 	echo -e "${LIGHT_RED}Cannot parse parameters!${NC}"
 	exit 1
 fi
@@ -453,68 +421,63 @@ fi
 
 eval set -- "$PARSED"
 
-while true
-do
+while true; do
 	case "$1" in
-		-a|--advertise-addr)
-			ADVERTISE_ADDR="$2"
-			shift 2
-			;;
-		-h|--help)
-			echo -e "DargStack template helper script."
-			echo -e ""
-			usage
-			;;
-		-o|--offline)
-			OFFLINE=true
-			shift 1
-			;;
-		-p|--production)
-			MODE="production"
-			VERSION="$2"
-			shift 2
-			;;
-		-u|--url)
-			URL="$2"
-			shift 2
-			;;
-		--)
-			shift
-			break
-			;;
-		*)
-			echo -e "${LIGHT_RED}Programming error!${NC}"
-			exit 2
-			;;
+	-a | --advertise-addr)
+		ADVERTISE_ADDR="$2"
+		shift 2
+		;;
+	-h | --help)
+		echo -e "DargStack template helper script."
+		echo -e ""
+		usage
+		;;
+	-o | --offline)
+		OFFLINE=true
+		shift 1
+		;;
+	-p | --production)
+		MODE="production"
+		VERSION="$2"
+		shift 2
+		;;
+	-u | --url)
+		URL="$2"
+		shift 2
+		;;
+	--)
+		shift
+		break
+		;;
+	*)
+		echo -e "${LIGHT_RED}Programming error!${NC}"
+		exit 2
+		;;
 	esac
 done
 
-if [[ $# -gt 2 ]]
-then
+if [[ $# -gt 2 ]]; then
 	echo -e "${LIGHT_YELLOW}ignoring everything after $2${NC}!"
 fi
 
-if [ $# -lt 1 ]
-then
+if [ $# -lt 1 ]; then
 	echo -e "${LIGHT_RED}No module parameter provided!${NC}"
 	usage
 	exit 1
 elif [[ "$1" != "build" && "$1" != "deploy" && "$1" != "derive" && \
 	"$1" != "redeploy" && "$1" != "rgen" && "$1" != "rm" && \
-	"$1" != "self-update" && "$1" != "validate" ]]
-then
+	"$1" != "self-update" && "$1" != "validate" ]]; then
 	echo -e "${LIGHT_RED}Parameter '$1' equals neither" \
-	"${LIGHT_BLUE}build${LIGHT_RED} nor ${LIGHT_BLUE}deploy${LIGHT_RED} nor" \
-	"${LIGHT_BLUE}derive${LIGHT_RED} nor ${LIGHT_BLUE}redeploy${LIGHT_RED}" \
-	"nor ${LIGHT_BLUE}rm${LIGHT_RED} nor" \
-	"${LIGHT_BLUE}self-update${LIGHT_RED} nor" \
-	"${LIGHT_BLUE}validate${LIGHT_RED}!${NC}"
+		"${LIGHT_BLUE}build${LIGHT_RED} nor ${LIGHT_BLUE}deploy${LIGHT_RED} nor" \
+		"${LIGHT_BLUE}derive${LIGHT_RED} nor ${LIGHT_BLUE}redeploy${LIGHT_RED}" \
+		"nor ${LIGHT_BLUE}rm${LIGHT_RED} nor" \
+		"${LIGHT_BLUE}self-update${LIGHT_RED} nor" \
+		"${LIGHT_BLUE}validate${LIGHT_RED}!${NC}"
 	exit 1
 fi
 
-if [[ ("$1" = "build") && "$MODE" = "development" && \
-	(! -d "../$PROJECT_NAME") ]]
-then
+if [[ ("$1" = "build") && "$MODE" = "development" && (! -d \
+	"../$PROJECT_NAME") ]]; then
 	echo -e "${LIGHT_RED}Running in ${LIGHT_BLUE}development${LIGHT_RED}" \
 		"mode, but directory ${LIGHT_BLUE}../$PROJECT_NAME${LIGHT_RED} does" \
 		"not exist!${NC}"
@@ -531,15 +494,13 @@ case "$1" in
 "build")
 	project="$PROJECT_NAME"
 
-	if [ "${2+defined}" = "defined" ]
-	then
+	if [ "${2+defined}" = "defined" ]; then
 		project="$2"
 	fi
 
 	echo -e "Building ${LIGHT_BLUE}$PROJECT_OWNER/$project:dev${NC}..."
 
-	if [ "$MODE" == "production" ]
-	then
+	if [ "$MODE" == "production" ]; then
 		docker_sudo build -t "$PROJECT_OWNER/$project:$VERSION" "../$project/"
 	else
 		docker_sudo build -t "$PROJECT_OWNER/$project:dev" \
