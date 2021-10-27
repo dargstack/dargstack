@@ -122,7 +122,7 @@ function docker_sudo() {
 guard_valid_config() {
 	valid=$1
 	# shellcheck disable=SC2091
-	if ! $(exit $valid); then
+	if ! $(exit "$valid"); then
 		echo -e "Deployment of ${LIGHT_BLUE}$PROJECT_NAME${NC} stack for" \
 			"${LIGHT_BLUE}$MODE${NC} aborted due to invalid configuration.\n" \
 			"See warnings above."
