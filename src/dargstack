@@ -122,8 +122,7 @@ function docker_sudo() {
 guard_valid_config() {
 	valid=$1
 	# shellcheck disable=SC2091
-	if ! $(exit $valid)
-	then
+	if ! $(exit $valid); then
 		echo -e "Deployment of ${LIGHT_BLUE}$PROJECT_NAME${NC} stack for" \
 			"${LIGHT_BLUE}$MODE${NC} aborted due to invalid configuration.\n" \
 			"See warnings above."
@@ -135,12 +134,10 @@ function check_secrets_templates() {
 	env=$1
 	valid=0
 
-	for template_path in "src/$env/secrets"/**/*.secret.template
-	do
+	for template_path in "src/$env/secrets"/**/*.secret.template; do
 		secret_path=${template_path%.template}
 		secret_base_name="${secret_path##*/}"
-		if [[ ! -s "$secret_path" ]]
-		then
+		if [[ ! -s "$secret_path" ]]; then
 			echo -e "Secret ${secret_path%/*}/${LIGHT_RED}$secret_base_name${NC} missing."
 			valid=1
 		fi
@@ -303,8 +300,7 @@ function deploy() {
 			docker_sudo image prune
 		fi
 	else
-		if [ -f "./src/development/stack.env" ]
-		then
+		if [ -f "./src/development/stack.env" ]; then
 			echo -e "Exporting development environment variables..."
 
 			# shellcheck disable=SC2046
@@ -372,20 +368,17 @@ function derive() {
 		"${LIGHT_BLUE}./${PATH_DEV_SHORT}/stack.env${NC} and" \
 		"${LIGHT_BLUE}./${PATH_PROD_SHORT}/production.env${NC}..."
 
-	if [ -f "./src/production/stack.env" ]
-	then
+	if [ -f "./src/production/stack.env" ]; then
 		rm "./src/production/stack.env"
 	fi
 
-	if [ -f "./src/development/stack.env" ]
-	then
+	if [ -f "./src/development/stack.env" ]; then
 		echo -e "Adding development environment variables..."
 
 		cat "./src/development/stack.env" >>"./src/production/stack.env"
 	fi
 
-	if [ -f "./src/production/production.env" ]
-	then
+	if [ -f "./src/production/production.env" ]; then
 		echo -e "Adding production environment variables..."
 
 		cat "./src/production/production.env" >> \
@@ -455,8 +448,7 @@ LONGOPTS=advertise_addr:,help,offline,production:,url:
 # shellcheck disable=SC2251
 ! PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS \
 	--name "$0" -- "$@")
-if [[ ${PIPESTATUS[0]} -ne 0 ]]
-then
+if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
 	exit 2
 fi
 
