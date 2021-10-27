@@ -121,27 +121,29 @@ function docker_sudo() {
 
 guard_valid_config() {
 	valid=$1
-	# shellcheck disable=SC2091
-	if ! $(exit "$valid"); then
-		echo -e "Deployment of ${LIGHT_BLUE}$PROJECT_NAME${NC} stack for" \
-			"${LIGHT_BLUE}$MODE${NC} aborted due to invalid configuration.\n" \
-			"See warnings above."
+
+	if [ "$valid" -gt 0 ]; then
+		echo -e "${LIGHT_RED}Deployment of ${LIGHT_BLUE}$PROJECT_NAME" \
+			"${LIGHT_RED}stack for ${LIGHT_BLUE}$MODE${LIGHT_RED} aborted" \
+			"due to invalid configuration!${NC}"
 		exit "$valid"
 	fi
 }
 
-function check_secrets_templates() {
+function check_secret_templates() {
 	env=$1
 	valid=0
 
 	for template_path in "src/$env/secrets"/**/*.secret.template; do
 		secret_path=${template_path%.template}
 		secret_base_name="${secret_path##*/}"
+
 		if [[ ! -s "$secret_path" ]]; then
-			echo -e "Secret ${secret_path%/*}/${LIGHT_RED}$secret_base_name${NC} missing."
+			echo -e "${LIGHT_RED}Secret ${LIGHT_BLUE}${secret_path%/*}/$secret_base_name${LIGHT_RED} is missing!${NC}"
 			valid=1
 		fi
 	done
+
 	return $valid
 }
 
@@ -266,8 +268,7 @@ function deploy() {
 			exit 1
 		fi
 
-		if [ -f "./src/production/stack.env" ]
-		then
+		if [ -f "./src/production/stack.env" ]; then
 			echo -e "Exporting production environment variables..."
 
 			# shellcheck disable=SC2046
@@ -308,7 +309,7 @@ function deploy() {
 				"../${PROJECT_NAME}_stack/src/development/stack.env" | xargs)
 		fi
 
-		check_secrets_templates "development" || valid=$?
+		check_secret_templates "development" || valid=$?
 		guard_valid_config $valid
 
 		export "STACK_DOMAIN=$PROJECT_NAME.test"
