@@ -1,3 +1,10 @@
+## [0.8.1](https://github.com/dargmuesli/dargstack/compare/0.8.0...0.8.1) (2021-11-16)
+
+
+### Bug Fixes
+
+* **template:** allow check of templates with values ([038c058](https://github.com/dargmuesli/dargstack/commit/038c05835f7c4c47addb9aed2a22cba85bbbcdd1))
+
 # [0.8.0](https://github.com/dargmuesli/dargstack/compare/0.7.2...0.8.0) (2021-10-27)
 
 
