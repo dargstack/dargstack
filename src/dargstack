@@ -247,7 +247,7 @@ function deploy() {
 					}
 
 					if ((NR != FNR) && ($0 !~ /(^#.*$|^$)/)) {
-						sub("=", "")
+						sub("=.*$", "")
 
 						if (!($0 in lines) || (lines[$0] == "")) {
 							print
