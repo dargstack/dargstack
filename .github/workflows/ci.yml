@@ -24,7 +24,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579 # renovate: tag=v2.4.0
       - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@767cc0b0cd610ffb1ffee1b36a9b39120adc5f80 # renovate: tag=v2.6.0
+        uses: cycjimmy/semantic-release-action@5982a02995853159735cb838992248c4f0f16166 # renovate: tag=v2.7.0
         with:
           extra_plugins: |
             @semantic-release/changelog
