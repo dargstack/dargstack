@@ -119,7 +119,7 @@ function docker_sudo() {
 	fi
 }
 
-guard_valid_config() {
+function guard_valid_config() {
 	valid=$1
 
 	if [ "$valid" -gt 0 ]; then
