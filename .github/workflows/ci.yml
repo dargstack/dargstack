@@ -19,6 +19,6 @@ jobs:
   semantic-release:
     needs: shellcheck
     name: Semantic Release
-    uses: dargmuesli/github-actions/.github/workflows/release-semantic.yml@0.11.7
+    uses: dargmuesli/github-actions/.github/workflows/release-semantic.yml@0.15.2
     secrets:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
