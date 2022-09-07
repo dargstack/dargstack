@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/dargmuesli/dargstack/compare/1.0.0...1.1.0) (2022-09-07)
+
+
+### Features
+
+* preserve environment variables for users outside docker group ([e55e83f](https://github.com/dargmuesli/dargstack/commit/e55e83f0662399d4a6154a01babce2619168a203))
+
 ## [0.8.1](https://github.com/dargmuesli/dargstack/compare/0.8.0...0.8.1) (2021-11-16)
 
 
