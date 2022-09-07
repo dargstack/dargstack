@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/dargmuesli/dargstack/compare/1.1.0...1.1.1) (2022-09-07)
+
+
+### Bug Fixes
+
+* preserve environment variables for development ([807900b](https://github.com/dargmuesli/dargstack/commit/807900b61fa2763925af3d51125818ce4de93eb2))
+
 # [1.1.0](https://github.com/dargmuesli/dargstack/compare/1.0.0...1.1.0) (2022-09-07)
 
 
