@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/dargmuesli/dargstack/compare/1.1.1...1.1.2) (2022-09-07)
+
+
+### Bug Fixes
+
+* ensure swarm for development too ([31e7309](https://github.com/dargmuesli/dargstack/commit/31e7309a7b93a35687f14cf971843dbf9ba70ed0))
+
 ## [1.1.1](https://github.com/dargmuesli/dargstack/compare/1.1.0...1.1.1) (2022-09-07)
 
 
