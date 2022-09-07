@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/dargmuesli/dargstack/compare/1.1.2...1.1.3) (2022-09-07)
+
+
+### Bug Fixes
+
+* **dargstack:** remove leftovers ([d02869c](https://github.com/dargmuesli/dargstack/commit/d02869c8b7dade2ace074fbdf7d9d9560b14b634))
+
 ## [1.1.2](https://github.com/dargmuesli/dargstack/compare/1.1.1...1.1.2) (2022-09-07)
 
 
