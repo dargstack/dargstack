@@ -331,9 +331,9 @@ function deploy() {
 		echo -e "Creating swarm..."
 
 		if [ "$ADVERTISE_ADDR" == "" ]; then
-			docker_sudo default np swarm init
+			docker_sudo default swarm init
 		else
-			docker_sudo default np swarm init --advertise-addr "$ADVERTISE_ADDR"
+			docker_sudo default swarm init --advertise-addr "$ADVERTISE_ADDR"
 		fi
 	fi
 
