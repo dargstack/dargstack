@@ -100,21 +100,28 @@ function usage() {
 }
 
 function docker_sudo() {
+	MODE="$1"
+	shift
+
 	if id -nG | grep -qw "docker"; then
 		docker "$@"
 	else
-		ENV_VARS_TO_PRESERVE=""
+		if [ "$MODE" = "production" ]; then
+			ENV_VARS_TO_PRESERVE=""
 
-		if [ -f "./src/production/stack.env" ]; then
-			ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./src/production/stack.env" |
-				xargs | sed -r 's/=[^ ]+//g' | sed -r 's/ /,/g')"
-		fi
+			if [ -f "./src/production/stack.env" ]; then
+				ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./src/production/stack.env" |
+					xargs | sed -r 's/=[^ ]+//g' | sed -r 's/ /,/g')"
+			fi
 
-		if [ -z "${SUDO_PASSWORD+x}" ]; then
-			sudo --preserve-env="$ENV_VARS_TO_PRESERVE" docker "$@"
+			if [ -z "${SUDO_PASSWORD+x}" ]; then
+				sudo --preserve-env="$ENV_VARS_TO_PRESERVE" docker "$@"
+			else
+				echo "$SUDO_PASSWORD" |
+					sudo -S --preserve-env="$ENV_VARS_TO_PRESERVE" docker "$@"
+			fi
 		else
-			echo "$SUDO_PASSWORD" |
-				sudo -S --preserve-env="$ENV_VARS_TO_PRESERVE" docker "$@"
+			sudo docker "$@"
 		fi
 	fi
 }
@@ -276,29 +283,29 @@ function deploy() {
 		fi
 
 		# Ensure Docker is part of a swarm
-		if [ "$(docker_sudo info --format '{{.Swarm.LocalNodeState}}')" = \
+		if [ "$(docker_sudo default info --format '{{.Swarm.LocalNodeState}}')" = \
 			"inactive" ]; then
 			echo -e "Creating swarm..."
 
 			if [ "$ADVERTISE_ADDR" == "" ]; then
-				docker_sudo swarm init
+				docker_sudo default swarm init
 			else
-				docker_sudo swarm init --advertise-addr "$ADVERTISE_ADDR"
+				docker_sudo default swarm init --advertise-addr "$ADVERTISE_ADDR"
 			fi
 		fi
 
-		containers_exited=$(docker_sudo ps --filter "status=exited" -q)
+		containers_exited=$(docker_sudo default ps --filter "status=exited" -q)
 
 		if [ -z "$containers_exited" ]; then
 			echo -e "No stopped containers to remove."
 		else
 			echo -e "Removing stopped containers..."
 			# shellcheck disable=SC2086
-			docker_sudo rm $containers_exited
+			docker_sudo default rm $containers_exited
 		fi
 
 		if isStackRunning "$PROJECT_NAME"; then
-			docker_sudo image prune
+			docker_sudo default image prune
 		fi
 	else
 		if [ -f "./src/development/stack.env" ]; then
@@ -318,7 +325,7 @@ function deploy() {
 	echo -e "Deploying ${LIGHT_BLUE}$PROJECT_NAME${NC} stack for" \
 		"${LIGHT_BLUE}$MODE${NC}..."
 
-	docker_sudo stack deploy -c "../${PROJECT_NAME}_stack/src/$MODE/stack.yml" \
+	docker_sudo "$MODE" stack deploy -c "../${PROJECT_NAME}_stack/src/$MODE/stack.yml" \
 		--with-registry-auth "$PROJECT_NAME"
 }
 
@@ -359,7 +366,7 @@ function derive() {
 			"Merging ${LIGHT_BLUE}./${PATH_PROD_SHORT}/production.yml${NC}..."
 
 		# shellcheck disable=SC2005
-		echo "$(docker_sudo run --rm -v "$OUT:/manifests/stack.yml" -v \
+		echo "$(docker_sudo default run --rm -v "$OUT:/manifests/stack.yml" -v \
 			"$PATH_PROD/production.yml:/manifests/production.yml" \
 			gfranks/spruce spruce merge /manifests/stack.yml \
 			/manifests/production.yml)" >|"$OUT"
@@ -390,9 +397,9 @@ function derive() {
 function isStackRunning() {
 	PROJECT_NAME="$1"
 
-	if [[ -n "$(docker_sudo service ls \
+	if [[ -n "$(docker_sudo default service ls \
 		--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" || -n \
-	"$(docker_sudo network ls \
+	"$(docker_sudo default network ls \
 		--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]]; then
 		return 0
 	else
@@ -404,7 +411,7 @@ function rgen() {
 	OUT="$PWD/README.md"
 
 	echo -e "Creating ${LIGHT_BLUE}README.md${NC}..."
-	docker_sudo run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
+	docker_sudo default run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
 		dargmuesli/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" \
 		>|"$OUT"
 }
@@ -412,16 +419,16 @@ function rgen() {
 function remove() {
 	PROJECT_NAME="$1"
 	echo -e "Removing stack ${LIGHT_BLUE}$PROJECT_NAME${NC}..."
-	docker_sudo stack rm "$PROJECT_NAME"
+	docker_sudo default stack rm "$PROJECT_NAME"
 
 	if isStackRunning "$PROJECT_NAME"; then
 		echo -e "Waiting for stack to vanish..."
-		until [ -z "$(docker_sudo service ls \
+		until [ -z "$(docker_sudo default service ls \
 			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]; do
 			sleep 1
 		done
 
-		until [ -z "$(docker_sudo network ls \
+		until [ -z "$(docker_sudo default network ls \
 			--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" ]; do
 			sleep 1
 		done
@@ -430,7 +437,7 @@ function remove() {
 
 function validate() {
 	echo -e "Validating ${LIGHT_BLUE}README.md${NC}..."
-	docker_sudo run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
+	docker_sudo default run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
 		dargmuesli/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" -v
 }
 
@@ -535,9 +542,9 @@ case "$1" in
 	echo -e "Building ${LIGHT_BLUE}$PROJECT_OWNER/$project:dev${NC}..."
 
 	if [ "$MODE" == "production" ]; then
-		docker_sudo build -t "$PROJECT_OWNER/$project:$VERSION" "../$project/"
+		docker_sudo default build -t "$PROJECT_OWNER/$project:$VERSION" "../$project/"
 	else
-		docker_sudo build -t "$PROJECT_OWNER/$project:dev" \
+		docker_sudo default build -t "$PROJECT_OWNER/$project:dev" \
 			--target=development "../$project/"
 	fi
 	;;
