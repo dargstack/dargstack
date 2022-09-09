@@ -3,8 +3,8 @@
 A template for Docker stack project layouts.
 Bootstrap it from [github.com/dargmuesli/dargstack_template](https://github.com/dargmuesli/dargstack_template)!
 
-This template solves the problem of separated development and production environments in the otherwise well-defined, containerized software development process.
-It focuses on the development configuration, derives the production configuration from it and makes deployments a breeze!
+> **This template solves the problem of separated development and production environments in the otherwise well-defined, containerized software development process.
+> It focuses on the development configuration, derives the production configuration from it and makes deployments a breeze!**
 
 
 ## Table of Contents
@@ -24,7 +24,7 @@ Read the full and detailed skeleton specification at [./README-skeleton.md](./RE
 
 ## Installation Example
 
-When using bash, you could "install" this script the following way:
+When using bash, you could setup this script as an executable the following way:
 
 ```bash
 mkdir ~/scripts/ \
@@ -33,6 +33,8 @@ mkdir ~/scripts/ \
     && echo 'export PATH="$PATH:$HOME/scripts/"' >> ~/.bashrc \
     && . ~/.bashrc
 ```
+
+Feel free to deviate from this example and use your personal preference!
 
 
 ## Helper Script
