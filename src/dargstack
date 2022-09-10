@@ -100,7 +100,7 @@ function usage() {
 }
 
 function docker_sudo() {
-	MODE="$1"
+	local MODE="$1"
 	shift
 
 	if id -nG | grep -qw "docker"; then
@@ -142,7 +142,7 @@ function docker_sudo() {
 }
 
 function guard_valid_config() {
-	valid=$1
+	local valid=$1
 
 	if [ "$valid" -gt 0 ]; then
 		echo -e "${LIGHT_RED}Deployment of ${LIGHT_BLUE}$PROJECT_NAME" \
@@ -153,7 +153,7 @@ function guard_valid_config() {
 }
 
 function check_secret_templates() {
-	env=$1
+	local env=$1
 	valid=0
 
 	for template_path in "src/$env/secrets"/**/*.secret.template; do
@@ -170,12 +170,12 @@ function check_secret_templates() {
 }
 
 function deploy() {
-	PROJECT_OWNER="$1"
-	PROJECT_NAME="$2"
-	VERSION="$3"
-	URL="$4"
-	MODE="$5"
-	ADVERTISE_ADDR="$6"
+	local PROJECT_OWNER="$1"
+	local PROJECT_NAME="$2"
+	local VERSION="$3"
+	local URL="$4"
+	local MODE="$5"
+	local ADVERTISE_ADDR="$6"
 
 	if [ "$MODE" = "production" ]; then
 		if [ ! -d "./.git" ]; then
@@ -345,13 +345,13 @@ function deploy() {
 }
 
 function derive() {
-	PATH_DEV_SHORT="src/development"
-	PATH_DEV="$PWD/$PATH_DEV_SHORT/"
-	PATH_PROD_SHORT="src/production"
-	PATH_PROD="$PWD/$PATH_PROD_SHORT/"
-	IN="$PATH_DEV/stack.yml"
-	OUT="$PATH_PROD/stack.yml"
-	seds=()
+	local PATH_DEV_SHORT="src/development"
+	local PATH_DEV="$PWD/$PATH_DEV_SHORT/"
+	local PATH_PROD_SHORT="src/production"
+	local PATH_PROD="$PWD/$PATH_PROD_SHORT/"
+	local IN="$PATH_DEV/stack.yml"
+	local OUT="$PATH_PROD/stack.yml"
+	local seds=()
 
 	echo -e "Deriving ${LIGHT_BLUE}./${PATH_PROD_SHORT}/stack.yml${NC} from" \
 		"${LIGHT_BLUE}./${PATH_DEV_SHORT}/stack.yml${NC}..."
@@ -410,7 +410,7 @@ function derive() {
 }
 
 function isStackRunning() {
-	PROJECT_NAME="$1"
+	local PROJECT_NAME="$1"
 
 	if [[ -n "$(docker_sudo default service ls \
 		--filter label=com.docker.stack.namespace="$PROJECT_NAME" -q)" || -n \
@@ -423,7 +423,7 @@ function isStackRunning() {
 }
 
 function rgen() {
-	OUT="$PWD/README.md"
+	local OUT="$PWD/README.md"
 
 	echo -e "Creating ${LIGHT_BLUE}README.md${NC}..."
 	docker_sudo default run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
@@ -432,7 +432,7 @@ function rgen() {
 }
 
 function remove() {
-	PROJECT_NAME="$1"
+	local PROJECT_NAME="$1"
 	echo -e "Removing stack ${LIGHT_BLUE}$PROJECT_NAME${NC}..."
 	docker_sudo default stack rm "$PROJECT_NAME"
 
