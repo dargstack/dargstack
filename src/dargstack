@@ -584,8 +584,9 @@ case "$1" in
 "self-update")
 	wget "$(printf "%s" \
 		"https://raw.githubusercontent.com/" \
-		"dargmuesli/dargstack/master/src/dargstack")" -O "$THIS/dargstack"
-	chmod +x "$THIS/dargstack"
+		"dargmuesli/dargstack/master/src/dargstack")" -O "$THIS/dargstack_updated"
+	chmod +x "$THIS/dargstack_updated"
+	mv "$THIS/dargstack_updated" "$THIS/dargstack"
 	;;
 "validate")
 	validate
