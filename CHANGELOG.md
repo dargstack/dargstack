@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/dargmuesli/dargstack/compare/1.2.0...1.2.1) (2022-09-10)
+
+
+### Bug Fixes
+
+* **self-update:** improve logic ([0a0594d](https://github.com/dargmuesli/dargstack/commit/0a0594d39995a598c9134a9de25a84d5378a1a55))
+
 # [1.2.0](https://github.com/dargmuesli/dargstack/compare/1.1.3...1.2.0) (2022-09-10)
 
 
