@@ -106,37 +106,38 @@ function docker_sudo() {
 	if id -nG | grep -qw "docker"; then
 		docker "$@"
 	else
-		if [ "$MODE" = "production" ]; then
-			ENV_VARS_TO_PRESERVE=""
+		ENV_VARS_TO_PRESERVE=("STACK_DOMAIN")
 
+		if [ "$MODE" = "production" ]; then
 			if [ -f "./src/production/stack.env" ]; then
-				ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./src/production/stack.env" |
-					xargs | sed -r 's/=[^ ]+//g' | sed -r 's/ /,/g')"
+				IFS=' ' read -r -a ENV_VARS_TO_PRESERVE_EXTENSION <<< "$(grep -v '^#' "./src/production/stack.env" |
+					xargs | sed -r 's/=[^ ]+//g')"
+				ENV_VARS_TO_PRESERVE+=("${ENV_VARS_TO_PRESERVE_EXTENSION[@]}")
 			else
 				echo -e "Not preserving any environment variables for root as" \
 					"file ${LIGHT_BLUE}./src/production/stack.env${NC} was" \
 					"not found."
 			fi
-
-			if [ -z "${SUDO_PASSWORD+x}" ]; then
-				sudo --preserve-env="$ENV_VARS_TO_PRESERVE" docker "$@"
-			else
-				echo "$SUDO_PASSWORD" |
-					sudo -S --preserve-env="$ENV_VARS_TO_PRESERVE" docker "$@"
-			fi
 		else
-			ENV_VARS_TO_PRESERVE=""
-
 			if [ -f "./src/development/stack.env" ]; then
-				ENV_VARS_TO_PRESERVE="$(grep -v '^#' "./src/development/stack.env" |
-					xargs | sed -r 's/=[^ ]+//g' | sed -r 's/ /,/g')"
+				IFS=' ' read -r -a ENV_VARS_TO_PRESERVE_EXTENSION <<< "$(grep -v '^#' "./src/development/stack.env" |
+					xargs | sed -r 's/=[^ ]+//g')"
+				ENV_VARS_TO_PRESERVE+=("${ENV_VARS_TO_PRESERVE_EXTENSION[@]}")
 			else
 				echo -e "Not preserving any environment variables for root as" \
 					"file ${LIGHT_BLUE}./src/development/stack.env${NC} was" \
 					"not found."
 			fi
+		fi
 
-			sudo --preserve-env="$ENV_VARS_TO_PRESERVE" docker "$@"
+		local ENV_VARS_TO_PRESERVE_STRING="${ENV_VARS_TO_PRESERVE[*]}"
+		ENV_VARS_TO_PRESERVE_STRING="${ENV_VARS_TO_PRESERVE_STRING//${IFS:0:1}/,}"
+
+		if [ -z "${SUDO_PASSWORD+x}" ]; then
+			sudo --preserve-env="${ENV_VARS_TO_PRESERVE_STRING}" docker "$@"
+		else
+			echo "$SUDO_PASSWORD" |
+				sudo -S --preserve-env="${ENV_VARS_TO_PRESERVE_STRING}" docker "$@"
 		fi
 	fi
 }
@@ -293,6 +294,7 @@ function deploy() {
 		if [ -f "./src/production/stack.env" ]; then
 			echo -e "Exporting production environment variables..."
 
+			export "STACK_DOMAIN=$PROJECT_NAME"
 			# shellcheck disable=SC2046
 			export $(grep -v '^#' "./src/production/stack.env" | xargs)
 		fi
