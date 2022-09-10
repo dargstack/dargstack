@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/dargmuesli/dargstack/compare/1.1.3...1.2.0) (2022-09-10)
+
+
+### Features
+
+* make function variables local ([81c5669](https://github.com/dargmuesli/dargstack/commit/81c5669a304311b1b6e8a5fbc0ea5c8d1c4ad078))
+
 ## [1.1.3](https://github.com/dargmuesli/dargstack/compare/1.1.2...1.1.3) (2022-09-07)
 
 
