@@ -456,6 +456,13 @@ function validate() {
 		dargmuesli/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" -v
 }
 
+function selfUpdate() {
+	wget "$(printf "%s" \
+		"https://raw.githubusercontent.com/" \
+		"dargmuesli/dargstack/master/src/dargstack")" -O "$THIS/dargstack"
+	chmod +x "$THIS/dargstack"
+}
+
 # Check if getopt is available
 # shellcheck disable=SC2251
 ! getopt --test >/dev/null
@@ -582,11 +589,7 @@ case "$1" in
 	remove "$PROJECT_NAME"
 	;;
 "self-update")
-	wget "$(printf "%s" \
-		"https://raw.githubusercontent.com/" \
-		"dargmuesli/dargstack/master/src/dargstack")" -O "$THIS/dargstack_updated"
-	chmod +x "$THIS/dargstack_updated"
-	mv "$THIS/dargstack_updated" "$THIS/dargstack"
+	trap selfUpdate EXIT
 	;;
 "validate")
 	validate
