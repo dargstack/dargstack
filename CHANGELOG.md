@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/dargmuesli/dargstack/compare/1.2.1...1.2.2) (2022-09-10)
+
+
+### Bug Fixes
+
+* **self-update:** trap function ([af2735e](https://github.com/dargmuesli/dargstack/commit/af2735eab3216c68fdc0e620d193c048ee144479))
+
 ## [1.2.1](https://github.com/dargmuesli/dargstack/compare/1.2.0...1.2.1) (2022-09-10)
 
 
