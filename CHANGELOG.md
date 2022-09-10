@@ -1,3 +1,10 @@
+## [1.2.3](https://github.com/dargmuesli/dargstack/compare/1.2.2...1.2.3) (2022-09-10)
+
+
+### Bug Fixes
+
+* preserve STACK_DOMAIN ([1a578df](https://github.com/dargmuesli/dargstack/commit/1a578df471b714de66814e65063b298da7fdd2e1))
+
 ## [1.2.2](https://github.com/dargmuesli/dargstack/compare/1.2.1...1.2.2) (2022-09-10)
 
 
