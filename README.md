@@ -9,17 +9,11 @@ Bootstrap it from [github.com/dargmuesli/dargstack_template](https://github.com/
 
 ## Table of Contents
 
-1. **[Skeleton](#skeleton)**
 1. **[Installation Example](#installation-example)**
+1. **[Skeleton](#skeleton)**
 1. **[Helper Script](#helper-script)**
 1. **[Configuration](#configuration)**
 1. **[Example Projects](#example-projects)**
-
-
-## Skeleton
-
-The essential idea of this template.
-Read the full and detailed skeleton specification at [./README-skeleton.md](./README-skeleton.md).
 
 
 ## Installation Example
@@ -35,6 +29,12 @@ mkdir ~/scripts/ \
 ```
 
 Feel free to deviate from this example and use your personal preference!
+
+
+## Skeleton
+
+The essential idea of this template.
+Read the full and detailed skeleton specification at [./README-skeleton.md](./README-skeleton.md).
 
 
 ## Helper Script
@@ -74,46 +74,97 @@ A few setup strategies for the development environment have proven themselves us
 
 Within development of a DargStack, access to the web apps should be routed via the locally resolved domain `[project_name].test` and its subdomains.
 Therefore one needs to configure the local DNS resolution to make this address resolvable.
-This can either be done by simply adding this domain and all subdomains to the operation system's hosts file or by settings up a local DNS server.
+This can either be done by simply adding this domain and all subdomains to the operation system's hosts file or by setting up a local DNS server.
 An advantage of the latter method is that subdomain wildcards can be used and thus not every subdomain needs to be defined separately.
 
-Here is an example configuration for [dnsmasq](https://en.wikipedia.org/wiki/Dnsmasq) on [Arch Linux](https://www.archlinux.org/) that uses the local DNS server on top of the router's advertised DNS server:
+Here is an example configuration for [dnsmasq](https://en.wikipedia.org/wiki/Dnsmasq) that uses the local DNS server on top of the router's advertised DNS server:
 
-`/etc/dnsmasq.conf`
-```conf
-# Files to read resolv configuration from.
-conf-file=/etc/dnsmasq-openresolv.conf
-resolv-file=/etc/dnsmasq-resolv.conf
+<details>
+  <summary><b>Instructions for Arch Linux</b></summary>
 
-# Limit to machine-wide requests.
-listen-address=::1,127.0.0.1
+  `/etc/dnsmasq.conf`
+  ```env
+  # Files to read resolv configuration from.
+  conf-file=/etc/dnsmasq-openresolv.conf
+  resolv-file=/etc/dnsmasq-resolv.conf
 
-# Wildcard DNS.
-address=/.test/127.0.0.1
+  # Limit to machine-wide requests.
+  listen-address=::1,127.0.0.1
 
-# Enable logging (systemctl status dnsmasq).
-#log-queries
-```
+  # Wildcard DNS.
+  address=/.test/127.0.0.1
 
-`/etc/NetworkManager/NetworkManager.conf`
-```conf
-[main]
+  # Enable logging (systemctl status dnsmasq).
+  #log-queries
+  ```
 
-# Don't touch `/etc/resolv.conf`.
-rc-manager=resolvconf
-```
+  `/etc/NetworkManager/NetworkManager.conf`
+  ```env
+  [main]
 
-`/etc/resolvconf.conf`
-```conf
-# Limit to machine-wide requests.
-name_servers="::1 127.0.0.1"
+  # Don't touch `/etc/resolv.conf`.
+  rc-manager=resolvconf
+  ```
 
-# Files to output resolv configuration to.
-dnsmasq_conf=/etc/dnsmasq-openresolv.conf
-dnsmasq_resolv=/etc/dnsmasq-resolv.conf
-```
+  `/etc/resolvconf.conf`
+  ```env
+  # Limit to machine-wide requests.
+  name_servers="::1 127.0.0.1"
 
-Then run `sudo resolvconf -u`!
+  # Files to output resolv configuration to.
+  dnsmasq_conf=/etc/dnsmasq-openresolv.conf
+  dnsmasq_resolv=/etc/dnsmasq-resolv.conf
+  ```
+
+  Then run `sudo resolvconf -u`!
+</details>
+
+<details>
+  <summary><b>Instructions for Ubuntu & Debian</b></summary>
+
+  `/etc/dnsmasq.conf`
+  ```env
+  # Files to read resolv configuration from.
+  resolv-file=/etc/resolvconf/resolv.conf.d/original
+
+  # Limit to machine-wide requests.
+  listen-address=::1,127.0.0.1
+
+  # Wildcard DNS.
+  address=/.test/127.0.0.1
+
+  # Enable logging (systemctl status dnsmasq).
+  #log-queries
+  ```
+
+  `/etc/NetworkManager/NetworkManager.conf`
+  ```env
+  [main]
+
+  # Don't touch `/etc/resolv.conf`.
+  rc-manager=resolvconf
+  systemd-resolved=false # for Ubuntu and Debian
+  ```
+
+  `/etc/resolvconf/resolv.conf.d/head`
+  ```env
+  nameserver=::1
+  nameserver=127.0.0.1
+  ```
+  
+  ---
+  
+  If on [WSL](https://docs.microsoft.com/en-us/windows/wsl/install):
+
+  `/etc/wsl.conf`
+  ```env
+  [network]
+  generateResolvConf = false
+
+  [boot]
+  command="dpkg-reconfigure --frontend=noninteractive resolvconf && resolvconf -u && service docker start && service dnsmasq start && service resolvconf start"
+  ```
+</details>
 
 
 ## Example Projects
@@ -121,5 +172,5 @@ Then run `sudo resolvconf -u`!
 - [dargmuesli/dargstack-example](https://github.com/dargmuesli/dargstack-example/)
 - [dargmuesli/dargstack-example_stack](https://github.com/dargmuesli/dargstack-example_stack/)
 - [dargmuesli/jonas-thelemann_stack](https://github.com/dargmuesli/jonas-thelemann_stack/)
-- [dargmuesli/randomwinpicker_stack](https://github.com/dargmuesli/randomwinpicker_stack/)
 - [flipdot/drinks-touch_stack](https://github.com/flipdot/drinks-touch_stack/)
+- [maevsi/maevsi_stack](https://github.com/maevsi/maevsi_stack/)
