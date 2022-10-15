@@ -29,8 +29,14 @@ mkdir ~/scripts/ \
 ```
 
 Feel free to deviate from this example and use your personal preference!
-Info for Apple users: The bash used on macOS is of version 3.x which has no globstar installed. To run the dargstack file you need to install a new bash from i.e. brew, activate globstar with shopt -s globstar in bash and set the new bash as the one to use in the dargstack shebang.
-This arises another problem with the parameters which has to be investigated further. This will be done next. For now it is not possible to use dargstack on mac unfortunately.
+
+### Info for Apple users
+
+The bash used on macOS is of version 3.x which has no [globstar](https://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html) installed.
+To run dargstack you need to install a newer version of bash from i.e. [brew](https://brew.sh/), activate globstar with `shopt -s globstar` and set the new bash as the one to use in the [dargstack shebang](https://github.com/dargmuesli/dargstack/blob/master/src/dargstack#L1).
+
+This arises another problem with the parameters which will be tracked in [#48](https://github.com/dargmuesli/dargstack/issues/48)
+For now it is not possible to use dargstack on mac unfortunately.
 
 
 ## Skeleton
@@ -153,9 +159,9 @@ Here is an example configuration for [dnsmasq](https://en.wikipedia.org/wiki/Dns
   nameserver=::1
   nameserver=127.0.0.1
   ```
-  
+
   ---
-  
+
   If on [WSL](https://docs.microsoft.com/en-us/windows/wsl/install):
 
   `/etc/wsl.conf`
