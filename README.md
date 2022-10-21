@@ -35,12 +35,15 @@ Feel free to deviate from this example and use your personal preference!
 The bash used on macOS is of version 3.x which has no [globstar](https://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html) installed.
 To run dargstack you need to install a newer version of bash from i.e. [brew](https://brew.sh/) and set the new bash as the one to use in the [dargstack shebang](https://github.com/dargmuesli/dargstack/blob/master/src/dargstack#L1).
 
-A second problem that arises after that is that parameters couldn't be read. This comes from the getopt function which is a different one on macOS than on usual linux distros and does not support long options with two hyphens. More info on that [here](https://en.wikipedia.org/wiki/Getopt#Extensions)
+A second problem that arises after that is that parameters couldn't be read. 
+This comes from the getopt function which is a different one on macOS than on usual linux distros and does not support long options with two hyphens. 
+More info on that [here](https://en.wikipedia.org/wiki/Getopt#Extensions)
 
-To solve this problem the gnu-getopt version of getopt has to be installed. As the bash it can be installed from [brew](https://formulae.brew.sh/formula/gnu-getopt#default). If you don't wish to add the getopt to the path just change the ```getopt``` command to the new installed getopt by adding the installation directory in front of the getopt command. An example can be seen in the dargstack_macos file. In that case the changes have to be done to line 472 and 484.
-
-This arises another problem with the parameters which will be tracked in [#48](https://github.com/dargmuesli/dargstack/issues/48)
-For now it is not possible to use dargstack on mac unfortunately.
+To solve this problem the gnu-getopt version of getopt has to be installed. 
+As the bash it can be installed from [brew](https://formulae.brew.sh/formula/gnu-getopt#default). 
+If you don't wish to add the getopt to the path just change the ```getopt``` command to the new installed getopt by adding the installation directory in front of the getopt command. 
+An example can be seen in the dargstack_macos file. 
+In that case the changes have to be done to line 472 and 484.
 
 
 ## Skeleton
