@@ -43,18 +43,16 @@ fi
 # Get this script's directory
 THIS=$(dirname "$(readlink -f "$0")")
 
-# convert the project name to a valid DNS name
-DIRECTORY_NAME_LITERAL="${PWD##*/}"
-DIRECTORY_NAME="${DIRECTORY_NAME_LITERAL//[^A-Za-z_]/-}"
-PROJECT_OWNER="${PWD%/*}"
-PROJECT_OWNER="${PROJECT_OWNER##*/}"
-PROJECT_NAME="${DIRECTORY_NAME%"_stack"}"
-
 ADVERTISE_ADDR=""
 MODE="development"
 OFFLINE=false
-URL="$(git remote get-url origin || true)"
+STACK_DIRECTORY="$PWD"
+URL=""
 VERSION=""
+
+if [ -d ".git" ]; then
+	URL="$(git remote get-url origin)"
+fi
 
 if [ "$URL" == "" ]; then
 	URL="https://github.com/<owner>/<name>.git"
@@ -91,6 +89,10 @@ function usage() {
 	echo -e "    -p, --production <tag>    Execute in production mode." \
 		"Version must equal a tag name or ${LIGHT_BLUE}latest${NC}. Usable" \
 		"with modules: ${LIGHT_BLUE}deploy${NC}."
+	echo -e "    -s, --stack-directory     Which directory to use as working" \
+		"directory. Required when running in Docker to map host directories." \
+		"Usable with modules: ${LIGHT_BLUE}derive${NC}," \
+		"${LIGHT_BLUE}rgen${NC}, ${LIGHT_BLUE}verify${NC}."
 	echo -e "    -u, --url <url>           The URL to clone from. May" \
 		"include the substrings ${LIGHT_BLUE}<owner>${NC} and" \
 		"${LIGHT_BLUE}<name>${NC} that are replaced by their corresponding" \
@@ -103,10 +105,10 @@ function docker_sudo() {
 	local MODE="$1"
 	shift
 
-	if id -nG | grep -qw "docker"; then
+	if id -nG "$(whoami)" | grep -qw "docker"; then
 		docker "$@"
 	else
-		ENV_VARS_TO_PRESERVE=("STACK_DOMAIN")
+		ENV_VARS_TO_PRESERVE=("STACK_DIRECTORY" "STACK_DOMAIN")
 
 		if [ "$MODE" = "production" ]; then
 			if [ -f "./src/production/stack.env" ]; then
@@ -294,6 +296,7 @@ function deploy() {
 		if [ -f "./src/production/stack.env" ]; then
 			echo -e "Exporting production environment variables..."
 
+			export "STACK_DIRECTORY=$STACK_DIRECTORY/src/production/"
 			export "STACK_DOMAIN=$PROJECT_NAME"
 			# shellcheck disable=SC2046
 			export $(grep -v '^#' "./src/production/stack.env" | xargs)
@@ -317,13 +320,13 @@ function deploy() {
 			echo -e "Exporting development environment variables..."
 
 			# shellcheck disable=SC2046
-			export $(grep -v '^#' \
-				"../${PROJECT_NAME}_stack/src/development/stack.env" | xargs)
+			export $(grep -v '^#' "./src/development/stack.env" | xargs)
 		fi
 
 		check_secret_templates "development" || valid=$?
 		guard_valid_config $valid
 
+		export "STACK_DIRECTORY=$STACK_DIRECTORY/src/development/"
 		export "STACK_DOMAIN=$PROJECT_NAME.test"
 	fi
 
@@ -342,7 +345,7 @@ function deploy() {
 	echo -e "Deploying ${LIGHT_BLUE}$PROJECT_NAME${NC} stack for" \
 		"${LIGHT_BLUE}$MODE${NC}..."
 
-	docker_sudo "$MODE" stack deploy -c "../${PROJECT_NAME}_stack/src/$MODE/stack.yml" \
+	docker_sudo "$MODE" stack deploy -c "./src/$MODE/stack.yml" \
 		--with-registry-auth "$PROJECT_NAME"
 }
 
@@ -383,8 +386,9 @@ function derive() {
 			"Merging ${LIGHT_BLUE}./${PATH_PROD_SHORT}/production.yml${NC}..."
 
 		# shellcheck disable=SC2005
-		echo "$(docker_sudo default run --rm -v "$OUT:/manifests/stack.yml" -v \
-			"$PATH_PROD/production.yml:/manifests/production.yml" \
+		echo "$(docker_sudo default run --rm \
+			-v "$STACK_DIRECTORY/$PATH_PROD_SHORT/stack.yml:/manifests/stack.yml" \
+			-v "$STACK_DIRECTORY/$PATH_PROD_SHORT/production.yml:/manifests/production.yml" \
 			gfranks/spruce spruce merge /manifests/stack.yml \
 			/manifests/production.yml)" >|"$OUT"
 	fi
@@ -428,7 +432,7 @@ function rgen() {
 	local OUT="$PWD/README.md"
 
 	echo -e "Creating ${LIGHT_BLUE}README.md${NC}..."
-	docker_sudo default run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
+	docker_sudo default run --rm -v "$STACK_DIRECTORY:/mnt/$DIRECTORY_NAME" \
 		dargmuesli/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" \
 		>|"$OUT"
 }
@@ -454,7 +458,7 @@ function remove() {
 
 function validate() {
 	echo -e "Validating ${LIGHT_BLUE}README.md${NC}..."
-	docker_sudo default run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
+	docker_sudo default run --rm -v "$STACK_DIRECTORY:/mnt/$DIRECTORY_NAME" \
 		dargmuesli/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" -v
 }
 
@@ -474,8 +478,8 @@ if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
 fi
 
 # Parse command line parameters
-OPTIONS=a:hop:u:
-LONGOPTS=advertise_addr:,help,offline,production:,url:
+OPTIONS=a:hop:s:u:
+LONGOPTS=advertise-addr:,help,offline,production:,stack-directory:,url:
 
 # shellcheck disable=SC2251
 ! PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS \
@@ -504,6 +508,10 @@ while true; do
 	-p | --production)
 		MODE="production"
 		VERSION="$2"
+		shift 2
+		;;
+	-s | --stack-directory)
+		STACK_DIRECTORY="$2"
 		shift 2
 		;;
 	-u | --url)
@@ -548,6 +556,24 @@ if [[ ("$1" = "build") && "$MODE" = "development" && (! -d \
 		"not exist!${NC}"
 	exit 1
 fi
+
+if [[ "$DOCKER" = "true" && "$STACK_DIRECTORY" = "$PWD" ]]; then
+	echo -e "${LIGHT_RED}The ${LIGHT_BLUE}-s/--stack-directory${LIGHT_RED}" \
+		"parameter is required when running in Docker!${NC}"
+	usage
+	exit 1
+fi
+
+if [ "${STACK_DIRECTORY:0-1}" == "/" ]; then
+	STACK_DIRECTORY=${STACK_DIRECTORY::-1}
+fi
+
+# convert the project name to a valid DNS name
+DIRECTORY_NAME_LITERAL="${STACK_DIRECTORY##*/}"
+DIRECTORY_NAME="${DIRECTORY_NAME_LITERAL//[^A-Za-z_]/-}"
+PROJECT_OWNER="${STACK_DIRECTORY%/*}"
+PROJECT_OWNER="${PROJECT_OWNER##*/}"
+PROJECT_NAME="${DIRECTORY_NAME%"_stack"}"
 
 URL=${URL/"<owner>"/$PROJECT_OWNER}
 URL=${URL/"<name>"/${PROJECT_NAME}_stack}
