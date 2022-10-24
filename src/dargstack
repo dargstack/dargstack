@@ -465,9 +465,15 @@ function selfUpdate() {
 	chmod +x "$THIS/dargstack"
 }
 
+GETOPT_PATH=/bin/getoptt
+
+if [ -f /opt/homebrew/opt/gnu-getopt/bin/getopt ]; then
+	GETOPT_PATH=/opt/homebrew/opt/gnu-getopt/bin/getopt
+fi
+
 # Check if getopt is available
 # shellcheck disable=SC2251
-! getopt --test >/dev/null
+! $GETOPT_PATH --test >/dev/null
 if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
 	echo -e "${LIGHT_RED}Cannot parse parameters!${NC}"
 	exit 1
@@ -478,7 +484,7 @@ OPTIONS=a:hop:u:
 LONGOPTS=advertise_addr:,help,offline,production:,url:
 
 # shellcheck disable=SC2251
-! PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS \
+! PARSED=$($GETOPT_PATH --options=$OPTIONS --longoptions=$LONGOPTS \
 	--name "$0" -- "$@")
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
 	exit 2
