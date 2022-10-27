@@ -1,3 +1,15 @@
+# [1.3.0](https://github.com/dargmuesli/dargstack/compare/1.2.3...1.3.0) (2022-10-27)
+
+
+### Bug Fixes
+
+* correct getopt path ([bddc8fb](https://github.com/dargmuesli/dargstack/commit/bddc8fb67fa9519d639387b26299e46e98cec4f4))
+
+
+### Features
+
+* merge macos fixes into source script and docs ([63ad5fd](https://github.com/dargmuesli/dargstack/commit/63ad5fd49116d8a74ad9d862c664977b1dc99dd4))
+
 ## [1.2.3](https://github.com/dargmuesli/dargstack/compare/1.2.2...1.2.3) (2022-09-10)
 
 
