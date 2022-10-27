@@ -324,7 +324,7 @@ function deploy() {
 		check_secret_templates "development" || valid=$?
 		guard_valid_config $valid
 
-		export "STACK_DOMAIN=$PROJECT_NAME.test"
+		export "STACK_DOMAIN=localhost"
 	fi
 
 	# Ensure Docker is part of a swarm
