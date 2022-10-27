@@ -32,11 +32,27 @@ Feel free to deviate from this example and use your personal preference!
 
 ### Info for Apple users
 
-The bash used on macOS is of version 3.x which has no [globstar](https://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html) installed.
-To run dargstack you need to install a newer version of bash from i.e. [brew](https://brew.sh/), activate globstar with `shopt -s globstar` and set the new bash as the one to use in the [dargstack shebang](https://github.com/dargmuesli/dargstack/blob/master/src/dargstack#L1).
+1. `getopt` on macOS [differs from its Linux counterpart](https://en.wikipedia.org/wiki/Getopt#Extensions) in that it does not support long options with two hyphens.
+To solve this problem `gnu-getopt` has to be installed on macOS:
+    ```sh
+    brew install gnu-getopt
+    ```
+    Dargstack will then automatically detect a getopt installation under `/opt/homebrew/opt/gnu-getopt/bin/getopt`.
 
-This arises another problem with the parameters which will be tracked in [#48](https://github.com/dargmuesli/dargstack/issues/48)
-For now it is not possible to use dargstack on mac unfortunately.
+2. Bash on macOS is of version 3.x which does not support [globstars](https://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html).
+To run dargstack you need to install a newer bash version, i.e. from [brew](https://brew.sh/):
+
+    ```sh
+    brew install bash
+    ```
+
+    You must then **always** use the newly installed bash version to invoke dargstack. To simplify the call, you might want to add an [alias to your `~/.bashrc`](https://wiki.ubuntuusers.de/alias/)
+
+    ```sh
+    /opt/homebrew/Cellar/bash/5.2.2/bin/bash dargstack
+    # or
+    echo "alias dargstack='/opt/homebrew/Cellar/bash/5.2.2/bin/bash dargstack'" >> ~/.bashrc
+    ```
 
 
 ## Skeleton
