@@ -465,7 +465,7 @@ function selfUpdate() {
 	chmod +x "$THIS/dargstack"
 }
 
-GETOPT_PATH=/bin/getoptt
+GETOPT_PATH=/bin/getopt
 
 if [ -f /opt/homebrew/opt/gnu-getopt/bin/getopt ]; then
 	GETOPT_PATH=/opt/homebrew/opt/gnu-getopt/bin/getopt
