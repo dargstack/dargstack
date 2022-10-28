@@ -1,6 +1,5 @@
 {
   "name": "dargstack",
-  "private": true,
   "version": "1.3.0",
   "scheduleVersion": "0.1.0",
   "description": "The DargStack script along with its and the template's documentation.",
@@ -8,6 +7,7 @@
   "repository": "https://github.com/dargmuesli/dargstack.git",
   "author": "Jonas Thelemann <e-mail@jonas-thelemann.de>",
   "license": "GPL-3.0-only",
+  "files": [],
   "dependencies": {},
   "devDependencies": {
     "@commitlint/cli": "17.1.2",
