@@ -94,6 +94,7 @@ options
 A few setup strategies for the development environment have proven themselves useful, e.g. running a local dns server.
 
 
+<!--
 ### DNS
 
 Within development of a DargStack, access to the web apps should be routed via the locally resolved domain `[project_name].test` and its subdomains.
@@ -189,6 +190,7 @@ Here is an example configuration for [dnsmasq](https://en.wikipedia.org/wiki/Dns
   command="dpkg-reconfigure --frontend=noninteractive resolvconf && resolvconf -u && service docker start && service dnsmasq start && service resolvconf start"
   ```
 </details>
+-->
 
 
 ## Example Projects

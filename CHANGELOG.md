@@ -1,3 +1,14 @@
+# [2.0.0-alpha.1](https://github.com/dargmuesli/dargstack/compare/1.3.0...2.0.0-alpha.1) (2022-10-27)
+
+
+* feat!: use localhost for development ([690a5f8](https://github.com/dargmuesli/dargstack/commit/690a5f811866ff332f221b11099e2faebad16cdf))
+
+
+### BREAKING CHANGES
+
+* Using a custom stack domain requires a parameter now!
+It is not required anymore to setup a local dns server.
+
 # [1.3.0](https://github.com/dargmuesli/dargstack/compare/1.2.3...1.3.0) (2022-10-27)
 
 
