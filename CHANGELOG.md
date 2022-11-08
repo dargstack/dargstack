@@ -1,3 +1,19 @@
+# [2.0.0](https://github.com/dargmuesli/dargstack/compare/1.3.0...2.0.0) (2022-11-08)
+
+
+### Bug Fixes
+
+* **ci:** add npm token ([23773f4](https://github.com/dargmuesli/dargstack/commit/23773f4c183c33438d27c3b338493f887a2b27cb))
+
+
+* feat!: use localhost for development ([690a5f8](https://github.com/dargmuesli/dargstack/commit/690a5f811866ff332f221b11099e2faebad16cdf))
+
+
+### BREAKING CHANGES
+
+* Using a custom stack domain requires a parameter now!
+It is not required anymore to setup a local dns server.
+
 # [2.0.0-alpha.1](https://github.com/dargmuesli/dargstack/compare/1.3.0...2.0.0-alpha.1) (2022-10-27)
 
 
