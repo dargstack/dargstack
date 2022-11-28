@@ -7,15 +7,16 @@ on:
     types: [published]
 
 jobs:
-  shellcheck:
-    name: Shellcheck
+  golangci:
+    name: lint
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3.1.0
-    - name: Run ShellCheck
-      uses: ludeeus/action-shellcheck@1.1.0
-      with:
-        scandir: './src'
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.17
+      - uses: actions/checkout@v3
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
   semantic-release:
     needs: shellcheck
     name: Semantic Release
