@@ -18,7 +18,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
   semantic-release:
-    needs: shellcheck
+    needs: golangci
     name: Semantic Release
     uses: dargmuesli/github-actions/.github/workflows/release-semantic.yml@0.19.11
     secrets:
