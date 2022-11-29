@@ -50,19 +50,11 @@ var deriveCmd = &cobra.Command{
 				core.Err("error"), core.Hi1("search and replace"), core.Hi1("production.yml"), err)
 		}
 
-		// TODO: merging production.yml, currently buggy
 		_, err = os.Stat(stack.productionPath + "/production.yml")
 		if err != nil && !os.IsNotExist(err) {
 			log.Fatalf("%s merging %s: %v",
 				core.Err("error"), core.Hi1("production.yml"), err)
 		} else if err == nil {
-			// yml, err := os.OpenFile(
-			// 	prodStackYaml, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o755)
-			// if err != nil {
-			// 	log.Fatalf("%s opening %s: %v", core.Err("error"), core.Hi1("stack.yml"), err)
-			// }
-			// defer yml.Close()
-
 			fmt.Printf("Merging %s...\n",
 				core.Hi1(fmt.Sprintf("%s%s", stack.productionPath, "/production.yml")))
 			out := core.DockerSudo(
