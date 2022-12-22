@@ -534,7 +534,6 @@ fi
 if [ $# -lt 1 ]; then
 	echo -e "${LIGHT_RED}No module parameter provided!${NC}"
 	usage
-	exit 1
 elif [[ "$1" != "build" && "$1" != "deploy" && "$1" != "derive" && \
 	"$1" != "redeploy" && "$1" != "rgen" && "$1" != "rm" && \
 	"$1" != "self-update" && "$1" != "validate" ]]; then
