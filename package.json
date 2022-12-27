@@ -11,15 +11,18 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {},
+  "type": "module",
+  "engines": {
+    "node": "19"
+  },
+  "packageManager": "pnpm@7.18.2",
+  "scripts": {
+    "postinstall": "if [ -d '.git' ] && [ -d '.husky' ]; then husky install && shx rm -rf .git/hooks && shx ln -s ../.husky .git/hooks; fi"
+  },
   "devDependencies": {
     "@commitlint/cli": "17.3.0",
     "@commitlint/config-conventional": "17.3.0",
     "husky": "8.0.2",
     "shx": "0.3.4"
-  },
-  "scripts": {
-    "prepare": "if [ -d '.git' ] && [ -d '.husky' ]; then husky install && shx rm -rf .git/hooks && shx ln -s ../.husky .git/hooks; fi",
-    "prepack": "pnpm i"
   }
 }
