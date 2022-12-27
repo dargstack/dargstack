@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/dargmuesli/dargstack/compare/2.0.0...2.0.1) (2022-12-27)
+
+
+### Bug Fixes
+
+* **package:** migrate to module ([359fcea](https://github.com/dargmuesli/dargstack/commit/359fceaae976727380f0da1a8248c21e3dd8b6bb))
+
 # [2.0.0](https://github.com/dargmuesli/dargstack/compare/1.3.0...2.0.0) (2022-11-08)
 
 
