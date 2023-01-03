@@ -17,12 +17,15 @@
   },
   "packageManager": "pnpm@7.21.0",
   "scripts": {
-    "postinstall": "if [ -d '.git' ] && [ -d '.husky' ]; then husky install && shx rm -rf .git/hooks && shx ln -s ../.husky .git/hooks; fi"
+    "postinstall": "husky install && shx rm -rf .git/hooks && shx ln -s ../.husky .git/hooks",
+    "postpack": "pinst --enable",
+    "prepack": "pinst --disable"
   },
   "devDependencies": {
     "@commitlint/cli": "17.3.0",
     "@commitlint/config-conventional": "17.3.0",
     "husky": "8.0.2",
+    "pinst": "3.0.0",
     "shx": "0.3.4"
   }
 }

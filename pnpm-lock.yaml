@@ -4,12 +4,14 @@ specifiers:
   '@commitlint/cli': 17.3.0
   '@commitlint/config-conventional': 17.3.0
   husky: 8.0.2
+  pinst: 3.0.0
   shx: 0.3.4
 
 devDependencies:
   '@commitlint/cli': 17.3.0
   '@commitlint/config-conventional': 17.3.0
   husky: 8.0.2
+  pinst: 3.0.0
   shx: 0.3.4
 
 packages:
@@ -1013,6 +1015,12 @@ packages:
   /path-type/4.0.0:
     resolution: {integrity: sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==}
     engines: {node: '>=8'}
+    dev: true
+
+  /pinst/3.0.0:
+    resolution: {integrity: sha512-cengSmBxtCyaJqtRSvJorIIZXMXg+lJ3sIljGmtBGUVonMnMsVJbnzl6jGN1HkOWwxNuJynCJ2hXxxqCQrFDdw==}
+    engines: {node: '>=12.0.0'}
+    hasBin: true
     dev: true
 
   /punycode/2.1.1:
