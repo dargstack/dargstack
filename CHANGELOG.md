@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/dargmuesli/dargstack/compare/2.0.1...2.0.2) (2023-01-03)
+
+
+### Bug Fixes
+
+* **deps:** add pinst ([cf1bb3d](https://github.com/dargmuesli/dargstack/commit/cf1bb3da83fdb5c1bb7d4294579ece2792879a4d))
+
 ## [2.0.1](https://github.com/dargmuesli/dargstack/compare/2.0.0...2.0.1) (2022-12-27)
 
 
