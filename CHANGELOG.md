@@ -1,3 +1,15 @@
+## [2.0.3](https://github.com/dargmuesli/dargstack/compare/2.0.2...2.0.3) (2023-01-03)
+
+
+### Bug Fixes
+
+* **package:** use prepare ([58c8ced](https://github.com/dargmuesli/dargstack/commit/58c8cedddfe251e79a97b79fded02718cf9d50f6))
+
+
+### Reverts
+
+* Revert "fix(deps): add pinst" ([77af3b8](https://github.com/dargmuesli/dargstack/commit/77af3b82e3b2c26c8fa316767a71c63695508c3f))
+
 ## [2.0.2](https://github.com/dargmuesli/dargstack/compare/2.0.1...2.0.2) (2023-01-03)
 
 
