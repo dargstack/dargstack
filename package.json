@@ -17,7 +17,7 @@
   },
   "packageManager": "pnpm@7.21.0",
   "scripts": {
-    "postinstall": "if [ -d '.git' ] && [ -d '.husky' ]; then husky install && shx rm -rf .git/hooks && shx ln -s ../.husky .git/hooks; fi"
+    "prepare": "husky install && shx rm -rf .git/hooks && shx ln -s ../.husky .git/hooks"
   },
   "devDependencies": {
     "@commitlint/cli": "17.3.0",
