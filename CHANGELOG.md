@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/dargmuesli/dargstack/compare/2.0.3...2.1.0) (2023-01-24)
+
+
+### Features
+
+* add license ([4bbe914](https://github.com/dargmuesli/dargstack/commit/4bbe914ae83cae2f97bf2509a459c303c362908b))
+
 ## [2.0.3](https://github.com/dargmuesli/dargstack/compare/2.0.2...2.0.3) (2023-01-03)
 
 
