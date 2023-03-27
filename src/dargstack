@@ -429,7 +429,7 @@ function rgen() {
 
 	echo -e "Creating ${LIGHT_BLUE}README.md${NC}..."
 	docker_sudo default run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
-		dargmuesli/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" \
+		dargstack/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" \
 		>|"$OUT"
 }
 
@@ -455,13 +455,13 @@ function remove() {
 function validate() {
 	echo -e "Validating ${LIGHT_BLUE}README.md${NC}..."
 	docker_sudo default run --rm -v "$PWD:/mnt/$DIRECTORY_NAME" \
-		dargmuesli/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" -v
+		dargstack/dargstack_rgen --path "/mnt/$DIRECTORY_NAME" -v
 }
 
 function selfUpdate() {
 	wget "$(printf "%s" \
 		"https://raw.githubusercontent.com/" \
-		"dargmuesli/dargstack/master/src/dargstack")" -O "$THIS/dargstack"
+		"dargstack/dargstack/master/src/dargstack")" -O "$THIS/dargstack"
 	chmod +x "$THIS/dargstack"
 }
 

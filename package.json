@@ -4,7 +4,7 @@
   "scheduleVersion": "0.1.0",
   "description": "The DargStack script along with its and the template's documentation.",
   "main": "src/dargstack",
-  "repository": "https://github.com/dargmuesli/dargstack.git",
+  "repository": "https://github.com/dargstack/dargstack.git",
   "author": "Jonas Thelemann <e-mail@jonas-thelemann.de>",
   "license": "GPL-3.0-only",
   "files": [],

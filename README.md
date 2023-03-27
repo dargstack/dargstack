@@ -1,7 +1,7 @@
 # DargStack
 
 A template for Docker stack project layouts.
-Bootstrap it from [github.com/dargmuesli/dargstack_template](https://github.com/dargmuesli/dargstack_template)!
+Bootstrap it from [github.com/dargstack/dargstack_template](https://github.com/dargstack/dargstack_template)!
 
 > **This template solves the problem of separated development and production environments in the otherwise well-defined, containerized software development process.
 > It focuses on the development configuration, derives the production configuration from it and makes deployments a breeze!**
@@ -22,7 +22,7 @@ When using bash, you could setup this script as an executable the following way:
 
 ```bash
 mkdir ~/scripts/ \
-    && wget https://raw.githubusercontent.com/dargmuesli/dargstack/master/src/dargstack -O ~/scripts/dargstack \
+    && wget https://raw.githubusercontent.com/dargstack/dargstack/master/src/dargstack -O ~/scripts/dargstack \
     && chmod +x ~/scripts/dargstack \
     && echo 'export PATH="$PATH:$HOME/scripts/"' >> ~/.bashrc \
     && . ~/.bashrc
@@ -96,8 +96,8 @@ A few setup strategies for the development environment have proven themselves us
 
 ## Example Projects
 
-- [dargmuesli/dargstack-example](https://github.com/dargmuesli/dargstack-example/)
-- [dargmuesli/dargstack-example_stack](https://github.com/dargmuesli/dargstack-example_stack/)
+- [dargstack/dargstack-example](https://github.com/dargstack/dargstack-example/)
+- [dargstack/dargstack-example_stack](https://github.com/dargstack/dargstack-example_stack/)
 - [dargmuesli/jonas-thelemann_stack](https://github.com/dargmuesli/jonas-thelemann_stack/)
 - [flipdot/drinks-touch_stack](https://github.com/flipdot/drinks-touch_stack/)
 - [maevsi/maevsi_stack](https://github.com/maevsi/maevsi_stack/)
