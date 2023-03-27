@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/dargstack/dargstack/compare/2.1.0...2.2.0) (2023-03-27)
+
+
+### Features
+
+* migrate to new organization name ([dc52ae9](https://github.com/dargstack/dargstack/commit/dc52ae91cd2ea835bf06b10594a27494acc9863e))
+
 # [2.1.0](https://github.com/dargmuesli/dargstack/compare/2.0.3...2.1.0) (2023-01-24)
 
 
