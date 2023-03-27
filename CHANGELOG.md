@@ -1,3 +1,10 @@
+## [2.2.1](https://github.com/dargstack/dargstack/compare/2.2.0...2.2.1) (2023-03-27)
+
+
+### Bug Fixes
+
+* use ghcr.io registry ([f94a8b2](https://github.com/dargstack/dargstack/commit/f94a8b26644367258b09f4ae6ce974781dc6522c))
+
 # [2.2.0](https://github.com/dargstack/dargstack/compare/2.1.0...2.2.0) (2023-03-27)
 
 
