@@ -4,7 +4,7 @@
   "description": "The DargStack script along with its and the template's documentation.",
   "main": "src/dargstack",
   "repository": "https://github.com/dargstack/dargstack.git",
-  "author": "Jonas Thelemann <e-mail@jonas-thelemann.de>",
+  "author": "Jonas Thelemann <e-mail+dargstack/dargstack@jonas-thelemann.de>",
   "license": "GPL-3.0-only",
   "files": [],
   "publishConfig": {
