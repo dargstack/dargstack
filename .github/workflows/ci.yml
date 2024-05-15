@@ -17,7 +17,7 @@ jobs:
   semantic-release:
     needs: shellcheck
     name: Semantic Release
-    uses: dargmuesli/github-actions/.github/workflows/release-semantic.yml@1.7.10
+    uses: dargmuesli/github-actions/.github/workflows/release-semantic.yml@2.0.0
     permissions:
       contents: write
     secrets:
