@@ -24,7 +24,7 @@ When using bash, you could setup this script as an executable the following way:
 mkdir ~/scripts/ \
     && wget https://raw.githubusercontent.com/dargstack/dargstack/master/src/dargstack -O ~/scripts/dargstack \
     && chmod +x ~/scripts/dargstack \
-    && echo 'export PATH="$PATH:$HOME/scripts/"' >> ~/.bashrc \
+    && echo 'export PATH="$PATH:$HOME/scripts"' >> ~/.bashrc \
     && . ~/.bashrc
 ```
 
