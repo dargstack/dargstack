@@ -481,7 +481,7 @@ fi
 
 # Parse command line parameters
 OPTIONS=a:hop:u:
-LONGOPTS=advertise_addr:,help,offline,production:,url:
+LONGOPTS=advertise-addr:,help,offline,production:,url:
 
 # shellcheck disable=SC2251
 ! PARSED=$($GETOPT_PATH --options=$OPTIONS --longoptions=$LONGOPTS \
