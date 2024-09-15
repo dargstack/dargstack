@@ -1,3 +1,10 @@
+## [2.2.2](https://github.com/dargstack/dargstack/compare/2.2.1...2.2.2) (2024-09-15)
+
+
+### Bug Fixes
+
+* **options:** correct advertise address typo ([db396b1](https://github.com/dargstack/dargstack/commit/db396b19c866c160615190f475141f10207fba69))
+
 ## [2.2.1](https://github.com/dargstack/dargstack/compare/2.2.0...2.2.1) (2023-03-27)
 
 
