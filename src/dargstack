@@ -111,7 +111,7 @@ function docker_sudo() {
 		if [ "$MODE" = "production" ]; then
 			if [ -f "./src/production/stack.env" ]; then
 				IFS=' ' read -r -a ENV_VARS_TO_PRESERVE_EXTENSION <<< "$(grep -v '^#' "./src/production/stack.env" |
-					xargs | sed -r 's/=[^ ]+//g')"
+					awk -F= '{print $1}' | xargs)"
 				ENV_VARS_TO_PRESERVE+=("${ENV_VARS_TO_PRESERVE_EXTENSION[@]}")
 			else
 				echo -e "Not preserving any environment variables for root as" \
@@ -121,7 +121,7 @@ function docker_sudo() {
 		else
 			if [ -f "./src/development/stack.env" ]; then
 				IFS=' ' read -r -a ENV_VARS_TO_PRESERVE_EXTENSION <<< "$(grep -v '^#' "./src/development/stack.env" |
-					xargs | sed -r 's/=[^ ]+//g')"
+					awk -F= '{print $1}' | xargs)"
 				ENV_VARS_TO_PRESERVE+=("${ENV_VARS_TO_PRESERVE_EXTENSION[@]}")
 			else
 				echo -e "Not preserving any environment variables for root as" \
@@ -168,6 +168,28 @@ function check_secret_templates() {
 	done
 
 	return $valid
+}
+
+function export_env_file() {
+    local env_file="$1"
+
+    if [[ ! -f "$env_file" ]]; then
+        echo "Error: File '$env_file' not found!"
+        return 1
+    fi
+
+    while IFS='=' read -r key value || [[ -n "$key" ]]; do
+        # Ignore lines starting with # (comments) and empty lines
+        if [[ "$key" =~ ^#.*$ || -z "$key" ]]; then
+            continue
+        fi
+
+        # Remove surrounding quotes (if any)
+        value=$(echo "$value" | sed -E "s/^['\"](.*)['\"]$/\1/")
+
+        # Export variable
+        export "$key"="$value"
+    done < "$env_file"
 }
 
 function deploy() {
@@ -295,8 +317,7 @@ function deploy() {
 			echo -e "Exporting production environment variables..."
 
 			export "STACK_DOMAIN=$PROJECT_NAME"
-			# shellcheck disable=SC2046
-			export $(grep -v '^#' "./src/production/stack.env" | xargs)
+			export_env_file "./src/production/stack.env"
 		fi
 
 		containers_exited=$(docker_sudo default ps --filter "status=exited" -q)
@@ -316,9 +337,7 @@ function deploy() {
 		if [ -f "./src/development/stack.env" ]; then
 			echo -e "Exporting development environment variables..."
 
-			# shellcheck disable=SC2046
-			export $(grep -v '^#' \
-				"../${PROJECT_NAME}_stack/src/development/stack.env" | xargs)
+			export_env_file "./src/development/stack.env"
 		fi
 
 		check_secret_templates "development" || valid=$?
