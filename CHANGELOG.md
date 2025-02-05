@@ -1,3 +1,10 @@
+## [2.2.3](https://github.com/dargstack/dargstack/compare/2.2.2...2.2.3) (2025-02-05)
+
+
+### Bug Fixes
+
+* allow space in environment file variables ([bfea172](https://github.com/dargstack/dargstack/commit/bfea1728fee14944fab2ee68418d35609ee6519d))
+
 ## [2.2.2](https://github.com/dargstack/dargstack/compare/2.2.1...2.2.2) (2024-09-15)
 
 
