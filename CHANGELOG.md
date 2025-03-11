@@ -1,3 +1,11 @@
+# [2.3.0](https://github.com/dargstack/dargstack/compare/2.2.3...2.3.0) (2025-03-11)
+
+
+### Features
+
+* allow deploy only from stack directory ([c84690a](https://github.com/dargstack/dargstack/commit/c84690af17c027a7ec4d1361fe59a569a8c324a0))
+* change name casing ([13dc886](https://github.com/dargstack/dargstack/commit/13dc886010d7106343d746b66926655ccf7117f7))
+
 ## [2.2.3](https://github.com/dargstack/dargstack/compare/2.2.2...2.2.3) (2025-02-05)
 
 
