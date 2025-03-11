@@ -361,7 +361,7 @@ function deploy() {
 	echo -e "Deploying ${LIGHT_BLUE}$PROJECT_NAME${NC} stack for" \
 		"${LIGHT_BLUE}$MODE${NC}..."
 
-	docker_sudo "$MODE" stack deploy -c "../${PROJECT_NAME}_stack/src/$MODE/stack.yml" \
+	docker_sudo "$MODE" stack deploy -c "./src/$MODE/stack.yml" \
 		--with-registry-auth "$PROJECT_NAME"
 }
 
