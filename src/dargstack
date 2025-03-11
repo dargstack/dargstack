@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Helper script for the DargStack template.
+# Helper script for the dargstack template.
 #
 # Requires sudo >= 1.8.21.
 #
@@ -94,7 +94,7 @@ function usage() {
 	echo -e "    -u, --url <url>           The URL to clone from. May" \
 		"include the substrings ${LIGHT_BLUE}<owner>${NC} and" \
 		"${LIGHT_BLUE}<name>${NC} that are replaced by their corresponding" \
-		"value that is inferred from the DargStack directory structure." \
+		"value that is inferred from the dargstack directory structure." \
 		"Usable with modules: ${LIGHT_BLUE}deploy${NC}."
 	exit 1
 }
@@ -518,7 +518,7 @@ while true; do
 		shift 2
 		;;
 	-h | --help)
-		echo -e "DargStack template helper script."
+		echo -e "Dargstack template helper script."
 		echo -e ""
 		usage
 		;;
@@ -576,7 +576,7 @@ fi
 URL=${URL/"<owner>"/$PROJECT_OWNER}
 URL=${URL/"<name>"/${PROJECT_NAME}_stack}
 
-echo -e "DargStack project ${LIGHT_BLUE}$URL${NC} for" \
+echo -e "Dargstack project ${LIGHT_BLUE}$URL${NC} for" \
 	"${LIGHT_BLUE}$MODE${NC}.\n"
 
 case "$1" in

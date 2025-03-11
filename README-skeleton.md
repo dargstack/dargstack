@@ -1,6 +1,6 @@
-# DargStack Skeleton
+# dargstack Skeleton
 
-DargStack template's directory and file tree documentation.
+Dargstack template's directory and file tree documentation.
 
 
 ## Project Structure
@@ -25,13 +25,13 @@ DargStack template's directory and file tree documentation.
 
 The main project folder must contain a `Dockerfile` in addition to the main service's source.
 
-This `Dockerfile` should be structured so that the `FROM` instruction is tagged with `AS development` so that the DargStack script's `build` command builds the main project's development version (unless the `-p, --production` flag is passed).
+This `Dockerfile` should be structured so that the `FROM` instruction is tagged with `AS development` so that the dargstack script's `build` command builds the main project's development version (unless the `-p, --production` flag is passed).
 
 
 ## Stack Project
 
 The stack project is separated into the fundamental development configuration and the production derivation configuration.
-The full production configuration is created from the development and the production derivation configuration by the DargStack script.
+The full production configuration is created from the development and the production derivation configuration by the dargstack script.
 
 ---
 
@@ -50,7 +50,7 @@ The subfolder's name *should* be name of the corresponding service as used in th
 
 1. **certificates/**
 
-    A DargStack will most likely serve web apps and thus *should* make use of encryption certificates for HTTPS/SSL.
+    A dargstack will most likely serve web apps and thus *should* make use of encryption certificates for HTTPS/SSL.
     Those can easily be generated using [FiloSottile/mkcert](https://github.com/FiloSottile/mkcert).
 
     Real certificates *must* be used for production.
@@ -71,7 +71,7 @@ The subfolder's name *should* be name of the corresponding service as used in th
 ### development/
 
 The development directory contains the fundamental stack configuration.
-Similar to "mobile first", the DargStack template works "development first".
+Similar to "mobile first", the dargstack template works "development first".
 The modifications needed for production are incremental to the configuration defined for development.
 
 
@@ -122,4 +122,4 @@ For more advanced modifications, like list manipulation, refer to [spruce's docu
 #### stack.env.template
 
 The `stack.env.template` file defines environment variables that are used in the the production `stack.yml`.
-The DargStack script clones the `stack.env.template` to a sibling `stack.env` file into which the environment variables' values *must* be filled.
+The dargstack script clones the `stack.env.template` to a sibling `stack.env` file into which the environment variables' values *must* be filled.

@@ -1,4 +1,4 @@
-# DargStack
+# dargstack
 
 A template for Docker stack project layouts.
 Bootstrap it from [github.com/dargstack/dargstack_template](https://github.com/dargstack/dargstack_template)!
@@ -67,7 +67,7 @@ Requires sudo >= 1.8.21 due to usage of the extended --preserve-env list syntax.
 That means the minimum supported Debian version is `buster`.
 
 ```
-DargStack template helper script.
+Dargstack template helper script.
 
 usage: dargstack <module> <options>
 
@@ -85,7 +85,7 @@ options
     -h, --help                Display this help. Usable with modules: all.
     -o, --offline             Do not try to update the checkout
     -p, --production <tag>    Execute in production mode. Version must equal a tag name or latest. Usable with modules: deploy.
-    -u, --url <url>           The URL to clone from. May include the substrings <owner> and <name> that are replaced by their corresponding value that is inferred from the DargStack directory structure. Usable with modules: deploy.
+    -u, --url <url>           The URL to clone from. May include the substrings <owner> and <name> that are replaced by their corresponding value that is inferred from the dargstack directory structure. Usable with modules: deploy.
 ```
 
 

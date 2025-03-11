@@ -1,7 +1,7 @@
 {
   "name": "dargstack",
   "version": "2.2.3",
-  "description": "The DargStack script along with its and the template's documentation.",
+  "description": "The dargstack script along with its and the template's documentation.",
   "main": "src/dargstack",
   "repository": "https://github.com/dargstack/dargstack.git",
   "author": "Jonas Thelemann <e-mail+dargstack/dargstack@jonas-thelemann.de>",
