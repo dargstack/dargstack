@@ -50,6 +50,10 @@ PROJECT_OWNER="${PWD%/*}"
 PROJECT_OWNER="${PROJECT_OWNER##*/}"
 PROJECT_NAME="${DIRECTORY_NAME%"_stack"}"
 
+if [ -f dargstack.env ]; then
+	export "$(grep -v '^#' dargstack.env | xargs)"
+fi
+
 ADVERTISE_ADDR=""
 MODE="development"
 OFFLINE=false
