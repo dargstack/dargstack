@@ -1,3 +1,10 @@
+# [2.4.0](https://github.com/dargstack/dargstack/compare/2.3.0...2.4.0) (2025-03-18)
+
+
+### Features
+
+* warn for unset third party secrets ([09dc452](https://github.com/dargstack/dargstack/commit/09dc45290615ccc409bfc5ddcecb8220682852fe))
+
 # [2.3.0](https://github.com/dargstack/dargstack/compare/2.2.3...2.3.0) (2025-03-11)
 
 
