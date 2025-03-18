@@ -1,3 +1,10 @@
+# [2.5.0](https://github.com/dargstack/dargstack/compare/2.4.1...2.5.0) (2025-03-18)
+
+
+### Features
+
+* add configuration support ([ac43b10](https://github.com/dargstack/dargstack/commit/ac43b10ce477d0948fe57c64a005b7162c61a2c7))
+
 ## [2.4.1](https://github.com/dargstack/dargstack/compare/2.4.0...2.4.1) (2025-03-18)
 
 
