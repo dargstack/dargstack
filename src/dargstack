@@ -166,7 +166,7 @@ function check_secret_templates() {
 			valid=1
 		fi
 
-		if grep -q "THIRD PARTY SECRET" "$secret_path"; then
+		if grep -q "UNSET THIRD PARTY SECRET" "$secret_path"; then
 			echo -e "${LIGHT_YELLOW}Third party secret ${LIGHT_BLUE}${secret_path%/*}/$secret_base_name${LIGHT_YELLOW} is inactive${NC}"
 		fi
 	done
