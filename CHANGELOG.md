@@ -1,3 +1,10 @@
+## [2.4.1](https://github.com/dargstack/dargstack/compare/2.4.0...2.4.1) (2025-03-18)
+
+
+### Bug Fixes
+
+* improve unset third party secret clarity ([27e9e2e](https://github.com/dargstack/dargstack/commit/27e9e2e0c79c907d3b6fd10324add713e26ebaf5))
+
 # [2.4.0](https://github.com/dargstack/dargstack/compare/2.3.0...2.4.0) (2025-03-18)
 
 
