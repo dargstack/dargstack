@@ -1,3 +1,10 @@
+## [2.5.1](https://github.com/dargstack/dargstack/compare/2.5.0...2.5.1) (2025-03-19)
+
+
+### Bug Fixes
+
+* **configuration:** include in sparse checkout ([1899ac5](https://github.com/dargstack/dargstack/commit/1899ac5c5cb9889ed665069e3b98580338ade75c))
+
 # [2.5.0](https://github.com/dargstack/dargstack/compare/2.4.1...2.5.0) (2025-03-18)
 
 
