@@ -221,6 +221,7 @@ function deploy() {
 				echo "src/development/stack.env.template"
 				echo "src/development/stack.yml"
 				echo "src/production/*"
+				echo "dargstack.env"
 			} >>"./.git/info/sparse-checkout"
 		fi
 
