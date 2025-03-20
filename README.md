@@ -1,24 +1,34 @@
 # dargstack
 
-A template for Docker stack project layouts.
-Bootstrap it from [github.com/dargstack/dargstack_template](https://github.com/dargstack/dargstack_template)!
+Dargstack addresses the challenge of maintaining separate development and production environments within an otherwise well-structured, containerized software development workflow.
+It prioritizes development configuration, derives production configurations from it, and simplifies deployments!
 
-> **This template solves the problem of separated development and production environments in the otherwise well-defined, containerized software development process.
-> It focuses on the development configuration, derives the production configuration from it and makes deployments a breeze!**
+This repository contains the dargstack script.
+If you're looking for guidance on initiating and running a project with dargstack, refer to the [template documentation](./docs/template.md).
+To bootstrap your project using the dargstack template, visit [dargstack/dargstack_template](https://github.com/dargstack/dargstack_template).
 
+The following projects showcase dargstack in action:
+
+- [maevsi/stack](https://github.com/maevsi/stack/)
+- [dargmuesli/jonas-thelemann_stack](https://github.com/dargmuesli/jonas-thelemann_stack/)
+- [flipdot/drinks-touch_stack](https://github.com/flipdot/drinks-touch_stack/)
+
+You can explore a minimal setup example here:
+
+- [dargstack/dargstack-example](https://github.com/dargstack/dargstack-example/)
+- [dargstack/dargstack-example_stack](https://github.com/dargstack/dargstack-example_stack/)
 
 ## Table of Contents
 
-1. **[Installation Example](#installation-example)**
-1. **[Skeleton](#skeleton)**
-1. **[Helper Script](#helper-script)**
-1. **[Configuration](#configuration)**
-1. **[Example Projects](#example-projects)**
+1. **[Installation](#installation)**
+2. **[Configuration Options](#configuration-options)**
 
+## Installation
 
-## Installation Example
+Dargstack requires `sudo >= 1.8.21` due to its use of the extended `--preserve-env` list syntax.
+The minimum supported Debian version is `buster`.
 
-When using bash, you could setup this script as an executable the following way:
+To set up the script as an executable using Bash, follow these steps:
 
 ```bash
 mkdir ~/scripts/ \
@@ -28,43 +38,36 @@ mkdir ~/scripts/ \
     && . ~/.bashrc
 ```
 
-Feel free to deviate from this example and use your personal preference!
+Feel free to adjust this setup to match your preferences!
 
-### Info for Apple users
+### macOS Installation Notes
 
-1. `getopt` on macOS [differs from its Linux counterpart](https://en.wikipedia.org/wiki/Getopt#Extensions) in that it does not support long options with two hyphens.
-To solve this problem `gnu-getopt` has to be installed on macOS:
-    ```sh
-    brew install gnu-getopt
-    ```
-    Dargstack will then automatically detect a getopt installation under `/opt/homebrew/opt/gnu-getopt/bin/getopt`.
+1. The `getopt` utility on macOS [differs from its Linux counterpart](https://en.wikipedia.org/wiki/Getopt#Extensions) as it does not support long options with two hyphens.
+   To resolve this, install GNU `getopt`:
 
-2. Bash on macOS is of version 3.x which does not support [globstars](https://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html).
-To run dargstack you need to install a newer bash version, i.e. from [brew](https://brew.sh/):
+   ```sh
+   brew install gnu-getopt
+   ```
 
-    ```sh
-    brew install bash
-    ```
+   Dargstack will automatically detect `getopt` under `/opt/homebrew/opt/gnu-getopt/bin/getopt`.
 
-    You must then **always** use the newly installed bash version to invoke dargstack. To simplify the call, you might want to add an [alias to your `~/.bashrc`](https://wiki.ubuntuusers.de/alias/)
+2. macOS ships with Bash version 3.x, which does not support [globstars](https://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html).
+   To run dargstack, install a newer version of Bash via [Homebrew](https://brew.sh/):
 
-    ```sh
-    /opt/homebrew/Cellar/bash/5.2.2/bin/bash dargstack
-    # or
-    echo "alias dargstack='/opt/homebrew/Cellar/bash/5.2.2/bin/bash dargstack'" >> ~/.bashrc
-    ```
+   ```sh
+   brew install bash
+   ```
 
+   You must **always** use the newly installed Bash version to invoke dargstack. To simplify this, consider adding an alias to your [`~/.bashrc`](https://wiki.ubuntuusers.de/alias/):
 
-## Skeleton
-
-The essential idea of this template.
-Read the full and detailed skeleton specification at [./README-skeleton.md](./README-skeleton.md).
+   ```sh
+   /opt/homebrew/Cellar/bash/5.2.2/bin/bash dargstack
+   # or
+   echo "alias dargstack='/opt/homebrew/Cellar/bash/5.2.2/bin/bash dargstack'" >> ~/.bashrc
+   ```
 
 
-## Helper Script
-
-Requires sudo >= 1.8.21 due to usage of the extended --preserve-env list syntax.
-That means the minimum supported Debian version is `buster`.
+## Configuration Options
 
 ```
 Dargstack template helper script.
@@ -87,17 +90,3 @@ options
     -p, --production <tag>    Execute in production mode. Version must equal a tag name or latest. Usable with modules: deploy.
     -u, --url <url>           The URL to clone from. May include the substrings <owner> and <name> that are replaced by their corresponding value that is inferred from the dargstack directory structure. Usable with modules: deploy.
 ```
-
-
-## Configuration
-
-A few setup strategies for the development environment have proven themselves useful, e.g. running a local dns server.
-
-
-## Example Projects
-
-- [dargstack/dargstack-example](https://github.com/dargstack/dargstack-example/)
-- [dargstack/dargstack-example_stack](https://github.com/dargstack/dargstack-example_stack/)
-- [dargmuesli/jonas-thelemann_stack](https://github.com/dargmuesli/jonas-thelemann_stack/)
-- [flipdot/drinks-touch_stack](https://github.com/flipdot/drinks-touch_stack/)
-- [maevsi/maevsi_stack](https://github.com/maevsi/maevsi_stack/)
