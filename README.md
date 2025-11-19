@@ -32,7 +32,7 @@ To set up the script as an executable using Bash, follow these steps:
 
 ```bash
 mkdir ~/scripts/ \
-    && wget https://raw.githubusercontent.com/dargstack/dargstack/master/src/dargstack -O ~/scripts/dargstack \
+    && wget https://raw.githubusercontent.com/dargstack/dargstack/main/src/dargstack -O ~/scripts/dargstack \
     && chmod +x ~/scripts/dargstack \
     && echo 'export PATH="$PATH:$HOME/scripts"' >> ~/.bashrc \
     && . ~/.bashrc

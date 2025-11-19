@@ -241,7 +241,7 @@ function deploy() {
 
 			if [ "$(git tag -l)" = "" ]; then
 				echo -e "${LIGHT_YELLOW}The stack repository has no tags!${NC}"
-				git checkout origin/master
+				git checkout origin/main
 			else
 				if [ $latest = "true" ]; then
 					VERSION=$(git rev-list --tags --max-count=1)
@@ -489,7 +489,7 @@ function validate() {
 function selfUpdate() {
 	wget "$(printf "%s" \
 		"https://raw.githubusercontent.com/" \
-		"dargstack/dargstack/master/src/dargstack")" -O "$THIS/dargstack"
+		"dargstack/dargstack/main/src/dargstack")" -O "$THIS/dargstack"
 	chmod +x "$THIS/dargstack"
 }
 
