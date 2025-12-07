@@ -98,7 +98,7 @@ When done, shred those files!
 
 This file defines the full stack, containing all services you deem necessary for development.
 Simply [deploy the development stack](https://docs.docker.com/engine/reference/commandline/stack_deploy/) using `dargstack deploy`!
-You can use the variable `${STACK_DOMAIN}` within this file, which sets the TLD to `localhost` automatically.
+You can use the variable `${STACK_DOMAIN}` within this file, which sets the TLD to `app.localhost` automatically.
 
 
 ### production/
