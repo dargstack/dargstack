@@ -1,6 +1,6 @@
 {
   "name": "dargstack",
-  "version": "2.5.1",
+  "version": "3.0.0",
   "description": "The dargstack script along with its and the template's documentation.",
   "main": "src/dargstack",
   "repository": "https://github.com/dargstack/dargstack.git",

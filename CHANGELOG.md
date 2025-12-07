@@ -1,3 +1,15 @@
+## [3.0.0](https://github.com/dargstack/dargstack/compare/2.5.1...3.0.0) (2025-12-07)
+
+### ⚠ BREAKING CHANGES
+
+* **deploy:** switch domain to `app.localhost` for development
+* **git:** switch from master to main
+
+### Features
+
+* **deploy:** switch domain to `app.localhost` for development ([91440cb](https://github.com/dargstack/dargstack/commit/91440cbb198b938c1aa9906c88a40199e4d77f13))
+* **git:** switch from master to main ([9d10c10](https://github.com/dargstack/dargstack/commit/9d10c10f9c12f6f4619c270327fae56f3ce4f724))
+
 ## [2.5.1](https://github.com/dargstack/dargstack/compare/2.5.0...2.5.1) (2025-03-19)
 
 
