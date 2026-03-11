@@ -1,3 +1,9 @@
+## [4.0.0-beta.5](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.4...v4.0.0-beta.5) (2026-03-11)
+
+### Bug Fixes
+
+* **version:** fall back to build info ([86c05a0](https://github.com/dargstack/dargstack/commit/86c05a06e3af1af0d63953899fb97730a9fb93cd))
+
 ## [4.0.0-beta.4](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.3...v4.0.0-beta.4) (2026-03-11)
 
 ### Bug Fixes
