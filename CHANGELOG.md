@@ -1,3 +1,34 @@
+## [4.0.0-beta.1](https://github.com/dargstack/dargstack/compare/v3.0.0...v4.0.0-beta.1) (2026-03-11)
+
+### ⚠ BREAKING CHANGES
+
+* drop v3
+
+### Features
+
+* add audit log for deployment tracking ([31a6ed8](https://github.com/dargstack/dargstack/commit/31a6ed8f85bdf1c6d1250b4f13e598634f98426a))
+* add build, certify, inspect, update, and document commands ([62f58bb](https://github.com/dargstack/dargstack/commit/62f58bb050b53d60e2016b7d9b35e05c6b60bab2))
+* add CLI root command with shared flags and helpers ([edaf55b](https://github.com/dargstack/dargstack/commit/edaf55b8d4d35b6c008c48fc9493fdee73ae7b3e))
+* add compose file merging with spruce and path resolution ([f50f456](https://github.com/dargstack/dargstack/commit/f50f4564ca948f900ad32a9148c1ae040d3c5622))
+* add compose profile and service filtering ([c04a441](https://github.com/dargstack/dargstack/commit/c04a4417a81792d43d2c8fc3438359940248f875))
+* add config and stack directory detection ([200a7d3](https://github.com/dargstack/dargstack/commit/200a7d32987f33904fd9a98ba074cae3a61e0d99))
+* add deploy command with secret setup, profiles, and dry-run support ([9f910bf](https://github.com/dargstack/dargstack/commit/9f910bf791dae83bfc3e3f3ec4dfe9830c5c2862))
+* add docgen tool and auto-generated CLI reference docs ([69cc61e](https://github.com/dargstack/dargstack/commit/69cc61e46c7c09f1216492667e099a056c926f6b))
+* add docker client, executor, swarm, and stack management ([1ae2894](https://github.com/dargstack/dargstack/commit/1ae28942abc7b993e4d45f9cbaf10cfd91c3760f))
+* add init command to scaffold a new dargstack project ([758e3f5](https://github.com/dargstack/dargstack/commit/758e3f5898cdc39f8f5d3bcc0c9e70afaa6df13f))
+* add interactive terminal prompt helpers ([e070672](https://github.com/dargstack/dargstack/commit/e0706724e3533dfbe95ce631ac27eaf332123ac3))
+* add remove command with targeted service and volume removal ([2998296](https://github.com/dargstack/dargstack/commit/29982963316cd92fef391672de6cc4955b11b395))
+* add resource validation and documentation generation ([0c4f8c2](https://github.com/dargstack/dargstack/commit/0c4f8c2707057af81d295d5834ef2d9820599a9c))
+* add secret templating, generation, and topological resolution ([a486dd8](https://github.com/dargstack/dargstack/commit/a486dd880fcb0b8fff5eb1d2965a3d9ca74bd08c))
+* add self-update mechanism via GitHub releases ([c2f5617](https://github.com/dargstack/dargstack/commit/c2f5617fe87d236bc8c0049ca7af3b4002403f1c))
+* add TLS certificate retrieval and management ([1d57a1d](https://github.com/dargstack/dargstack/commit/1d57a1d56a8a4213757ee25b36df7067854b6c2d))
+* add validate command for compose config verification ([962ad43](https://github.com/dargstack/dargstack/commit/962ad43a110ed9b75f947fe560b7bd13829e0a7d))
+* drop v3 ([373106a](https://github.com/dargstack/dargstack/commit/373106aa21f70fe9e06123a9be1f6170f1717cea))
+
+### Bug Fixes
+
+* implement feedback ([d120968](https://github.com/dargstack/dargstack/commit/d12096880ffdb917524f756bbc51957ac5dacbfa))
+
 ## [3.0.0](https://github.com/dargstack/dargstack/compare/2.5.1...3.0.0) (2025-12-07)
 
 ### ⚠ BREAKING CHANGES
