@@ -16,6 +16,12 @@
     ],
     "@semantic-release/changelog",
     "@semantic-release/github",
-    "@semantic-release/git"
+    "@semantic-release/git",
+    [
+      "@semantic-release/exec",
+      {
+        "publishCmd": "echo \"${nextRelease.notes}\" > /tmp/release-notes.md && npx -y @goreleaser/goreleaser release --release-notes /tmp/release-notes.md --clean"
+      }
+    ]
   ]
 }
