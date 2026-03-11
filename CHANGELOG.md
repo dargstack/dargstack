@@ -1,3 +1,9 @@
+## [4.0.0-beta.2](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.1...v4.0.0-beta.2) (2026-03-11)
+
+### Bug Fixes
+
+* **release:** use semantic release over tag workflow ([41dfaa8](https://github.com/dargstack/dargstack/commit/41dfaa84f674a4e68fc74dc24238fdbad8661230))
+
 ## [4.0.0-beta.1](https://github.com/dargstack/dargstack/compare/v3.0.0...v4.0.0-beta.1) (2026-03-11)
 
 ### ⚠ BREAKING CHANGES
