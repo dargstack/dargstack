@@ -29,6 +29,33 @@ jobs:
       PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
     with:
       DRY_RUN: true
+  check-docs:
+    needs: ci-optimization
+    if: needs.ci-optimization.outputs.continue == 'true'
+    name: Update generated docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Regenerate docs
+        run: go run ./internal/tools/docgen ./docs
+      - name: Commit and push updated docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          if git diff --staged --quiet; then
+            echo "Docs are already up to date"
+          else
+            git commit -m "chore: update generated docs"
+            git push
+          fi
   build:
     name: Build
     uses: dargmuesli/github-actions/.github/workflows/docker.yml@f680e78d609905fc52fe9a981b4538da19d9dac4 # 4.3.1

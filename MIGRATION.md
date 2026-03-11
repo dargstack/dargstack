@@ -6,38 +6,29 @@ This guide helps you migrate an existing dargstack v3 (Bash) project to v4 (Go).
 
 ## Overview of changes
 
-| Area | v3 | v4 |
-|---|---|---|
-| Runtime | Bash script | Compiled Go binary |
-| Compose structure | Single `stack.yml` per environment | One `compose.yaml` per service |
-| Production merge | `derive` via sed + optional spruce merge | Automatic deep-merge via spruce on deploy |
-| Secrets | `.secret.template` files in `src/<env>/secrets/` | `x-dargstack.secrets` in compose files, generated to `artifacts/secrets/` |
-| Config file | `dargstack.env` key-value file | `dargstack.yaml` structured config |
-| Spruce | Invoked via `docker run gfranks/spruce` | Invoked as a local binary (`spruce` on `$PATH`) |
+| Area              | v3                                               | v4                                                                                       |
+| ----------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Runtime           | Bash script                                      | Compiled Go binary                                                                       |
+| Compose structure | Single `stack.yml` per environment               | One `compose.yaml` per service                                                           |
+| Production merge  | `derive` via sed + optional spruce merge         | Automatic deep-merge via spruce on deploy                                                |
+| Secrets           | `.secret.template` files in `src/<env>/secrets/` | `x-dargstack.secrets` in compose files, generated to `artifacts/secrets/`                |
+| Config file       | `dargstack.env` key-value file                   | `dargstack.yaml` structured config                                                       |
+| Spruce            | Invoked via `docker run gfranks/spruce`          | Integrated via Go library (`github.com/geofffranks/spruce`), no external binary required |
 
 ---
 
-## Step 1 — Install spruce
+## Step 1 — Install dargstack v4
 
-v4 calls spruce as a local binary during `deploy` and `validate`. Install it:
+**Recommended** (verified via Go module proxy):
 
 ```bash
-# Linux / macOS (latest release from GitHub)
-curl -sL https://github.com/geofffranks/spruce/releases/latest/download/spruce-linux-amd64 -o /usr/local/bin/spruce
-chmod +x /usr/local/bin/spruce
-
-# Or via Homebrew (macOS)
-brew install geofffranks/tap/spruce
+go install github.com/dargstack/dargstack/cmd/dargstack@latest
 ```
 
-Verify: `spruce --version`
-
----
-
-## Step 2 — Install dargstack v4
+**Alternative** (binary download — verify the checksum on the [Releases page](https://github.com/dargstack/dargstack/releases) before use):
 
 ```bash
-curl -sL https://github.com/dargstack/dargstack/releases/latest/download/dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/').tar.gz | tar xz
+curl -sL https://github.com/dargstack/dargstack/releases/latest/download/dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz | tar xz
 sudo mv dargstack /usr/local/bin/
 ```
 
@@ -49,7 +40,7 @@ sudo rm /usr/local/bin/dargstack   # or wherever you installed it
 
 ---
 
-## Step 3 — Migrate the config file
+## Step 2 — Migrate the config file
 
 v3 used a flat `dargstack.env`:
 
@@ -64,12 +55,12 @@ v4 uses a structured `dargstack.yaml` at the root of your stack directory:
 ```yaml
 # dargstack.yaml (v4)
 compatibility: ">=4.0.0 <5.0.0"
-name: my-stack              # optional; defaults to parent directory name
+name: my-stack # optional; defaults to parent directory name
 production:
-  branch: main              # optional
-  tag: latest               # optional; "latest" or a specific image tag/version
-  domain: app.example.com   # optional
-sudo: auto                  # optional; "auto" | "always" | "never"
+  branch: main # optional
+  tag: latest # optional; "latest" or a specific image tag/version
+  domain: app.example.com # optional
+sudo: auto # optional; "auto" | "always" | "never"
 ```
 
 Create `dargstack.yaml` at the root of your stack directory (same level as
@@ -77,7 +68,7 @@ Create `dargstack.yaml` at the root of your stack directory (same level as
 
 ---
 
-## Step 4 — Split the monolithic stack.yml into per-service files
+## Step 3 — Split the monolithic stack.yml into per-service files
 
 ### v3 structure
 
@@ -234,7 +225,7 @@ Rename `src/development/stack.env` → `src/development/.env` and
 
 ---
 
-## Step 5 — Migrate secrets
+## Step 4 — Migrate secrets
 
 ### v3 approach
 
@@ -279,7 +270,7 @@ service's compose file. Generated values are written to `artifacts/secrets/`
 
 ---
 
-## Step 6 — Remove the `derive` step
+## Step 5 — Remove the `derive` step
 
 If your CI/CD pipeline or deployment scripts ran `dargstack derive` before
 `dargstack deploy --production`, remove that step. v4 performs the merge
@@ -287,7 +278,7 @@ automatically during deploy.
 
 ---
 
-## Step 7 — Verify
+## Step 6 — Verify
 
 Run validation against your migrated stack:
 
@@ -314,19 +305,19 @@ dargstack deploy
 
 ## Quick reference: command renames
 
-| v3 | v4 |
-|---|---|
-| `dargstack deploy` | `dargstack deploy` |
+| v3                                    | v4                                                          |
+| ------------------------------------- | ----------------------------------------------------------- |
+| `dargstack deploy`                    | `dargstack deploy`                                          |
 | `dargstack deploy --production <tag>` | `dargstack deploy --production` (tag from `dargstack.yaml`) |
-| `dargstack derive` | _(removed — automatic during deploy)_ |
-| `dargstack rm` | `dargstack remove` |
-| `dargstack build` | `dargstack build` |
-| `dargstack rgen` | `dargstack document` |
-| `dargstack validate` | `dargstack validate` |
-| `dargstack self-update` | `dargstack update --self` |
-| _(none)_ | `dargstack init` |
-| _(none)_ | `dargstack certify` |
-| _(none)_ | `dargstack inspect` |
+| `dargstack derive`                    | _(removed — automatic during deploy)_                       |
+| `dargstack rm`                        | `dargstack remove`                                          |
+| `dargstack build`                     | `dargstack build`                                           |
+| `dargstack rgen`                      | `dargstack document`                                        |
+| `dargstack validate`                  | `dargstack validate`                                        |
+| `dargstack self-update`               | `dargstack update --self`                                   |
+| _(none)_                              | `dargstack init`                                            |
+| _(none)_                              | `dargstack certify`                                         |
+| _(none)_                              | `dargstack inspect`                                         |
 
 ---
 

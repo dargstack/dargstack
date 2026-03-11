@@ -49,16 +49,13 @@ func needsSudo(binary string) bool {
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
-		// Check if sudo would help — use -n (non-interactive) to avoid blocking
+		// Only use sudo when it actually fixes the problem (permission denied).
+		// If the daemon is down or Docker is broken, sudo won't help and we
+		// should let the underlying error surface via the normal command path.
 		sudoCmd := exec.Command("sudo", "-n", binary, "info")
 		sudoCmd.Stdout = nil
 		sudoCmd.Stderr = nil
-		if sudoCmd.Run() == nil {
-			return true
-		}
-		// sudo -n failed (needs password) — still report sudo is needed,
-		// prewarmSudo will handle the interactive prompt
-		return true
+		return sudoCmd.Run() == nil
 	}
 	return false
 }

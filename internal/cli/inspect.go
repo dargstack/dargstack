@@ -1,8 +1,11 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -99,7 +102,7 @@ func showDeploymentByPrefix(auditDir, prefix string) error {
 	}
 
 	for _, d := range deployments {
-		ts := d.Timestamp.Format("20060102T150405Z")
+		ts := d.Timestamp.Format("20060102T150405.000Z")
 		if strings.HasPrefix(ts, prefix) {
 			data, loadErr := audit.LoadDeployment(d.Path)
 			if loadErr != nil {
@@ -138,26 +141,45 @@ func showDiff(auditDir string, latest *audit.Deployment, latestData []byte) erro
 	}
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 
-	deployedPath := fmt.Sprintf("%s/deployed.yaml", tmpDir)
-	currentPath := fmt.Sprintf("%s/current.yaml", tmpDir)
-	_ = os.WriteFile(deployedPath, latestData, 0o644)
-	_ = os.WriteFile(currentPath, currentData, 0o644)
+	deployedPath := filepath.Join(tmpDir, "deployed.yaml")
+	currentPath := filepath.Join(tmpDir, "current.yaml")
+	if err := os.WriteFile(deployedPath, latestData, 0o644); err != nil {
+		return fmt.Errorf("write deployed compose for diff: %w", err)
+	}
+	if err := os.WriteFile(currentPath, currentData, 0o644); err != nil {
+		return fmt.Errorf("write current compose for diff: %w", err)
+	}
 
 	fmt.Printf("# Diff: last deployed vs current (%s)\n\n", latest.Env)
 
-	// Simple line-by-line diff output
-	deployedLines := strings.Split(string(latestData), "\n")
-	currentLines := strings.Split(string(currentData), "\n")
+	// Delegate to system diff for a proper unified diff output.
+	// diff exits 0 (no diff), 1 (differ), or 2 (error). Both 0 and 1 produce
+	// valid output; only exit code 2 indicates a real failure.
+	deployedLabel := "deployed (" + latest.Timestamp.Format("2006-01-02 15:04:05 UTC") + ")"
+	out, runErr := exec.Command("diff", "-u",
+		"--label", deployedLabel,
+		"--label", "current",
+		deployedPath, currentPath).Output()
 
-	if strings.Join(deployedLines, "\n") == strings.Join(currentLines, "\n") {
+	var exitErr *exec.ExitError
+	if runErr != nil && (!errors.As(runErr, &exitErr) || exitErr.ExitCode() == 2) {
+		// diff binary unavailable or hard error — fall back to summary
+		deployedLines := strings.Split(string(latestData), "\n")
+		currentLines := strings.Split(string(currentData), "\n")
+		if strings.Join(deployedLines, "\n") == strings.Join(currentLines, "\n") {
+			printSuccess("No changes — current compose matches last deployed version")
+			return nil
+		}
+		printWarning("diff not available; showing full current compose:")
+		fmt.Print(string(currentData))
+		return nil
+	}
+
+	if len(out) == 0 {
 		printSuccess("No changes — current compose matches last deployed version")
 		return nil
 	}
 
-	printWarning("Compose has changed since last deployment:")
-	fmt.Printf("  Deployed: %d lines\n", len(deployedLines))
-	fmt.Printf("  Current:  %d lines\n", len(currentLines))
-	fmt.Println("\nCurrent compose:")
-	fmt.Print(string(currentData))
+	fmt.Print(string(out))
 	return nil
 }

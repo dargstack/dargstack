@@ -212,7 +212,7 @@ deploy:
     dargstack.profiles: myprofile
 ` + "```" + `
 
-Then deploy with ` + "`dargstack deploy --profile myprofile`" + `.
+Then deploy with ` + "`dargstack deploy --profiles myprofile`" + `.
 
 If no profile is given and any service declares a ` + "`default`" + ` profile, only the default group is deployed.
 `
@@ -297,8 +297,8 @@ func generateConfigTemplate(name string) string {
 
 #####
 
-# Version: This CLI is compatible with config versions < 1.0.0
-compatibility: "<1.0.0"
+# Version: This CLI is compatible with config versions < 5.0.0
+compatibility: ">=4.0.0 <5.0.0"
 
 # Sudo mode — if Docker requires sudo on this machine, set to "always"
 # Options: "always", "never", "auto" (default)

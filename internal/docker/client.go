@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
@@ -46,20 +47,15 @@ func (c *Client) SwarmStatus(ctx context.Context) (swarm.LocalNodeState, error) 
 	return info.Swarm.LocalNodeState, nil
 }
 
-// ListStackServices lists services belonging to a stack.
+// ListStackServices lists services belonging to a stack, using server-side
+// label filtering to avoid fetching all services on large swarms.
 func (c *Client) ListStackServices(ctx context.Context, stackName string) ([]swarm.Service, error) {
-	services, err := c.api.ServiceList(ctx, types.ServiceListOptions{})
+	f := filters.NewArgs(filters.Arg("label", "com.docker.stack.namespace="+stackName))
+	services, err := c.api.ServiceList(ctx, types.ServiceListOptions{Filters: f})
 	if err != nil {
 		return nil, fmt.Errorf("list services: %w", err)
 	}
-
-	var stackServices []swarm.Service
-	for i := range services {
-		if services[i].Spec.Labels["com.docker.stack.namespace"] == stackName {
-			stackServices = append(stackServices, services[i])
-		}
-	}
-	return stackServices, nil
+	return services, nil
 }
 
 // IsStackRunning checks if any services for the stack are deployed.

@@ -22,20 +22,15 @@ Certificates are stored in artifacts/certificates and must be trusted in your br
 }
 
 func runGenerateCerts(_ *cobra.Command, _ []string) error {
-	var composeData []byte
-	var err error
-
-	if production {
-		composeData, err = buildProductionCompose()
-	} else {
-		composeData, err = buildDevelopmentCompose()
-	}
+	// TLS certificate generation is a development-only feature. Always build
+	// development compose to discover domains; production domains are not
+	// applicable here.
+	composeData, err := buildDevelopmentCompose()
 	if err != nil {
 		return err
 	}
 
-	domains := tls.ExtractDomains(composeData, cfg.Production.Domain)
-	domains = append(domains, cfg.Development.Domains...)
+	domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Production.Domain), cfg.Development.Domains)
 
 	certDir := config.CertificatesDir(stackDir)
 	if err := tls.EnsureCertificates(certDir, domains); err != nil {

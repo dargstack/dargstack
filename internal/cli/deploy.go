@@ -26,7 +26,7 @@ import (
 
 var (
 	production   bool
-	profile      string
+	profiles     []string
 	services     []string
 	deployTag    string
 	dryRun       bool
@@ -52,7 +52,7 @@ use --production to deploy to production, which:
 - Pre-pulls images before deployment
 - Includes production-only services
 
-Use --profile to activate specific compose profiles.
+Use --profiles to activate specific compose profiles.
 Use --services to deploy only selected services.
 Use --dry-run to preview all steps without deploying.
 Use --list-profiles to print discovered profiles and exit.
@@ -64,7 +64,7 @@ Use --tag (production only) to deploy a specific git tag.`,
 
 func init() {
 	deployCmd.Flags().BoolVar(&production, "production", false, "deploy in production mode")
-	deployCmd.Flags().StringVar(&profile, "profile", "", "activate a compose profile (services without profiles are always included)")
+	deployCmd.Flags().StringSliceVar(&profiles, "profiles", nil, "activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined")
 	deployCmd.Flags().StringSliceVar(&services, "services", nil, "deploy only these services (comma-separated)")
 	deployCmd.Flags().StringVar(&deployTag, "tag", "", "deploy a specific git tag (production only)")
 	deployCmd.Flags().BoolVar(&dryRun, "dry-run", false, "trace all steps without deploying")
@@ -312,9 +312,9 @@ func runDeployDryRun(env string) error {
 
 	// Show profile filtering
 	switch {
-	case profile != "":
-		printInfo(fmt.Sprintf("[dry-run] Step 3: Filtering by profile %q", profile))
-		composeData, err = compose.FilterByProfile(composeData, []string{profile})
+	case len(profiles) > 0:
+		printInfo(fmt.Sprintf("[dry-run] Step 3: Filtering by profiles %v", profiles))
+		composeData, err = compose.FilterByProfile(composeData, profiles)
 		if err != nil {
 			return err
 		}
@@ -325,23 +325,26 @@ func runDeployDryRun(env string) error {
 			return err
 		}
 	default:
-		defaultProfileExists := composeHasProfile(composeData, "default")
-		printInfo("[dry-run] Step 3: Applying default profile semantics")
-		composeData, err = compose.FilterByProfile(composeData, nil)
-		if err != nil {
-			return err
-		}
-		if defaultProfileExists {
-			printInfo("[dry-run] Default profile detected: deploying only services in profile \"default\"")
+		if production {
+			printInfo("[dry-run] Step 3: Production mode — deploying all services (no default profile filter)")
 		} else {
-			printInfo("[dry-run] No default profile detected: deploying all services")
+			defaultProfileExists := composeHasProfile(composeData, "default")
+			printInfo("[dry-run] Step 3: Applying default profile semantics")
+			composeData, err = compose.FilterByProfile(composeData, nil)
+			if err != nil {
+				return err
+			}
+			if defaultProfileExists {
+				printInfo("[dry-run] Default profile detected: deploying only services in profile \"default\"")
+			} else {
+				printInfo("[dry-run] No default profile detected: deploying all services")
+			}
 		}
 	}
 
 	// Show domain extraction
 	if !production {
-		domains := tls.ExtractDomains(composeData, cfg.Production.Domain)
-		domains = append(domains, cfg.Development.Domains...)
+		domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Production.Domain), cfg.Development.Domains)
 		printInfo(fmt.Sprintf("[dry-run] Step 4: TLS domains discovered: %s", strings.Join(domains, ", ")))
 	}
 
@@ -456,8 +459,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 
 	// 7. TLS certificates (development only) with domain-aware regeneration
 	if !production {
-		domains := tls.ExtractDomains(composeData, cfg.Production.Domain)
-		domains = append(domains, cfg.Development.Domains...)
+		domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Production.Domain), cfg.Development.Domains)
 		certDir := config.CertificatesDir(stackDir)
 		if err := tls.EnsureCertificates(certDir, domains); err != nil {
 			printWarning(fmt.Sprintf("TLS certificate setup failed: %v", err))
@@ -478,10 +480,10 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 
 	// 10. Volume cleanup prompt (development, not already running)
 	if !production && !noInteraction {
-		// Check behavior.prompt.volume.prompt (defaults to true)
+		// Check behavior.prompt.volume.remove (defaults to true)
 		promptVolumes := true
 		if cfg.Behavior.Prompt != nil && cfg.Behavior.Prompt.Volume != nil {
-			promptVolumes = cfg.Behavior.Prompt.Volume.Prompt
+			promptVolumes = cfg.Behavior.Prompt.Volume.Remove
 		}
 		if promptVolumes {
 			running := isStackRunning(ctx, dockerClient, executor)
@@ -503,12 +505,12 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 
 	// 11. Filter for profile/services
 	switch {
-	case profile != "":
-		composeData, err = compose.FilterByProfile(composeData, []string{profile})
+	case len(profiles) > 0:
+		composeData, err = compose.FilterByProfile(composeData, profiles)
 		if err != nil {
-			return fmt.Errorf("filter profile %q: %w", profile, err)
+			return fmt.Errorf("filter profiles %v: %w", profiles, err)
 		}
-		printInfo(fmt.Sprintf("Deploying with profile %q active", profile))
+		printInfo(fmt.Sprintf("Deploying with profiles %v active", profiles))
 	case len(services) > 0:
 		composeData, err = compose.FilterServices(composeData, services)
 		if err != nil {
@@ -516,15 +518,21 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 		printInfo(fmt.Sprintf("Deploying services: %s", strings.Join(services, ", ")))
 	default:
-		defaultProfileExists := composeHasProfile(composeData, "default")
-		composeData, err = compose.FilterByProfile(composeData, nil)
-		if err != nil {
-			return fmt.Errorf("apply default profile semantics: %w", err)
-		}
-		if defaultProfileExists {
-			printInfo("Default profile detected: deploying only services in profile \"default\" (use --profile unlabeled to include unlabeled services)")
+		if production {
+			// Production deploys all services by default; --profiles or --services
+			// can still scope the deployment explicitly.
+			printInfo("Production deployment: deploying all services")
 		} else {
-			printInfo("No default profile detected: deploying all services")
+			defaultProfileExists := composeHasProfile(composeData, "default")
+			composeData, err = compose.FilterByProfile(composeData, nil)
+			if err != nil {
+				return fmt.Errorf("apply default profile semantics: %w", err)
+			}
+			if defaultProfileExists {
+				printInfo("Default profile detected: deploying only services in profile \"default\" (use --profiles unlabeled to include unlabeled services)")
+			} else {
+				printInfo("No default profile detected: deploying all services")
+			}
 		}
 	}
 
@@ -1167,14 +1175,14 @@ func composeHasProfile(composeData []byte, profile string) bool {
 	return false
 }
 
-// applyProfileFilter applies the active --profile / --services / default-profile
+// applyProfileFilter applies the active --profiles / --services / default-profile
 // filter to composeData and returns the filtered result. This must be called
 // before any operation that should only concern the active portion of the stack
 // (e.g. secret setup, validation).
 func applyProfileFilter(composeData []byte) ([]byte, error) {
 	switch {
-	case profile != "":
-		return compose.FilterByProfile(composeData, []string{profile})
+	case len(profiles) > 0:
+		return compose.FilterByProfile(composeData, profiles)
 	case len(services) > 0:
 		return compose.FilterServices(composeData, services)
 	default:
@@ -1244,4 +1252,27 @@ func offerRuntimeCleanup(executor *docker.Executor) {
 		strings.TrimSpace(containerOut),
 		strings.TrimSpace(imageOut),
 	))
+}
+
+// uniqueSortedDomains merges two domain slices, removes duplicates, and returns
+// the result sorted. This stabilises regeneration checks and avoids feeding
+// duplicate entries to certificate generators.
+func uniqueSortedDomains(a, b []string) []string {
+	seen := make(map[string]bool, len(a)+len(b))
+	for _, d := range a {
+		if d != "" {
+			seen[d] = true
+		}
+	}
+	for _, d := range b {
+		if d != "" {
+			seen[d] = true
+		}
+	}
+	out := make([]string, 0, len(seen))
+	for d := range seen {
+		out = append(out, d)
+	}
+	sort.Strings(out)
+	return out
 }

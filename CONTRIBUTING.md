@@ -8,15 +8,16 @@ dargstack is a **CLI tool and project structure specification** for Docker Swarm
 
 **Design Tenets:**
 
-| # | Principle | What it means |
-|---|-----------|-------------|
-| T1 | Optimal DX | Every friction point detected and resolved interactively |
-| T2 | Declaration-first | Behavior driven by file structure and compose declarations |
-| T3 | Context-aware | CLI infers from environment (git, Docker, OS, directory layout) |
-| T4 | Offline-capable | Core operations work without internet; online features degrade gracefully |
-| T5 | Cross-platform | Linux, macOS, Windows — no platform-specific workarounds by the user |
+| #   | Principle         | What it means                                                             |
+| --- | ----------------- | ------------------------------------------------------------------------- |
+| T1  | Optimal DX        | Every friction point detected and resolved interactively                  |
+| T2  | Declaration-first | Behavior driven by file structure and compose declarations                |
+| T3  | Context-aware     | CLI infers from environment (git, Docker, OS, directory layout)           |
+| T4  | Offline-capable   | Core operations work without internet; online features degrade gracefully |
+| T5  | Cross-platform    | Linux, macOS, Windows — no platform-specific workarounds by the user      |
 
 **Vision Goals:**
+
 - Reduce cognitive overhead compared to plain `docker stack`
 - Maintain minimal command set (deploy, remove, build, validate, document, inspect)
 - Enable development as the source of truth with production as a small delta
@@ -33,7 +34,7 @@ Understanding these decisions will help you make changes that align with dargsta
 
 3. **Development-first composition** — dev compose is the base; production overlay adds/overrides/prunes.
 
-4. **Compose profiles via deploy labels** — Docker Swarm rejects the standard `profiles:` key. dargstack uses `deploy.labels.dargstack.profiles` (comma-separated). When no `--profile` flag is given: if any service declares a `default` profile, only `default`-profiled services deploy; otherwise all services deploy. If a `default` profile exists, unlabeled services deploy only when profile `unlabeled` is explicitly selected.
+4. **Compose profiles via deploy labels** — Docker Swarm rejects the standard `profiles:` key. dargstack uses `deploy.labels.dargstack.profiles` (comma-separated). When no `--profiles` flag is given: if any service declares a `default` profile, only `default`-profiled services deploy; otherwise all services deploy. If a `default` profile exists, unlabeled services deploy only when profile `unlabeled` is explicitly selected.
 
 5. **Dev-only markers** — lines annotated with `# dargstack:dev-only` are stripped when building production compose.
 
@@ -57,17 +58,17 @@ Understanding these decisions will help you make changes that align with dargsta
 
 dargstack is organized into focused packages, each with a clear responsibility:
 
-| Package | Responsibility |
-|---------|-----------------|
-| `cmd/dargstack/` | Entry point and CLI bootstrapping |
-| `internal/cli/` | Cobra commands: deploy, rm, build, certificates, docs, validate, inspect, update --self |
-| `internal/compose/` | Spruce-based YAML deep merge, profile filtering, env file helpers |
-| `internal/config/` | `dargstack.yaml` parsing, stack directory detection, semver compatibility |
-| `internal/docker/` | Docker SDK client for queries; CLI executor for `docker stack deploy/rm` |
-| `internal/tls/` | Domain-aware certificate generation with smart regeneration |
-| `internal/resource/` | Secret, config, Dockerfile, certificate validation and docs generation |
-| `internal/secret/` | Template resolution (`{{ref}}`), topological sort, random generation |
-| `internal/audit/` | Deployment snapshots in `artifacts/audit-log/`, listing, diffing |
+| Package              | Responsibility                                                                   |
+| -------------------- | -------------------------------------------------------------------------------- |
+| `cmd/dargstack/`     | Entry point and CLI bootstrapping                                                |
+| `internal/cli/`      | Cobra commands: deploy, rm, build, certificates, docs, validate, inspect, update |
+| `internal/compose/`  | Spruce-based YAML deep merge, profile filtering, env file helpers                |
+| `internal/config/`   | `dargstack.yaml` parsing, stack directory detection, semver compatibility        |
+| `internal/docker/`   | Docker SDK client for queries; CLI executor for `docker stack deploy/rm`         |
+| `internal/tls/`      | Domain-aware certificate generation with smart regeneration                      |
+| `internal/resource/` | Secret, config, Dockerfile, certificate validation and docs generation           |
+| `internal/secret/`   | Template resolution (`{{ref}}`), topological sort, random generation             |
+| `internal/audit/`    | Deployment snapshots in `artifacts/audit-log/`, listing, diffing                 |
 
 ## Development Setup
 

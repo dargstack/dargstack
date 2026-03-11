@@ -33,7 +33,7 @@ func Validate(composeData []byte, stackDir string, production bool) ([]Issue, er
 	templates, _ := secret.ExtractTemplates(composeData)
 	issues = append(issues, validateSecrets(doc, stackDir, production, templates)...)
 	issues = append(issues, validateConfigs(doc, stackDir, production)...)
-	issues = append(issues, validateServices(doc, stackDir)...)
+	issues = append(issues, validateServices(doc, stackDir, production)...)
 	if !production {
 		issues = append(issues, validateCertificates(stackDir)...)
 	}
@@ -58,12 +58,20 @@ func validateSecrets(doc map[string]interface{}, stackDir string, production boo
 			continue
 		}
 
+		// In production, secrets are managed externally by Docker Swarm.
+		// File-path checks are only meaningful in development.
+		if production {
+			continue
+		}
+
 		if filePath, ok := secretDef["file"].(string); ok {
 			// After merge, file paths are absolute (resolved from compose file directory).
-			if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			if _, err := os.Stat(filePath); err != nil {
 				severity := "error"
 				desc := fmt.Sprintf("file not found: %s", filePath)
-				if tmpl, ok := templates[name]; ok && (tmpl.ThirdParty || tmpl.Type == secret.TypeThirdParty) {
+				if !os.IsNotExist(err) {
+					desc = fmt.Sprintf("cannot access file: %s (%v)", filePath, err)
+				} else if tmpl, ok := templates[name]; ok && (tmpl.ThirdParty || tmpl.Type == secret.TypeThirdParty) {
 					severity = "warning"
 					desc = fmt.Sprintf("file not found (marked third_party): %s", filePath)
 				}
@@ -97,11 +105,15 @@ func validateConfigs(doc map[string]interface{}, stackDir string, production boo
 		}
 		// After merge, file paths are absolute (resolved from compose file directory).
 		if filePath, ok := cfgDef["file"].(string); ok {
-			if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			if _, err := os.Stat(filePath); err != nil {
+				desc := fmt.Sprintf("file not found: %s", filePath)
+				if !os.IsNotExist(err) {
+					desc = fmt.Sprintf("cannot access file: %s (%v)", filePath, err)
+				}
 				issues = append(issues, Issue{
 					Severity:    "error",
 					Resource:    fmt.Sprintf("config:%s", name),
-					Description: fmt.Sprintf("file not found: %s", filePath),
+					Description: desc,
 				})
 			}
 		}
@@ -109,7 +121,7 @@ func validateConfigs(doc map[string]interface{}, stackDir string, production boo
 	return issues
 }
 
-func validateServices(doc map[string]interface{}, stackDir string) []Issue {
+func validateServices(doc map[string]interface{}, stackDir string, production bool) []Issue {
 	var issues []Issue
 
 	services, ok := doc["services"].(map[string]interface{})
@@ -123,6 +135,12 @@ func validateServices(doc map[string]interface{}, stackDir string) []Issue {
 			continue
 		}
 
+		// dargstack.development.build labels are dev-only and stripped before
+		// production deployment, so skip this check in production mode.
+		if production {
+			continue
+		}
+
 		contextPath := extractDargstackBuildLabel(svcDef)
 		if contextPath == "" {
 			continue
@@ -132,11 +150,15 @@ func validateServices(doc map[string]interface{}, stackDir string) []Issue {
 			contextPath = filepath.Join(stackDir, "src", "development", name, contextPath)
 		}
 		dockerfile := filepath.Join(contextPath, "Dockerfile")
-		if _, err := os.Stat(dockerfile); os.IsNotExist(err) {
+		if _, err := os.Stat(dockerfile); err != nil {
+			desc := fmt.Sprintf("Dockerfile not found: %s", dockerfile)
+			if !os.IsNotExist(err) {
+				desc = fmt.Sprintf("cannot access Dockerfile: %s (%v)", dockerfile, err)
+			}
 			issues = append(issues, Issue{
 				Severity:    "error",
 				Resource:    fmt.Sprintf("service:%s", name),
-				Description: fmt.Sprintf("Dockerfile not found: %s", dockerfile),
+				Description: desc,
 			})
 		}
 	}
@@ -206,14 +228,14 @@ func validateCertificates(stackDir string) []Issue {
 		issues = append(issues, Issue{
 			Severity:    "warning",
 			Resource:    "certificates",
-			Description: "no TLS certificate found (run mkcert to generate)",
+			Description: "no TLS certificate found (run `dargstack certify` to generate)",
 		})
 	}
 	if !hasKey {
 		issues = append(issues, Issue{
 			Severity:    "warning",
 			Resource:    "certificates",
-			Description: "no TLS private key found (run mkcert to generate)",
+			Description: "no TLS private key found (run `dargstack certify` to generate)",
 		})
 	}
 

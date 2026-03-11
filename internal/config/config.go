@@ -36,7 +36,7 @@ type PromptBehavior struct {
 }
 
 type VolumeBehavior struct {
-	Prompt bool `yaml:"prompt"`
+	Remove bool `yaml:"remove"`
 }
 
 type ProductionConfig struct {
@@ -102,6 +102,12 @@ func Load(stackDir string) (*Config, error) {
 
 func (c *Config) applyDefaults(stackDir string) {
 	if c.Name == "" {
+		// Normalize to an absolute path so relative inputs like --config stack
+		// don't produce "." as the derived project name.
+		abs, err := filepath.Abs(stackDir)
+		if err == nil {
+			stackDir = abs
+		}
 		c.Name = filepath.Base(filepath.Dir(stackDir))
 	}
 	if c.Sudo == "" {

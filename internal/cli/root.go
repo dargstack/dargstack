@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/dargstack/dargstack/internal/config"
+	"github.com/dargstack/dargstack/internal/prompt"
 	"github.com/dargstack/dargstack/internal/update"
 	"github.com/dargstack/dargstack/internal/version"
 )
@@ -34,6 +35,9 @@ var rootCmd = &cobra.Command{
 	Version:      fmt.Sprintf("%s (commit: %s, built: %s)", version.Version, version.Commit, version.Date),
 	SilenceUsage: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// Propagate --no-interaction to the prompt package.
+		prompt.NonInteractive = noInteraction
+
 		// Skip config loading for commands that don't need a stack project.
 		// Walk up to the first subcommand (child of root) to check.
 		if isSkippedCommand(cmd) {

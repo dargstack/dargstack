@@ -18,11 +18,12 @@ use --production to deploy to production, which:
 - Pre-pulls images before deployment
 - Includes production-only services
 
-Use --profile to activate specific compose profiles.
+Use --profiles to activate specific compose profiles.
 Use --services to deploy only selected services.
 Use --dry-run to preview all steps without deploying.
 Use --list-profiles to print discovered profiles and exit.
 Use --list-secrets to print resolved secrets and exit.
+Use --secrets-only to run secret setup only without deploying.
 Use --tag (production only) to deploy a specific git tag.
 
 ```
@@ -37,7 +38,8 @@ dargstack deploy [flags]
       --list-profiles      list discovered deploy profiles and exit
       --list-secrets       list resolved secrets and exit
       --production         deploy in production mode
-      --profile string     activate a compose profile (services without profiles are always included)
+      --profiles strings   activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
+      --secrets-only       run secret setup only without deploying
       --services strings   deploy only these services (comma-separated)
       --tag string         deploy a specific git tag (production only)
 ```

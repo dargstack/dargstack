@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
@@ -32,6 +34,7 @@ type CheckResult struct {
 var (
 	bgResultCh = make(chan *CheckResult, 1)
 	bgOnce     sync.Once
+	bgStarted  atomic.Bool
 )
 
 // BackgroundCheck starts a non-blocking update check.
@@ -40,6 +43,7 @@ func BackgroundCheck() {
 		return
 	}
 	bgOnce.Do(func() {
+		bgStarted.Store(true)
 		go func() {
 			result, _ := checkLatest()
 			bgResultCh <- result
@@ -48,7 +52,11 @@ func BackgroundCheck() {
 }
 
 // CollectBackgroundCheck retrieves the result of BackgroundCheck with a short timeout.
+// Returns nil immediately when no check was started (e.g. skipped commands, dev builds).
 func CollectBackgroundCheck() *CheckResult {
+	if !bgStarted.Load() {
+		return nil
+	}
 	select {
 	case result := <-bgResultCh:
 		return result
@@ -82,7 +90,10 @@ func SelfUpdate() error {
 		return fmt.Errorf("create updater: %w", err)
 	}
 
-	latest, found, err := updater.DetectLatest(context.Background(), selfupdate.NewRepositorySlug(githubOwner, githubRepo))
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	latest, found, err := updater.DetectLatest(ctx, selfupdate.NewRepositorySlug(githubOwner, githubRepo))
 	if err != nil {
 		return fmt.Errorf("detect latest release: %w", err)
 	}
@@ -105,7 +116,7 @@ func SelfUpdate() error {
 		return fmt.Errorf("find executable path: %w", err)
 	}
 
-	if err := updater.UpdateTo(context.Background(), latest, exe); err != nil {
+	if err := updater.UpdateTo(ctx, latest, exe); err != nil {
 		return fmt.Errorf("update: %w", err)
 	}
 
@@ -126,6 +137,8 @@ func checkLatest() (*CheckResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("User-Agent", "dargstack/"+version.Version)
+	req.Header.Set("Accept", "application/vnd.github+json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -167,16 +180,25 @@ type cacheEntry struct {
 	NewVersion string    `json:"new_version"`
 }
 
+// cacheFilePath returns the path to the update-check cache file.
+// Returns an empty string when the user cache directory is unavailable;
+// callers must treat an empty return value as "caching disabled".
 func cacheFilePath() string {
-	dir, _ := os.UserCacheDir()
-	if dir == "" {
-		dir = os.TempDir()
+	dir, err := os.UserCacheDir()
+	if err != nil || dir == "" {
+		// Do not fall back to os.TempDir(): a shared temp directory allows
+		// symlink/hardlink attacks and cross-user cache poisoning.
+		return ""
 	}
-	return fmt.Sprintf("%s/%s", dir, cacheFile)
+	return filepath.Join(dir, cacheFile)
 }
 
 func readCache() *CheckResult {
-	data, err := os.ReadFile(cacheFilePath())
+	path := cacheFilePath()
+	if path == "" {
+		return nil
+	}
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil
 	}
@@ -194,6 +216,15 @@ func readCache() *CheckResult {
 }
 
 func writeCache(result *CheckResult) {
+	path := cacheFilePath()
+	if path == "" {
+		return
+	}
+	dir := filepath.Dir(path)
+	// Ensure the cache directory is private to this user.
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return
+	}
 	entry := cacheEntry{
 		CheckedAt:  time.Now(),
 		Available:  result.Available,
@@ -203,5 +234,20 @@ func writeCache(result *CheckResult) {
 	if err != nil {
 		return
 	}
-	_ = os.WriteFile(cacheFilePath(), data, 0o644)
+	// Atomic write: write to a temp file in the same directory and rename so
+	// concurrent readers never see a partial file and symlink attacks are avoided.
+	tmp, err := os.CreateTemp(dir, ".dargstack-update-*")
+	if err != nil {
+		return
+	}
+	tmpPath := tmp.Name()
+	defer func() { _ = os.Remove(tmpPath) }() // clean up if rename doesn't run
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return
+	}
+	if err := tmp.Close(); err != nil {
+		return
+	}
+	_ = os.Rename(tmpPath, path)
 }

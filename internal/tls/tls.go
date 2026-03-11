@@ -148,7 +148,10 @@ func generateWithMkcert(certDir string, domains []string) error {
 	installCA := exec.Command("mkcert", "-install")
 	installCA.Stdout = os.Stdout
 	installCA.Stderr = os.Stderr
-	_ = installCA.Run()
+	if err := installCA.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: mkcert CA installation failed: %v\n", err)
+		fmt.Fprintf(os.Stderr, "  Certificates will be generated but may not be trusted by browsers.\n")
+	}
 
 	certFile := filepath.Join(certDir, "localhost.pem")
 	keyFile := filepath.Join(certDir, "localhost-key.pem")

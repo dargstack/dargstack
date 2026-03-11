@@ -129,9 +129,32 @@ func GenerateDocumentation(dc *DocsConfig) (string, error) {
 }
 
 // listComposeServices parses every compose.yaml under dir's service directories
-// and returns all service names found in the services: mapping, sorted and deduplicated.
+// as well as a root dir/compose.yaml (shared base layer), and returns all service
+// names found in the services: mapping, sorted and deduplicated.
 func listComposeServices(dir string) []string {
 	nameSet := make(map[string]bool)
+
+	// Include services from the root compose.yaml (shared base layer).
+	addServicesFromFile := func(composePath string) {
+		data, err := os.ReadFile(composePath)
+		if err != nil {
+			return
+		}
+		var doc map[string]interface{}
+		if err := yaml.Unmarshal(data, &doc); err != nil {
+			return
+		}
+		svcMap, ok := doc["services"].(map[string]interface{})
+		if !ok {
+			return
+		}
+		for name := range svcMap {
+			nameSet[name] = true
+		}
+	}
+
+	addServicesFromFile(filepath.Join(dir, "compose.yaml"))
+
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil
@@ -140,22 +163,7 @@ func listComposeServices(dir string) []string {
 		if !e.IsDir() {
 			continue
 		}
-		composePath := filepath.Join(dir, e.Name(), "compose.yaml")
-		data, err := os.ReadFile(composePath)
-		if err != nil {
-			continue
-		}
-		var doc map[string]interface{}
-		if err := yaml.Unmarshal(data, &doc); err != nil {
-			continue
-		}
-		svcMap, ok := doc["services"].(map[string]interface{})
-		if !ok {
-			continue
-		}
-		for name := range svcMap {
-			nameSet[name] = true
-		}
+		addServicesFromFile(filepath.Join(dir, e.Name(), "compose.yaml"))
 	}
 	names := make([]string, 0, len(nameSet))
 	for n := range nameSet {
@@ -166,8 +174,13 @@ func listComposeServices(dir string) []string {
 }
 
 // extractServiceCommentAny searches all compose.yaml files under baseDir
-// for a service matching the given name and extracts its YAML comment.
+// (including a root baseDir/compose.yaml) for a service matching the given
+// name and extracts its YAML comment.
 func extractServiceCommentAny(baseDir, serviceName string) string {
+	// Check root compose.yaml first.
+	if c := extractServiceCommentFromFile(filepath.Join(baseDir, "compose.yaml"), serviceName); c != "" {
+		return c
+	}
 	entries, err := os.ReadDir(baseDir)
 	if err != nil {
 		return ""
@@ -183,10 +196,15 @@ func extractServiceCommentAny(baseDir, serviceName string) string {
 	return ""
 }
 
-// extractServiceComment reads a raw service compose.yaml and extracts the
-// YAML comment associated with the named service using the yaml.v3 Node API.
+// extractServiceComment reads baseDir/dirName/compose.yaml and extracts the
+// YAML comment for serviceName using the yaml.v3 Node API.
 func extractServiceComment(baseDir, dirName, serviceName string) string {
-	composePath := filepath.Join(baseDir, dirName, "compose.yaml")
+	return extractServiceCommentFromFile(filepath.Join(baseDir, dirName, "compose.yaml"), serviceName)
+}
+
+// extractServiceCommentFromFile reads composePath and extracts the YAML comment
+// associated with the named service using the yaml.v3 Node API.
+func extractServiceCommentFromFile(composePath, serviceName string) string {
 	data, err := os.ReadFile(composePath)
 	if err != nil {
 		return ""
@@ -263,54 +281,33 @@ func collectProfiles(devDir, prodDir string) map[string][]string {
 	return profileMap
 }
 
-// collectFromDir scans all compose.yaml files under baseDir and populates profileMap.
+// collectFromDir scans all compose.yaml files under baseDir (including the root
+// baseDir/compose.yaml shared layer) and populates profileMap.
 func collectFromDir(baseDir string, profileMap map[string][]string) {
-	entries, err := os.ReadDir(baseDir)
-	if err != nil {
-		return
-	}
-	for _, e := range entries {
-		if !e.IsDir() {
-			continue
-		}
-		composePath := filepath.Join(baseDir, e.Name(), "compose.yaml")
+	collectFromFile := func(composePath string) {
 		data, err := os.ReadFile(composePath)
 		if err != nil {
-			continue
+			return
 		}
-
 		var doc map[string]interface{}
 		if err := yaml.Unmarshal(data, &doc); err != nil {
-			continue
+			return
 		}
 		svcMap, ok := doc["services"].(map[string]interface{})
 		if !ok {
-			continue
+			return
 		}
-
 		for svcName, svcVal := range svcMap {
 			svcDef, ok := svcVal.(map[string]interface{})
 			if !ok {
 				continue
 			}
-
 			deploy, ok := svcDef["deploy"].(map[string]interface{})
 			if !ok {
 				continue
 			}
-
-			labels, ok := deploy["labels"].(map[string]interface{})
-			if !ok {
-				continue
-			}
-
-			profilesVal, ok := labels["dargstack.profiles"]
-			if !ok {
-				continue
-			}
-
-			profilesStr, ok := profilesVal.(string)
-			if !ok {
+			profilesStr := extractProfilesLabel(deploy["labels"])
+			if profilesStr == "" {
 				continue
 			}
 
@@ -328,6 +325,43 @@ func collectFromDir(baseDir string, profileMap map[string][]string) {
 			}
 		}
 	}
+
+	// Include root compose.yaml (shared base layer).
+	collectFromFile(filepath.Join(baseDir, "compose.yaml"))
+
+	entries, err := os.ReadDir(baseDir)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		collectFromFile(filepath.Join(baseDir, e.Name(), "compose.yaml"))
+	}
+}
+
+// extractProfilesLabel extracts the dargstack.profiles value from a deploy.labels
+// value that may be either a map (string → interface{}) or a list ([]"key=value").
+func extractProfilesLabel(labels interface{}) string {
+	switch v := labels.(type) {
+	case map[string]interface{}:
+		if val, ok := v["dargstack.profiles"].(string); ok {
+			return val
+		}
+	case []interface{}:
+		const prefix = "dargstack.profiles="
+		for _, item := range v {
+			s, ok := item.(string)
+			if !ok {
+				continue
+			}
+			if strings.HasPrefix(s, prefix) {
+				return strings.TrimPrefix(s, prefix)
+			}
+		}
+	}
+	return ""
 }
 
 // containsString checks if a slice contains a string.

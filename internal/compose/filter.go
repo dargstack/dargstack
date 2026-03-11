@@ -8,7 +8,7 @@ import (
 )
 
 // FilterByProfile filters a compose document using dargstack profile semantics.
-// When activeProfiles is nil (no --profile flag): if any service declares a "default"
+// When activeProfiles is nil (no --profiles flag): if any service declares a "default"
 // profile, only "default" services are deployed. Otherwise all services
 // are deployed. When a "default" profile exists, unlabeled services are only
 // included if profile "unlabeled" is explicitly active.
@@ -128,7 +128,6 @@ func FilterServices(composeData []byte, services []string) ([]byte, error) {
 	return result, nil
 }
 
-// DiscoverProfiles returns all unique profile names found in compose services.
 // ServiceNames returns the names of all services in the compose document.
 func ServiceNames(composeData []byte) ([]string, error) {
 	var doc map[string]interface{}
@@ -331,17 +330,29 @@ func collectVolumeRefs(svc map[string]interface{}, used map[string]bool) {
 }
 
 // extractVolumeName extracts a named volume from short volume syntax.
-// Returns empty string for bind mounts (paths starting with / or .).
+// Returns empty string for bind mounts (paths starting with / or .) and for
+// Windows absolute paths (e.g. C:\path:/container or C:/path:/container).
 func extractVolumeName(vol string) string {
 	// Find the first colon
 	for i, c := range vol {
 		if c == ':' {
 			name := vol[:i]
 			// Bind mounts start with / or .
-			if name != "" && name[0] != '/' && name[0] != '.' {
-				return name
+			if name == "" || name[0] == '/' || name[0] == '.' {
+				return ""
 			}
-			return ""
+			// Windows drive letter: single alpha char before the colon, followed
+			// by a path separator — treat the whole thing as a bind mount.
+			if len(name) == 1 {
+				ch := name[0]
+				if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') {
+					after := vol[i+1:]
+					if len(after) > 0 && (after[0] == '\\' || after[0] == '/') {
+						return ""
+					}
+				}
+			}
+			return name
 		}
 	}
 	return ""

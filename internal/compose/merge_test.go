@@ -496,3 +496,27 @@ func TestResolveFilePathsBindMount(t *testing.T) {
 		t.Errorf("expected named volume unchanged, got %q", got)
 	}
 }
+func TestSplitVolumeSpec(t *testing.T) {
+	tests := []struct {
+		input string
+		host  string
+		rest  string
+	}{
+		{"myvolume:/data", "myvolume", "/data"},
+		{"/absolute:/container", "/absolute", "/container"},
+		{"./relative:/container", "./relative", "/container"},
+		{"named:ro", "named", "ro"},
+		{"nocolon", "nocolon", ""},
+		// Windows drive letters: treat C:\path as part of host, not as a split point
+		{`C:\path:/container`, `C:\path`, "/container"},
+		{"C:/path:/container", "C:/path", "/container"},
+		{`C:\path`, `C:\path`, ""},
+	}
+	for _, tt := range tests {
+		host, rest := splitVolumeSpec(tt.input)
+		if host != tt.host || rest != tt.rest {
+			t.Errorf("splitVolumeSpec(%q) = (%q, %q), want (%q, %q)",
+				tt.input, host, rest, tt.host, tt.rest)
+		}
+	}
+}

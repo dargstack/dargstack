@@ -6,6 +6,14 @@ dargstack is a **CLI tool and project structure specification** that **reduces D
 
 dargstack does **not** replace `docker stack`. You can interact with `docker stack` on the same stack that you manage with dargstack.
 
+---
+
+The following projects successfully employ dargstack in production:
+
+- [maevsi/stack](https://github.com/maevsi/stack/)
+- [dargmuesli/jonas-thelemann_stack](https://github.com/dargmuesli/jonas-thelemann_stack/)
+- [flipdot/drinks-touch_stack](https://github.com/flipdot/drinks-touch_stack/)
+
 ## Why dargstack?
 
 Deploying the same app to development and production with Docker Swarm usually means maintaining two nearly identical compose files. Change one thing? Manually copy, edit, hope nothing breaks.
@@ -19,23 +27,30 @@ dargstack inverts this: define development as the source of truth, then express 
 | ✅ Snapshot for every deploy; easy inspect and diff            | ❌ Volatile audit trail – live console tracing only                            |
 | ✅ Safer secret management with auto-generation and templating | ❌ Manual secret management – tedious, often insecure defaults                 |
 | ✅ Development certificates auto‑generated                     | ❌ No TLS certificates – out of scope, traffic unencrypted                     |
-| ✅ Zero downtime service update motivation                     | ❌ Stop-first update order by default – unrealiable availability in production |
+| ✅ Zero downtime service update motivation                     | ❌ Stop-first update order by default – unreliable availability in production |
 
 ## Install
 
-### From GitHub Releases
-
-```bash
-curl -sL https://github.com/dargstack/dargstack/releases/latest/download/dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/').tar.gz | tar xz
-sudo mv dargstack /usr/local/bin/
-```
-
-### From Source
+### Recommended — From Source
 
 **Prerequisite** – Go installed, see [go.dev: Download and install](https://go.dev/doc/install).
 
 ```bash
 go install github.com/dargstack/dargstack/cmd/dargstack@latest
+```
+
+Package integrity is enforced by the Go module proxy and the module's `go.sum` lockfile.
+Pin to a specific version (e.g. `@v4.1.0`) to get a reproducible, auditable install.
+
+### Alternative — From GitHub Releases
+
+> **Security note:** Binary downloads do not include checksum verification in the snippet below.
+> Before moving the binary to your PATH, verify the SHA-256 checksum published on the
+> [Releases page](https://github.com/dargstack/dargstack/releases), or prefer `go install` above.
+
+```bash
+curl -sL https://github.com/dargstack/dargstack/releases/latest/download/dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz | tar xz
+sudo mv dargstack /usr/local/bin/
 ```
 
 ## Quick Start
@@ -44,18 +59,18 @@ go install github.com/dargstack/dargstack/cmd/dargstack@latest
 
 1. Initialize a new dargstack project:
 
-    ```bash
-    dargstack init
-    ```
+   ```bash
+   dargstack init
+   ```
 
 2. Fill in your service configuration according to the [docker.com: Compose file reference](https://docs.docker.com/reference/compose-file).
 
 3. Then deploy:
 
-    ```bash
-    cd <project_name>
-    dargstack deploy
-    ```
+   ```bash
+   cd <project_name>
+   dargstack deploy
+   ```
 
 Done! 🎉 Your project is live now.
 
@@ -99,7 +114,7 @@ example/
 Each service file is a full Docker Compose document — files are deep-merged by [spruce](https://github.com/geofffranks/spruce).
 
 ```yaml
-# src/development/services/api.yaml
+# src/development/api/compose.yaml
 services:
   api:
     image: api:latest
@@ -133,7 +148,7 @@ x-dargstack:
 - Production files contain only **differences** from development:
 
 ```yaml
-# src/production/services/api.yaml
+# src/production/api/compose.yaml
 services:
   api:
     image: ghcr.io/myorg/api:v1.0.0
@@ -147,7 +162,7 @@ services:
 ### Configuration: dargstack.yaml
 
 ```yaml
-compatibility: ">=1.0.0 <2.0.0" # required, string (semver range)
+compatibility: ">=4.0.0 <5.0.0" # required, string (semver range)
 name: my-stack # optional, defaults to parent directory name
 production:
   branch: main # optional, string
@@ -161,21 +176,21 @@ sudo: auto # optional, `auto` | `always` | `never`
 Deploy named groups of services to save resources:
 
 ```yaml
-# src/development/services/adminer.yaml
+# src/development/adminer/compose.yaml
 services:
   adminer:
     image: adminer
     deploy:
       labels:
-        dargstack.profiles: db # Only deployed with --profile db
+        dargstack.profiles: db # Only deployed with --profiles db
 ```
 
 Multiple profiles: `dargstack.profiles: "db,monitoring"` (comma-separated).
 
-If no profile selection is made and any service declares `default`, only `default`-profiled services are deployed.
-If no service declares `default`, all services are deployed.
+If no profile selection is made and any service declares `default`, only services with `dargstack.profiles: default` are deployed; unlabeled services are excluded.
+If no profile selection is made and no service declares `default`, all services (including unlabeled) are deployed.
 
-When a profile is explicitly activated (`--profile <name>`), unlabeled services are also deployed.
+When one or more profiles are explicitly activated with `--profiles`, only services whose `dargstack.profiles` intersect the active profile set are deployed. Services without a `dargstack.profiles` label are deployed only if the special `unlabeled` profile is explicitly activated (for example: `--profiles unlabeled` or `--profiles db --profiles unlabeled`).
 
 ### Secret Templating
 
@@ -231,5 +246,5 @@ Go to [docs: dargstack](docs/dargstack.md) for detailed command documentation.
 | [dargstack initialize](docs/dargstack_initialize.md) | Initialize a new dargstack project     |
 | [dargstack inspect](docs/dargstack_inspect.md)       | Inspect deployed compose snapshots     |
 | [dargstack remove](docs/dargstack_remove.md)         | Remove the deployed stack              |
-| [dargstack update --self](docs/dargstack_update.md)  | Update dargstack to the latest version |
+| [dargstack update](docs/dargstack_update.md)         | Update dargstack to the latest version |
 | [dargstack validate](docs/dargstack_validate.md)     | Validate stack resources               |

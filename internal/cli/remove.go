@@ -22,7 +22,7 @@ var rmCmd = &cobra.Command{
 	Long: `Remove the deployed stack.
 
 Removes all services, networks, and secrets from the Docker Swarm stack.
-Use --profile or --services to remove only a subset of services. Without
+Use --profiles or --services to remove only a subset of services. Without
 those flags the full stack is removed. Use --production to build the compose
 from production sources when resolving which services belong to a profile.
 Optionally (with --volumes) removes all stack volumes, clearing persistent data.`,
@@ -32,7 +32,7 @@ Optionally (with --volumes) removes all stack volumes, clearing persistent data.
 func init() {
 	rmCmd.Flags().BoolVar(&removeVolumes, "volumes", false, "also remove stack volumes")
 	rmCmd.Flags().BoolVar(&production, "production", false, "remove in production mode")
-	rmCmd.Flags().StringVar(&profile, "profile", "", "remove only services in this compose profile")
+	rmCmd.Flags().StringSliceVar(&profiles, "profiles", nil, "remove only services in the given compose profiles")
 	rmCmd.Flags().StringSliceVar(&services, "services", nil, "remove only the specified services")
 }
 
@@ -62,7 +62,7 @@ func runRm(cmd *cobra.Command, args []string) error {
 	}
 
 	// Targeted removal: only a profile or specific services.
-	if profile != "" || len(services) > 0 {
+	if len(profiles) > 0 || len(services) > 0 {
 		return runRmTargeted(executor)
 	}
 
@@ -94,7 +94,7 @@ func runRm(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// runRmTargeted removes only the services selected by --profile / --services.
+// runRmTargeted removes only the services selected by --profiles / --services.
 func runRmTargeted(executor *docker.Executor) error {
 	// Build compose to determine which services belong to the active profile.
 	var composeData []byte

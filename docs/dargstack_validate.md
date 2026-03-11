@@ -18,7 +18,10 @@ dargstack validate [flags]
 ### Options
 
 ```
-  -h, --help   help for validate
+  -h, --help               help for validate
+      --production         validate in production mode
+      --profiles strings   activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
+      --services strings   validate specific services only
 ```
 
 ### Options inherited from parent commands

@@ -118,9 +118,15 @@ func MergeEnvFiles(devEnv, prodEnv string) ([]byte, error) {
 		return nil, fmt.Errorf("read prod env: %w", err)
 	}
 
+	keys := make([]string, 0, len(env))
+	for k := range env {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	var b strings.Builder
-	for k, v := range env {
-		fmt.Fprintf(&b, "%s=%s\n", k, v)
+	for _, k := range keys {
+		fmt.Fprintf(&b, "%s=%s\n", k, env[k])
 	}
 
 	return []byte(b.String()), nil
@@ -168,6 +174,36 @@ func FindMissingEnvValues(env map[string]string) []string {
 	return missing
 }
 
+// splitVolumeSpec splits a Docker volume short syntax string "HOST:CONTAINER[:MODE]"
+// into the host part and the remainder. It correctly handles Windows drive letter
+// prefixes (e.g. "C:\path:/container") by treating a single alpha character
+// followed by a colon and a path separator as a drive prefix rather than as the
+// HOST:CONTAINER separator.
+func splitVolumeSpec(vol string) (host, rest string) {
+	idx := strings.IndexByte(vol, ':')
+	if idx < 0 {
+		return vol, ""
+	}
+	// Detect a Windows drive letter: exactly one alpha character before the colon,
+	// followed by a backslash or forward slash (e.g. "C:\" or "C:/").
+	if idx == 1 {
+		ch := vol[0]
+		if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') {
+			after := vol[idx+1:]
+			if len(after) > 0 && (after[0] == '\\' || after[0] == '/') {
+				// This is a Windows absolute path; the real separator is the NEXT colon.
+				if next := strings.IndexByte(after, ':'); next >= 0 {
+					split := idx + 1 + next
+					return vol[:split], vol[split+1:]
+				}
+				// No subsequent colon; the whole string is the host with no container.
+				return vol, ""
+			}
+		}
+	}
+	return vol[:idx], vol[idx+1:]
+}
+
 // WriteEnvFile writes key-value pairs to a .env file, sorted by key.
 func WriteEnvFile(path string, env map[string]string) error {
 	keys := make([]string, 0, len(env))
@@ -188,12 +224,17 @@ func WriteEnvFile(path string, env map[string]string) error {
 func StripDevOnlyMarkers(data []byte) []byte {
 	var result []string
 	scanner := bufio.NewScanner(strings.NewReader(string(data)))
+	scanner.Buffer(make([]byte, 64*1024), 10*1024*1024) // handle large YAML lines
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.Contains(line, "# dargstack:dev-only") {
 			continue
 		}
 		result = append(result, line)
+	}
+	if scanner.Err() != nil {
+		// Fall back to original data rather than returning truncated output.
+		return data
 	}
 	return []byte(strings.Join(result, "\n") + "\n")
 }
@@ -281,22 +322,20 @@ func RewriteProductionBindMounts(data []byte, devRoot, prodRoot string) ([]byte,
 		for i, raw := range vols {
 			switch v := raw.(type) {
 			case string:
-				parts := strings.SplitN(v, ":", 2)
-				if len(parts) < 2 {
+				host, remainder := splitVolumeSpec(v)
+				if remainder == "" {
 					continue
 				}
-				host := parts[0]
-				if !filepath.IsAbs(host) || !strings.HasPrefix(host, devRoot) {
+				if !filepath.IsAbs(host) {
 					continue
 				}
-
 				rel, err := filepath.Rel(devRoot, host)
-				if err != nil {
+				if err != nil || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
 					continue
 				}
 				candidate := filepath.Join(prodRoot, rel)
 				if _, err := os.Stat(candidate); err == nil {
-					vols[i] = candidate + ":" + parts[1]
+					vols[i] = candidate + ":" + remainder
 				}
 
 			case map[string]interface{}:
@@ -305,12 +344,11 @@ func RewriteProductionBindMounts(data []byte, devRoot, prodRoot string) ([]byte,
 					continue
 				}
 				source, _ := v["source"].(string)
-				if !filepath.IsAbs(source) || !strings.HasPrefix(source, devRoot) {
+				if !filepath.IsAbs(source) {
 					continue
 				}
-
 				rel, err := filepath.Rel(devRoot, source)
-				if err != nil {
+				if err != nil || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
 					continue
 				}
 				candidate := filepath.Join(prodRoot, rel)
@@ -380,16 +418,15 @@ func resolveFilePaths(doc map[interface{}]interface{}, baseDir string) {
 			switch v := volDef.(type) {
 			case string:
 				// Short syntax: "host:container" or "./relative:container"
-				parts := strings.SplitN(v, ":", 2)
-				if len(parts) < 2 {
+				hostPath, remainder := splitVolumeSpec(v)
+				if remainder == "" {
 					continue
 				}
-				hostPath := parts[0]
 				// Only resolve dot-relative host paths (./ or ../). This preserves
 				// named Docker volumes like "pgdata:/var/lib/postgresql/data".
 				if strings.HasPrefix(hostPath, ".") {
 					absPath := filepath.Join(baseDir, hostPath)
-					volumes[i] = absPath + ":" + strings.Join(parts[1:], ":")
+					volumes[i] = absPath + ":" + remainder
 				}
 			case map[interface{}]interface{}:
 				// Long syntax: { type: bind, source: "./path", target: "/container" }

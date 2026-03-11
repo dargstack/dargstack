@@ -326,6 +326,12 @@ func TestExtractVolumeName(t *testing.T) {
 		{"/host/path:/data", ""},
 		{"./relative:/data", ""},
 		{"named_vol:/app/data:ro", "named_vol"},
+		// Windows drive letters should be treated as bind mounts (return "")
+		{`C:\data:/container`, ""},
+		{`C:/data:/container`, ""},
+		// A bare drive letter without a path separator is ambiguous but rare;
+		// treat as bind mount to be safe.
+		{"C:/container", ""},
 	}
 
 	for _, tt := range tests {
