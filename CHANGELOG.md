@@ -1,3 +1,9 @@
+## [4.0.0-beta.3](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.2...v4.0.0-beta.3) (2026-03-11)
+
+### Bug Fixes
+
+* **ci:** drop deprecated goreleaser properties ([7af5ee4](https://github.com/dargstack/dargstack/commit/7af5ee475646a5e8717d7f96d6545fac8d17bfa2))
+
 ## [4.0.0-beta.2](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.1...v4.0.0-beta.2) (2026-03-11)
 
 ### Bug Fixes
