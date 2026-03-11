@@ -1,3 +1,9 @@
+## [4.0.0-beta.4](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.3...v4.0.0-beta.4) (2026-03-11)
+
+### Bug Fixes
+
+* **go:** add v4 path suffix ([60c23a9](https://github.com/dargstack/dargstack/commit/60c23a9d61313ab881f29fe3b073921353e79ae1))
+
 ## [4.0.0-beta.3](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.2...v4.0.0-beta.3) (2026-03-11)
 
 ### Bug Fixes
