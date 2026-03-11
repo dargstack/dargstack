@@ -447,7 +447,7 @@ func TestResolveFilePathsSecrets(t *testing.T) {
 	resolveFilePaths(doc, base)
 
 	got, _ := secretDef["file"].(string)
-	want := filepath.Join(base, "./secrets/my.secret")
+	want := filepath.Join(base, "secrets", "my.secret")
 	if got != want {
 		t.Errorf("expected %q, got %q", want, got)
 	}
@@ -489,7 +489,7 @@ func TestResolveFilePathsBindMount(t *testing.T) {
 	resolveFilePaths(doc, base)
 
 	vols := svcDef["volumes"].([]interface{})
-	if got := vols[0].(string); got != filepath.Join(base, "./data")+":/var/data" {
+	if got := vols[0].(string); got != filepath.Join(base, "data")+":/var/data" {
 		t.Errorf("expected relative bind mount resolved, got %q", got)
 	}
 	if got := vols[1].(string); got != "namedvol:/app" {

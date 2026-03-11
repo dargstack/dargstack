@@ -340,9 +340,9 @@ func TestNormalizeTemplateAliases(t *testing.T) {
 
 func TestTemplateDependency(t *testing.T) {
 	tests := []struct {
-		token    string
-		wantDep  string
-		wantOk   bool
+		token   string
+		wantDep string
+		wantOk  bool
 	}{
 		{"secret:my.password", "my.password", true},
 		{"secret: my.password ", "my.password", true},

@@ -31,6 +31,6 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/dargstack/dargstack
+        - github.com/dargstack/dargstack/v4
 
 issues: {}

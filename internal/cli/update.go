@@ -3,7 +3,7 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/dargstack/dargstack/internal/update"
+	"github.com/dargstack/dargstack/v4/internal/update"
 )
 
 var updateSelf bool

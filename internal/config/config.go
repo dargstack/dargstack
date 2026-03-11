@@ -9,7 +9,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"gopkg.in/yaml.v3"
 
-	"github.com/dargstack/dargstack/internal/version"
+	"github.com/dargstack/dargstack/v4/internal/version"
 )
 
 type Config struct {

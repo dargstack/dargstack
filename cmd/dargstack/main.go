@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/dargstack/dargstack/internal/cli"
+	"github.com/dargstack/dargstack/v4/internal/cli"
 )
 
 func main() {

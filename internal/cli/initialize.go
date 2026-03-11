@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dargstack/dargstack/internal/prompt"
+	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
 var configOnly bool

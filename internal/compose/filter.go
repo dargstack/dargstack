@@ -347,7 +347,7 @@ func extractVolumeName(vol string) string {
 				ch := name[0]
 				if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') {
 					after := vol[i+1:]
-					if len(after) > 0 && (after[0] == '\\' || after[0] == '/') {
+					if after != "" && (after[0] == '\\' || after[0] == '/') {
 						return ""
 					}
 				}

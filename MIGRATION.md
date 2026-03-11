@@ -22,7 +22,7 @@ This guide helps you migrate an existing dargstack v3 (Bash) project to v4 (Go).
 **Recommended** (verified via Go module proxy):
 
 ```bash
-go install github.com/dargstack/dargstack/cmd/dargstack@latest
+go install github.com/dargstack/dargstack/v4/cmd/dargstack@latest
 ```
 
 **Alternative** (binary download — verify the checksum on the [Releases page](https://github.com/dargstack/dargstack/releases) before use):

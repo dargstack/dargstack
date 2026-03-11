@@ -190,7 +190,7 @@ func splitVolumeSpec(vol string) (host, rest string) {
 		ch := vol[0]
 		if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') {
 			after := vol[idx+1:]
-			if len(after) > 0 && (after[0] == '\\' || after[0] == '/') {
+			if after != "" && (after[0] == '\\' || after[0] == '/') {
 				// This is a Windows absolute path; the real separator is the NEXT colon.
 				if next := strings.IndexByte(after, ':'); next >= 0 {
 					split := idx + 1 + next

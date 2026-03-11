@@ -9,9 +9,9 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/dargstack/dargstack/internal/config"
-	"github.com/dargstack/dargstack/internal/docker"
-	"github.com/dargstack/dargstack/internal/prompt"
+	"github.com/dargstack/dargstack/v4/internal/config"
+	"github.com/dargstack/dargstack/v4/internal/docker"
+	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
 var buildCmd = &cobra.Command{

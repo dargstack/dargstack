@@ -15,9 +15,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X github.com/dargstack/dargstack/internal/version.Version={{.Version}}
-      - -X github.com/dargstack/dargstack/internal/version.Commit={{.Commit}}
-      - -X github.com/dargstack/dargstack/internal/version.Date={{.Date}}
+      - -X github.com/dargstack/dargstack/v4/internal/version.Version={{.Version}}
+      - -X github.com/dargstack/dargstack/v4/internal/version.Commit={{.Commit}}
+      - -X github.com/dargstack/dargstack/v4/internal/version.Date={{.Date}}
 
 archives:
   - id: default

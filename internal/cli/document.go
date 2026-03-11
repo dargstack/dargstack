@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dargstack/dargstack/internal/config"
-	"github.com/dargstack/dargstack/internal/resource"
+	"github.com/dargstack/dargstack/v4/internal/config"
+	"github.com/dargstack/dargstack/v4/internal/resource"
 )
 
 var docsCmd = &cobra.Command{

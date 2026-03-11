@@ -8,7 +8,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/dargstack/dargstack/internal/secret"
+	"github.com/dargstack/dargstack/v4/internal/secret"
 )
 
 // Issue represents a validation problem with a resource.

@@ -14,14 +14,14 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/dargstack/dargstack/internal/audit"
-	"github.com/dargstack/dargstack/internal/compose"
-	"github.com/dargstack/dargstack/internal/config"
-	"github.com/dargstack/dargstack/internal/docker"
-	"github.com/dargstack/dargstack/internal/prompt"
-	"github.com/dargstack/dargstack/internal/resource"
-	"github.com/dargstack/dargstack/internal/secret"
-	"github.com/dargstack/dargstack/internal/tls"
+	"github.com/dargstack/dargstack/v4/internal/audit"
+	"github.com/dargstack/dargstack/v4/internal/compose"
+	"github.com/dargstack/dargstack/v4/internal/config"
+	"github.com/dargstack/dargstack/v4/internal/docker"
+	"github.com/dargstack/dargstack/v4/internal/prompt"
+	"github.com/dargstack/dargstack/v4/internal/resource"
+	"github.com/dargstack/dargstack/v4/internal/secret"
+	"github.com/dargstack/dargstack/v4/internal/tls"
 )
 
 var (
@@ -825,7 +825,7 @@ func secretSetupFlow(composeData []byte, prod bool) error {
 		if len(secretPaths) > 0 {
 			var placeholderThirdParty []string
 			for name, tmpl := range templates {
-				if !(tmpl.ThirdParty || tmpl.Type == secret.TypeThirdParty) {
+				if !tmpl.ThirdParty && tmpl.Type != secret.TypeThirdParty {
 					continue
 				}
 				if path, ok := secretPaths[name]; ok {

@@ -15,7 +15,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/creativeprojects/go-selfupdate"
 
-	"github.com/dargstack/dargstack/internal/version"
+	"github.com/dargstack/dargstack/v4/internal/version"
 )
 
 const (

@@ -9,7 +9,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/dargstack/dargstack/internal/config"
+	"github.com/dargstack/dargstack/v4/internal/config"
 )
 
 // DocsConfig controls the output of GenerateDocumentation.

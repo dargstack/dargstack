@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dargstack/dargstack/internal/compose"
-	"github.com/dargstack/dargstack/internal/docker"
-	"github.com/dargstack/dargstack/internal/prompt"
+	"github.com/dargstack/dargstack/v4/internal/compose"
+	"github.com/dargstack/dargstack/v4/internal/docker"
+	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
 var removeVolumes bool
