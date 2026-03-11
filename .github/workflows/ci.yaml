@@ -66,7 +66,7 @@ jobs:
       BUILD_ARGUMENTS: ${{ (needs.release_semantic_dry.outputs.new_release_version != null) && format('RELEASE_NAME={0}', needs.release_semantic_dry.outputs.new_release_version) || '' }}
       TAG: ${{ (needs.release_semantic_dry.outputs.new_release_version != null) && needs.release_semantic_dry.outputs.new_release_version || '' }}
   release_semantic:
-    needs: build
+    needs: [build, check-docs]
     name: Release (semantic)
     uses: dargmuesli/github-actions/.github/workflows/release-semantic.yml@f680e78d609905fc52fe9a981b4538da19d9dac4 # 4.3.1
     permissions:
