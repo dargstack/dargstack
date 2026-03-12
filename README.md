@@ -36,7 +36,7 @@ dargstack inverts this: define development as the source of truth, then express 
 **Prerequisite** – Go installed, see [go.dev: Download and install](https://go.dev/doc/install).
 
 ```bash
-go install github.com/dargstack/dargstack/cmd/dargstack@latest
+go install github.com/dargstack/dargstack/v4/cmd/dargstack@latest
 ```
 
 Package integrity is enforced by the Go module proxy and the module's `go.sum` lockfile.
