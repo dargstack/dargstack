@@ -125,6 +125,9 @@ func composeHasProfile(composeData []byte, profile string) bool {
 // before any operation that should only concern the active portion of the stack
 // (e.g. secret setup, validation).
 func applyProfileFilter(composeData []byte) ([]byte, error) {
+	if deployAll {
+		return composeData, nil
+	}
 	switch {
 	case len(profiles) > 0:
 		return compose.FilterByProfile(composeData, profiles)

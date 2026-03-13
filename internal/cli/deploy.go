@@ -28,6 +28,7 @@ var (
 	listProfiles bool
 	secretsOnly  bool
 	redeployFlag bool
+	deployAll    bool
 )
 
 var deployCmd = &cobra.Command{
@@ -56,6 +57,7 @@ func init() {
 	deployCmd.Flags().StringVar(&deployTag, "tag", "", "deploy a specific git tag (production only)")
 	deployCmd.Flags().BoolVar(&dryRun, "dry-run", false, "trace all steps without deploying")
 	deployCmd.Flags().BoolVarP(&redeployFlag, "re", "r", false, "remove the running stack before deploying")
+	deployCmd.Flags().BoolVarP(&deployAll, "all", "a", false, "deploy the full stack ignoring --profiles and --services filters")
 	deployCmd.Flags().BoolVar(&listProfiles, "list-profiles", false, "list discovered deploy profiles and exit")
 	deployCmd.Flags().BoolVar(&listSecrets, "list-secrets", false, "list resolved secrets and exit")
 	deployCmd.Flags().BoolVar(&secretsOnly, "secrets-only", false, "run secret setup only without deploying")
