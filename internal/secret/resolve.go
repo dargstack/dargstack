@@ -141,7 +141,7 @@ func Resolve(templates map[string]Template, values map[string]string) (map[strin
 				return nil, fmt.Errorf("generate word %s: %w", name, err)
 			}
 		case TypePrivateKey:
-			value, err = generatePrivateKey()
+			value, err = generatePrivateKey(tmpl.KeyType, tmpl.KeySize)
 			if err != nil {
 				return nil, fmt.Errorf("generate private key %s: %w", name, err)
 			}
@@ -215,7 +215,7 @@ func evaluateTemplateToken(token string, values map[string]string) (string, erro
 	case token == "word":
 		return generateWord()
 	case token == "private_key":
-		return generatePrivateKey()
+		return generatePrivateKey("", 0)
 	case strings.HasPrefix(token, "random"):
 		return parseRandomToken(token)
 	case strings.HasPrefix(token, "secret:"):

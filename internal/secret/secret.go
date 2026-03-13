@@ -20,6 +20,8 @@ type Template struct {
 	Template          string `yaml:"template"`           // template with {{secret_name}} references
 	ThirdParty        bool   `yaml:"third_party"`
 	InsecureDefault   string `yaml:"insecure_default"`
+	KeyType           string `yaml:"key_type"` // private_key: "ed25519" (default), "rsa", "ecdsa"
+	KeySize           int    `yaml:"key_size"` // private_key rsa: default 2048; ecdsa: 256 (P-256), 384 (P-384), 521 (P-521)
 }
 
 const (

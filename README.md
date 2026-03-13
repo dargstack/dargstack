@@ -209,8 +209,14 @@ x-dargstack:
     postgres-password:
       type: random_string
       # length defaults to 32, special_characters defaults to true
-    jwt-signing-key:
+    jwt-signing-key.secret:
       type: private_key
+      # key_type: ed25519  # default; also: rsa, ecdsa
+      # key_size: 2048     # rsa default 2048; ecdsa: 256 (P-256), 384 (P-384), 521 (P-521)
+    rsa-jwt-key.secret:
+      type: private_key
+      key_type: rsa
+      key_size: 2048
     external-api-token:
       type: third_party
       hint: "Get yours at https://example.com/settings/tokens"
@@ -228,6 +234,8 @@ x-dargstack:
 - `special_characters` — Include special characters for `type: random_string` (default: `true`; set `false` to opt out)
 - `insecure_default` — Default value used for `type: insecure_default`
 - `template` — Template string for `type: template`
+- `key_type` — Key algorithm for `type: private_key`: `ed25519` (default), `rsa`, `ecdsa`
+- `key_size` — Key size for `type: private_key`: RSA default `2048`; ECDSA `256` (P-256), `384` (P-384), `521` (P-521)
 
 Template tokens:
 
