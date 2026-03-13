@@ -2,9 +2,7 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -14,17 +12,15 @@ import (
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/docker"
-	"github.com/dargstack/dargstack/v4/internal/prompt"
-	"github.com/dargstack/dargstack/v4/internal/secret"
 )
 
 var (
-	production   bool
-	profiles     []string
-	services     []string
-	deployTag    string
-	dryRun       bool
-	listSecrets  bool
+	production bool
+	profiles   []string
+	services   []string
+	deployTag  string
+	dryRun     bool
+
 	listProfiles bool
 	secretsOnly  bool
 	redeployFlag bool
@@ -59,7 +55,6 @@ func init() {
 	deployCmd.Flags().BoolVarP(&redeployFlag, "re", "r", false, "remove the running stack before deploying")
 	deployCmd.Flags().BoolVarP(&deployAll, "all", "a", false, "deploy the full stack ignoring --profiles and --services filters")
 	deployCmd.Flags().BoolVar(&listProfiles, "list-profiles", false, "list discovered deploy profiles and exit")
-	deployCmd.Flags().BoolVar(&listSecrets, "list-secrets", false, "list resolved secrets and exit")
 	deployCmd.Flags().BoolVar(&secretsOnly, "secrets-only", false, "run secret setup only without deploying")
 }
 
@@ -74,7 +69,7 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 		printInfo(fmt.Sprintf("[dry-run] Tracing %s deployment for stack %q", env, cfg.Name))
 	}
 
-	if listProfiles || listSecrets {
+	if listProfiles {
 		return runDeployListMode()
 	}
 
@@ -165,101 +160,17 @@ func runDeployListMode() error {
 		return wrapWithBugHint(err)
 	}
 
-	if listProfiles {
-		profiles, profErr := compose.DiscoverProfiles(composeData)
-		if profErr != nil {
-			return profErr
-		}
-		sort.Strings(profiles)
-		if len(profiles) == 0 {
-			printInfo("No profiles found")
-		} else {
-			printInfo("Discovered profiles:")
-			for _, p := range profiles {
-				fmt.Printf("- %s\n", p)
-			}
-		}
+	discoveredProfiles, profErr := compose.DiscoverProfiles(composeData)
+	if profErr != nil {
+		return profErr
 	}
-
-	if listSecrets {
-		paths := secret.ExtractSecretPaths(composeData)
-		if len(paths) == 0 {
-			printInfo("No secrets found")
-		} else {
-			values := secret.ReadSecretValues(paths)
-			names := make([]string, 0, len(paths))
-			for name := range paths {
-				names = append(names, name)
-			}
-			sort.Strings(names)
-
-			jsonOutput := noInteraction || strings.EqualFold(outputFormat, "json")
-
-			switch {
-			case jsonOutput:
-				entries := make([]map[string]string, 0, len(names))
-				for _, name := range names {
-					entries = append(entries, map[string]string{
-						"name":  name,
-						"file":  paths[name],
-						"value": values[name],
-					})
-				}
-				enc := json.NewEncoder(os.Stdout)
-				enc.SetIndent("", "  ")
-				if err := enc.Encode(entries); err != nil {
-					return err
-				}
-			case hasClipboardSupport():
-				for i, name := range names {
-					for {
-						title := fmt.Sprintf("Secret %d/%d: %s", i+1, len(names), name)
-						choice, choiceErr := prompt.Select(title, []string{
-							"Copy key to clipboard",
-							"Copy value to clipboard",
-							"Next",
-							"Done",
-						})
-						if choiceErr != nil {
-							return choiceErr
-						}
-
-						switch choice {
-						case "Copy key to clipboard":
-							if copyErr := copyToClipboard(name); copyErr != nil {
-								printWarning(fmt.Sprintf("Clipboard copy failed: %v", copyErr))
-							} else {
-								printSuccess(fmt.Sprintf("Copied key %q", name))
-							}
-						case "Copy value to clipboard":
-							if copyErr := copyToClipboard(values[name]); copyErr != nil {
-								printWarning(fmt.Sprintf("Clipboard copy failed: %v", copyErr))
-							} else {
-								printSuccess(fmt.Sprintf("Copied value for %q", name))
-							}
-						case "Done":
-							return nil
-						default: // Next
-							goto nextSecret
-						}
-					}
-				nextSecret:
-				}
-			default:
-				printWarning("No clipboard tool found. Falling back to table output.")
-				nameWidth := len("NAME")
-				for _, name := range names {
-					if len(name) > nameWidth {
-						nameWidth = len(name)
-					}
-				}
-
-				fmt.Printf("%-*s  %s\n", nameWidth, "NAME", "VALUE")
-				fmt.Printf("%-*s  %s\n", nameWidth, strings.Repeat("-", nameWidth), strings.Repeat("-", 5))
-				for _, name := range names {
-					fmt.Printf("%-*s  %s\n", nameWidth, name, values[name])
-				}
-			}
+	sort.Strings(discoveredProfiles)
+	if len(discoveredProfiles) == 0 {
+		printInfo("No profiles found")
+	} else {
+		printInfo("Discovered profiles:")
+		for _, p := range discoveredProfiles {
+			fmt.Printf("- %s\n", p)
 		}
 	}
 

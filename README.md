@@ -20,13 +20,13 @@ Deploying the same app to development and production with Docker Swarm usually m
 
 dargstack inverts this: define development as the source of truth, then express production as **changes** on top. One deploy command. One audit trail. Done.
 
-| dargstack                                                      | `docker stack`                                                                 |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| ✅ A single resource and diff specification                    | ❌ Two compose files for dev and prod – risk of configuration drift            |
-| ✅ Clear file separation by service                            | ❌ Monolithic compose file – hard to maintain if big                           |
-| ✅ Snapshot for every deploy; easy inspect and diff            | ❌ Volatile audit trail – live console tracing only                            |
-| ✅ Safer secret management with auto-generation and templating | ❌ Manual secret management – tedious, often insecure defaults                 |
-| ✅ Development certificates auto‑generated                     | ❌ No TLS certificates – out of scope, traffic unencrypted                     |
+| dargstack                                                      | `docker stack`                                                                |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| ✅ A single resource and diff specification                    | ❌ Two compose files for dev and prod – risk of configuration drift           |
+| ✅ Clear file separation by service                            | ❌ Monolithic compose file – hard to maintain if big                          |
+| ✅ Snapshot for every deploy; easy inspect and diff            | ❌ Volatile audit trail – live console tracing only                           |
+| ✅ Safer secret management with auto-generation and templating | ❌ Manual secret management – tedious, often insecure defaults                |
+| ✅ Development certificates auto‑generated                     | ❌ No TLS certificates – out of scope, traffic unencrypted                    |
 | ✅ Zero downtime service update motivation                     | ❌ Stop-first update order by default – unreliable availability in production |
 
 ## Install
@@ -261,5 +261,6 @@ Go to [docs: dargstack](docs/dargstack.md) for detailed command documentation.
 | [dargstack initialize](docs/dargstack_initialize.md) | Initialize a new dargstack project     |
 | [dargstack inspect](docs/dargstack_inspect.md)       | Inspect deployed compose snapshots     |
 | [dargstack remove](docs/dargstack_remove.md)         | Remove the deployed stack              |
+| [dargstack secret](docs/dargstack_secret.md)         | Inspect stack secrets and public keys  |
 | [dargstack update](docs/dargstack_update.md)         | Update dargstack to the latest version |
 | [dargstack validate](docs/dargstack_validate.md)     | Validate stack resources               |

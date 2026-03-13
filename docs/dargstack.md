@@ -25,6 +25,7 @@ dargstack - simplified, approachable Docker Swarm stack management.
 * [dargstack initialize](dargstack_initialize.md)	 - Initialize a new dargstack project
 * [dargstack inspect](dargstack_inspect.md)	 - Inspect deployed compose snapshots
 * [dargstack remove](dargstack_remove.md)	 - Remove the deployed stack
+* [dargstack secret](dargstack_secret.md)	 - Inspect stack secrets
 * [dargstack update](dargstack_update.md)	 - Update components
 * [dargstack validate](dargstack_validate.md)	 - Validate stack resources
 

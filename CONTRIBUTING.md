@@ -58,17 +58,17 @@ Understanding these decisions will help you make changes that align with dargsta
 
 dargstack is organized into focused packages, each with a clear responsibility:
 
-| Package              | Responsibility                                                                   |
-| -------------------- | -------------------------------------------------------------------------------- |
-| `cmd/dargstack/`     | Entry point and CLI bootstrapping                                                |
-| `internal/cli/`      | Cobra commands: deploy, rm, build, certificates, docs, validate, inspect, update |
-| `internal/compose/`  | Spruce-based YAML deep merge, profile filtering, env file helpers                |
-| `internal/config/`   | `dargstack.yaml` parsing, stack directory detection, semver compatibility        |
-| `internal/docker/`   | Docker SDK client for queries; CLI executor for `docker stack deploy/rm`         |
-| `internal/tls/`      | Domain-aware certificate generation with smart regeneration                      |
-| `internal/resource/` | Secret, config, Dockerfile, certificate validation and docs generation           |
-| `internal/secret/`   | Template resolution (`{{ref}}`), topological sort, random generation             |
-| `internal/audit/`    | Deployment snapshots in `artifacts/audit-log/`, listing, diffing                 |
+| Package              | Responsibility                                                                           |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| `cmd/dargstack/`     | Entry point and CLI bootstrapping                                                        |
+| `internal/cli/`      | Cobra commands: deploy, rm, build, certificates, docs, validate, inspect, secret, update |
+| `internal/compose/`  | Spruce-based YAML deep merge, profile filtering, env file helpers                        |
+| `internal/config/`   | `dargstack.yaml` parsing, stack directory detection, semver compatibility                |
+| `internal/docker/`   | Docker SDK client for queries; CLI executor for `docker stack deploy/rm`                 |
+| `internal/tls/`      | Domain-aware certificate generation with smart regeneration                              |
+| `internal/resource/` | Secret, config, Dockerfile, certificate validation and docs generation                   |
+| `internal/secret/`   | Template resolution (`{{ref}}`), topological sort, random generation                     |
+| `internal/audit/`    | Deployment snapshots in `artifacts/audit-log/`, listing, diffing                         |
 
 ## Development Setup
 

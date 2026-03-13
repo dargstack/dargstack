@@ -29,7 +29,6 @@ dargstack deploy [flags]
   -d, --dry-run            trace all steps without deploying
   -h, --help               help for deploy
       --list-profiles      list discovered deploy profiles and exit
-      --list-secrets       list resolved secrets and exit
   -p, --production         deploy in production mode
       --profiles strings   activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
   -r, --re                 remove the running stack before deploying

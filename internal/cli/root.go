@@ -90,6 +90,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "format", "f", "table", "output format for compatible commands: table|json")
 
 	rootCmd.AddCommand(deployCmd)
+	rootCmd.AddCommand(secretCmd)
 	rootCmd.AddCommand(certificatesCmd)
 	rootCmd.AddCommand(buildCmd)
 	rootCmd.AddCommand(docsCmd)

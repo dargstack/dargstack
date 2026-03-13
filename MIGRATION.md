@@ -319,6 +319,55 @@ dargstack deploy
 | _(none)_                              | `dargstack init`                                            |
 | _(none)_                              | `dargstack certify`                                         |
 | _(none)_                              | `dargstack inspect`                                         |
+| _(none)_                              | `dargstack secret`                                          |
+
+---
+
+## Within v4: breaking changes
+
+This section documents breaking changes for users already running dargstack v4 who upgrade to a newer v4 release.
+
+### `development.domains` renamed to `development.certificate.domains`
+
+The `development.domains` array has been moved under a `certificate:` sub-key in `dargstack.yaml`:
+
+**Before:**
+
+```yaml
+development:
+  domains:
+    - app.localhost
+    - api.app.localhost
+```
+
+**After:**
+
+```yaml
+development:
+  certificate:
+    domains:
+      - app.localhost
+      - api.app.localhost
+```
+
+Rename the key in your `dargstack.yaml` if you used `development.domains`.
+
+---
+
+### `dargstack deploy --list-secrets` removed
+
+The `--list-secrets` flag has been removed from `dargstack deploy`. Use the dedicated `dargstack secret` command instead:
+
+```bash
+# before
+dargstack deploy --list-secrets
+
+# after
+dargstack secret --show              # development secrets
+dargstack secret --show --production  # production secrets
+```
+
+`dargstack secret --public-key` additionally derives and prints the PEM-encoded public key for any `private_key` secrets.
 
 ---
 
