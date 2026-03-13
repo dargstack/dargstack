@@ -37,7 +37,7 @@ dargstack deploy [flags]
   -h, --help               help for deploy
       --list-profiles      list discovered deploy profiles and exit
       --list-secrets       list resolved secrets and exit
-      --production         deploy in production mode
+  -p, --production         deploy in production mode
       --profiles strings   activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
       --secrets-only       run secret setup only without deploying
       --services strings   deploy only these services (comma-separated)

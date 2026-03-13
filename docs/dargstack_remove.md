@@ -20,7 +20,7 @@ dargstack remove [flags]
 
 ```
   -h, --help               help for remove
-      --production         remove in production mode
+  -p, --production         remove in production mode
       --profiles strings   remove only services in the given compose profiles
       --services strings   remove only the specified services
       --volumes            also remove stack volumes

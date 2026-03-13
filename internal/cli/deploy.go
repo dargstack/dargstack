@@ -63,7 +63,7 @@ Use --tag (production only) to deploy a specific git tag.`,
 }
 
 func init() {
-	deployCmd.Flags().BoolVar(&production, "production", false, "deploy in production mode")
+	deployCmd.Flags().BoolVarP(&production, "production", "p", false, "deploy in production mode")
 	deployCmd.Flags().StringSliceVar(&profiles, "profiles", nil, "activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined")
 	deployCmd.Flags().StringSliceVar(&services, "services", nil, "deploy only these services (comma-separated)")
 	deployCmd.Flags().StringVar(&deployTag, "tag", "", "deploy a specific git tag (production only)")

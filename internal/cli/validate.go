@@ -21,7 +21,7 @@ Checks:
 }
 
 func init() {
-	validateCmd.Flags().BoolVar(&production, "production", false, "validate in production mode")
+	validateCmd.Flags().BoolVarP(&production, "production", "p", false, "validate in production mode")
 	validateCmd.Flags().StringSliceVar(&profiles, "profiles", nil, "activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined")
 	validateCmd.Flags().StringSliceVar(&services, "services", nil, "validate specific services only")
 }

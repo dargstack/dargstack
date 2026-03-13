@@ -31,7 +31,7 @@ Optionally (with --volumes) removes all stack volumes, clearing persistent data.
 
 func init() {
 	rmCmd.Flags().BoolVar(&removeVolumes, "volumes", false, "also remove stack volumes")
-	rmCmd.Flags().BoolVar(&production, "production", false, "remove in production mode")
+	rmCmd.Flags().BoolVarP(&production, "production", "p", false, "remove in production mode")
 	rmCmd.Flags().StringSliceVar(&profiles, "profiles", nil, "remove only services in the given compose profiles")
 	rmCmd.Flags().StringSliceVar(&services, "services", nil, "remove only the specified services")
 }
