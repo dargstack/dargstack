@@ -71,8 +71,26 @@ func prewarmSudo() error {
 	return cmd.Run()
 }
 
+// refreshSudoIfNeeded validates sudo credentials without a command (sudo -n -v).
+// If the timestamp has expired, it re-runs the interactive prewarm so the user
+// is prompted before the actual piped command fails with "permission denied".
+func refreshSudoIfNeeded() error {
+	check := exec.Command("sudo", "-n", "-v")
+	check.Stdout = nil
+	check.Stderr = nil
+	if err := check.Run(); err != nil {
+		return prewarmSudo()
+	}
+	return nil
+}
+
 // Run executes a docker CLI command and returns stdout.
 func (e *Executor) Run(args ...string) (string, error) {
+	if e.useSudo {
+		if err := refreshSudoIfNeeded(); err != nil {
+			return "", fmt.Errorf("sudo authentication failed: %w", err)
+		}
+	}
 	var cmd *exec.Cmd
 	if e.useSudo {
 		fullArgs := append([]string{e.binary}, args...)
@@ -114,6 +132,11 @@ func (e *Executor) RunPassthrough(args ...string) error {
 
 // RunWithStdin executes a docker command passing data via stdin.
 func (e *Executor) RunWithStdin(input []byte, args ...string) error {
+	if e.useSudo {
+		if err := refreshSudoIfNeeded(); err != nil {
+			return fmt.Errorf("sudo authentication failed: %w", err)
+		}
+	}
 	var cmd *exec.Cmd
 	if e.useSudo {
 		fullArgs := append([]string{e.binary}, args...)
