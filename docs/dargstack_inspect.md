@@ -7,8 +7,6 @@ Inspect deployed compose snapshots
 Inspect the final composed YAML that was deployed.
 
 Without arguments, shows the latest deployment.
-Use --list to see all past deployments.
-Use --diff to compare current compose with last deployed version.
 
 ```
 dargstack inspect [timestamp] [flags]

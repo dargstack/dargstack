@@ -309,6 +309,7 @@ dargstack deploy
 | ------------------------------------- | ----------------------------------------------------------- |
 | `dargstack deploy`                    | `dargstack deploy`                                          |
 | `dargstack deploy --production <tag>` | `dargstack deploy --production` (tag from `dargstack.yaml`) |
+| `dargstack redeploy`                  | `dargstack deploy --re`                                     |
 | `dargstack derive`                    | _(removed — automatic during deploy)_                       |
 | `dargstack rm`                        | `dargstack remove`                                          |
 | `dargstack build`                     | `dargstack build`                                           |

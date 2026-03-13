@@ -27,6 +27,7 @@ var (
 	listSecrets  bool
 	listProfiles bool
 	secretsOnly  bool
+	redeployFlag bool
 )
 
 var deployCmd = &cobra.Command{
@@ -54,6 +55,7 @@ func init() {
 	deployCmd.Flags().StringSliceVar(&services, "services", nil, "deploy only these services (comma-separated)")
 	deployCmd.Flags().StringVar(&deployTag, "tag", "", "deploy a specific git tag (production only)")
 	deployCmd.Flags().BoolVar(&dryRun, "dry-run", false, "trace all steps without deploying")
+	deployCmd.Flags().BoolVarP(&redeployFlag, "re", "r", false, "remove the running stack before deploying")
 	deployCmd.Flags().BoolVar(&listProfiles, "list-profiles", false, "list discovered deploy profiles and exit")
 	deployCmd.Flags().BoolVar(&listSecrets, "list-secrets", false, "list resolved secrets and exit")
 	deployCmd.Flags().BoolVar(&secretsOnly, "secrets-only", false, "run secret setup only without deploying")
@@ -76,6 +78,13 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 
 	if secretsOnly {
 		return runSecretsOnly()
+	}
+
+	// --re: remove the running stack before deploying.
+	if redeployFlag && !dryRun {
+		if err := runRm(cmd, nil); err != nil {
+			return fmt.Errorf("pre-deploy remove: %w", err)
+		}
 	}
 
 	// 1. Docker prerequisite check — create executor first so sudo is pre-warmed
