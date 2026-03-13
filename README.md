@@ -112,6 +112,7 @@ example/
 ### Service Files
 
 Each service file is a full Docker Compose document — files are deep-merged by [spruce](https://github.com/geofffranks/spruce).
+See [github.com: What are all the Spruce operators?](https://github.com/geofffranks/spruce/blob/main/doc/operators.md) for special keywords controlling the merge behavior.
 
 ```yaml
 # src/development/api/compose.yaml
@@ -124,11 +125,13 @@ services:
       - api-key.secret
     deploy:
       labels:
+        - (( append ))
         - dargstack.development.build=../../../../api
         - traefik.http.routers.api.rule=Host(`api.${STACK_DOMAIN}`)
         - traefik.http.routers.api.tls=true
         - traefik.http.services.api.loadbalancer.server.port=8080
         - some.label=for-development # dargstack:dev-only
+    user: (( prune ))
 
 secrets:
   api-key.secret:
