@@ -24,9 +24,7 @@ var inspectCmd = &cobra.Command{
 	Short: "Inspect deployed compose snapshots",
 	Long: `Inspect the final composed YAML that was deployed.
 
-Without arguments, shows the latest deployment.
-Use --list to see all past deployments.
-Use --diff to compare current compose with last deployed version.`,
+Without arguments, shows the latest deployment.`,
 	RunE: runInspect,
 }
 
