@@ -46,7 +46,11 @@ type ProductionConfig struct {
 }
 
 type DevelopmentConfig struct {
-	Domain  string   `yaml:"domain"`
+	Domain      string            `yaml:"domain"`
+	Certificate CertificateConfig `yaml:"certificate"`
+}
+
+type CertificateConfig struct {
 	Domains []string `yaml:"domains"`
 }
 

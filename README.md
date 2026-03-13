@@ -170,7 +170,11 @@ name: my-stack # optional, defaults to parent directory name
 production:
   branch: main # optional, string
   tag: latest # optional, `latest` | string
-  domain: app.localhost # optional, string
+  domain: example.com # optional, string
+development:
+  domain: app.localhost # optional, defaults to "app.localhost"
+  certificate:
+    domains: [] # optional, extra domains added to dev TLS cert
 sudo: auto # optional, `auto` | `always` | `never`
 ```
 

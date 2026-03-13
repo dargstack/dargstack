@@ -30,7 +30,7 @@ func runGenerateCerts(_ *cobra.Command, _ []string) error {
 		return err
 	}
 
-	domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Development.Domain), cfg.Development.Domains)
+	domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Development.Domain), cfg.Development.Certificate.Domains)
 
 	certDir := config.CertificatesDir(stackDir)
 	if err := tls.EnsureCertificates(certDir, domains); err != nil {

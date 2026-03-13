@@ -69,11 +69,10 @@ func runDeployDryRun(env string) error {
 
 	// Show domain extraction
 	if !production {
-		domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Development.Domain), cfg.Development.Domains)
+		domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Development.Domain), cfg.Development.Certificate.Domains)
 		printInfo(fmt.Sprintf("[dry-run] Step 4: TLS domains discovered: %s", strings.Join(domains, ", ")))
 	}
 
-	// Show secret template summary
 	templates, templateErr := secret.ExtractTemplates(composeData)
 	if templateErr == nil && len(templates) > 0 {
 		printInfo(fmt.Sprintf("[dry-run] Step 5: Secret templates found: %d", len(templates)))
@@ -186,7 +185,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 
 	// 7. TLS certificates (development only) with domain-aware regeneration
 	if !production {
-		domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Development.Domain), cfg.Development.Domains)
+		domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Development.Domain), cfg.Development.Certificate.Domains)
 		certDir := config.CertificatesDir(stackDir)
 		if err := tls.EnsureCertificates(certDir, domains); err != nil {
 			printWarning(fmt.Sprintf("TLS certificate setup failed: %v", err))
