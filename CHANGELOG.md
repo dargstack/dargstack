@@ -1,3 +1,23 @@
+## [4.0.0-beta.7](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.6...v4.0.0-beta.7) (2026-03-13)
+
+### ⚠ BREAKING CHANGES
+
+* **certify:** restructure configuration category
+
+### Features
+
+* **certify:** restructure configuration category ([1e6a88d](https://github.com/dargstack/dargstack/commit/1e6a88dcf4928415c7f8645bbe89f88c89e7d8a2))
+* **cli:** add parameter shorthands ([d6a7295](https://github.com/dargstack/dargstack/commit/d6a72955a50dae5f02f01c6dd07e5a3168165966))
+* **deploy:** allow to deploy all services in any case ([4925771](https://github.com/dargstack/dargstack/commit/4925771cd9128d09d4990505e309e2b03617495e))
+* **deploy:** point out more set options ([5c0d4d4](https://github.com/dargstack/dargstack/commit/5c0d4d42196bebd487e0a5f35447afcb71d8d3b1))
+* **initialize:** lock development domain ([fb1f4c6](https://github.com/dargstack/dargstack/commit/fb1f4c67b430ef374524a411ab954dd80fede258))
+* rename secrets and volume examples ([5e53fc2](https://github.com/dargstack/dargstack/commit/5e53fc2f5b1429162af0faba330fc43bc3a2e16a))
+
+### Bug Fixes
+
+* **certify:** use development domain ([d0e5cdd](https://github.com/dargstack/dargstack/commit/d0e5cddc024ddfab939de44b53be287d865da439))
+* **deploy:** override any selection on all ([5f29728](https://github.com/dargstack/dargstack/commit/5f29728b47ffd472ada1fdcf354f39fdb43ed26e))
+
 ## [4.0.0-beta.6](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.5...v4.0.0-beta.6) (2026-03-13)
 
 ### Features
