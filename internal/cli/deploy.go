@@ -498,6 +498,9 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 						if err := docker.VolumeRemove(executor, volumes); err != nil {
 							printWarning(fmt.Sprintf("Failed to remove volumes: %v", err))
 						} else {
+							for _, v := range volumes {
+								printInfo(fmt.Sprintf("  Removed volume: %s", v))
+							}
 							printSuccess(fmt.Sprintf("Removed %d volume(s)", len(volumes)))
 						}
 					}
