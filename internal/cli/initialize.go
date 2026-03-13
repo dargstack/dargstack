@@ -471,9 +471,7 @@ production:
 # Development environment settings
 development:
   # Domain used for development deployments (defaults to "app.localhost").
-  # Override when your production.domain differs so dev certs and STACK_DOMAIN
-  # resolve to the right addresses locally.
-  # domain: "app.localhost"
+  domain: "app.localhost"
   certificate:
     # Additional domains for development TLS certificates (beyond the auto-discovered ones).
     domains: []
