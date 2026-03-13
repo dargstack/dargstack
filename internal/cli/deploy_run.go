@@ -234,6 +234,8 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 
 	// 11. Filter for profile/services
 	switch {
+	case deployAll:
+		printInfo("Deploying full stack (--all: profile and service filters bypassed)")
 	case len(profiles) > 0:
 		composeData, err = compose.FilterByProfile(composeData, profiles)
 		if err != nil {
