@@ -84,10 +84,10 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&cfgPath, "config", "", "path to stack directory (default: auto-detect)")
-	rootCmd.PersistentFlags().BoolVar(&noInteraction, "no-interaction", false, "disable interactive prompts")
-	rootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "verbose output")
-	rootCmd.PersistentFlags().StringVar(&outputFormat, "format", "table", "output format for compatible commands: table|json")
+	rootCmd.PersistentFlags().StringVarP(&cfgPath, "config", "c", "", "path to stack directory (default: auto-detect)")
+	rootCmd.PersistentFlags().BoolVarP(&noInteraction, "no-interaction", "n", false, "disable interactive prompts")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().StringVarP(&outputFormat, "format", "f", "table", "output format for compatible commands: table|json")
 
 	rootCmd.AddCommand(deployCmd)
 	rootCmd.AddCommand(certificatesCmd)

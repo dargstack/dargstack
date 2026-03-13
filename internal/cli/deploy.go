@@ -53,9 +53,9 @@ use --production to deploy to production, which:
 func init() {
 	deployCmd.Flags().BoolVarP(&production, "production", "p", false, "deploy in production mode")
 	deployCmd.Flags().StringSliceVar(&profiles, "profiles", nil, "activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined")
-	deployCmd.Flags().StringSliceVar(&services, "services", nil, "deploy only these services (comma-separated)")
-	deployCmd.Flags().StringVar(&deployTag, "tag", "", "deploy a specific git tag (production only)")
-	deployCmd.Flags().BoolVar(&dryRun, "dry-run", false, "trace all steps without deploying")
+	deployCmd.Flags().StringSliceVarP(&services, "services", "s", nil, "deploy only these services (comma-separated)")
+	deployCmd.Flags().StringVarP(&deployTag, "tag", "t", "", "deploy a specific git tag (production only)")
+	deployCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "trace all steps without deploying")
 	deployCmd.Flags().BoolVarP(&redeployFlag, "re", "r", false, "remove the running stack before deploying")
 	deployCmd.Flags().BoolVarP(&deployAll, "all", "a", false, "deploy the full stack ignoring --profiles and --services filters")
 	deployCmd.Flags().BoolVar(&listProfiles, "list-profiles", false, "list discovered deploy profiles and exit")

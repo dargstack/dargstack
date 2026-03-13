@@ -25,7 +25,8 @@ dargstack deploy [flags]
 ### Options
 
 ```
-      --dry-run            trace all steps without deploying
+  -a, --all                deploy the full stack ignoring --profiles and --services filters
+  -d, --dry-run            trace all steps without deploying
   -h, --help               help for deploy
       --list-profiles      list discovered deploy profiles and exit
       --list-secrets       list resolved secrets and exit
@@ -33,17 +34,17 @@ dargstack deploy [flags]
       --profiles strings   activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
   -r, --re                 remove the running stack before deploying
       --secrets-only       run secret setup only without deploying
-      --services strings   deploy only these services (comma-separated)
-      --tag string         deploy a specific git tag (production only)
+  -s, --services strings   deploy only these services (comma-separated)
+  -t, --tag string         deploy a specific git tag (production only)
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --config string    path to stack directory (default: auto-detect)
-      --format string    output format for compatible commands: table|json (default "table")
-      --no-interaction   disable interactive prompts
-      --verbose          verbose output
+  -c, --config string    path to stack directory (default: auto-detect)
+  -f, --format string    output format for compatible commands: table|json (default "table")
+  -n, --no-interaction   disable interactive prompts
+  -v, --verbose          verbose output
 ```
 
 ### SEE ALSO

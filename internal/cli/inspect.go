@@ -29,9 +29,9 @@ Without arguments, shows the latest deployment.`,
 }
 
 func init() {
-	inspectCmd.Flags().BoolVar(&inspectList, "list", false, "list all past deployments")
-	inspectCmd.Flags().BoolVar(&inspectDiff, "diff", false, "show diff between current and last deployed")
-	inspectCmd.Flags().StringVar(&inspectEnv, "env", "development", "environment to inspect (development or production)")
+	inspectCmd.Flags().BoolVarP(&inspectList, "list", "l", false, "list all past deployments")
+	inspectCmd.Flags().BoolVarP(&inspectDiff, "diff", "d", false, "show diff between current and last deployed")
+	inspectCmd.Flags().StringVarP(&inspectEnv, "env", "e", "development", "environment to inspect (development or production)")
 }
 
 func runInspect(cmd *cobra.Command, args []string) error {

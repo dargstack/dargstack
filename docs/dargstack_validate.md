@@ -21,16 +21,16 @@ dargstack validate [flags]
   -h, --help               help for validate
   -p, --production         validate in production mode
       --profiles strings   activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
-      --services strings   validate specific services only
+  -s, --services strings   validate specific services only
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --config string    path to stack directory (default: auto-detect)
-      --format string    output format for compatible commands: table|json (default "table")
-      --no-interaction   disable interactive prompts
-      --verbose          verbose output
+  -c, --config string    path to stack directory (default: auto-detect)
+  -f, --format string    output format for compatible commands: table|json (default "table")
+  -n, --no-interaction   disable interactive prompts
+  -v, --verbose          verbose output
 ```
 
 ### SEE ALSO

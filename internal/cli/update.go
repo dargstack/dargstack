@@ -16,7 +16,7 @@ var updateCmd = &cobra.Command{
 }
 
 func init() {
-	updateCmd.Flags().BoolVar(&updateSelf, "self", false, "update dargstack itself")
+	updateCmd.Flags().BoolVarP(&updateSelf, "self", "s", false, "update dargstack itself")
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {

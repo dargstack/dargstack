@@ -9,11 +9,11 @@ dargstack - simplified, approachable Docker Swarm stack management.
 ### Options
 
 ```
-      --config string    path to stack directory (default: auto-detect)
-      --format string    output format for compatible commands: table|json (default "table")
+  -c, --config string    path to stack directory (default: auto-detect)
+  -f, --format string    output format for compatible commands: table|json (default "table")
   -h, --help             help for dargstack
-      --no-interaction   disable interactive prompts
-      --verbose          verbose output
+  -n, --no-interaction   disable interactive prompts
+  -v, --verbose          verbose output
 ```
 
 ### SEE ALSO
