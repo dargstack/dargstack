@@ -108,6 +108,7 @@ func cloneProject(url string) error {
 
 func bootstrapProject(name string) error {
 	stackDir := filepath.Join(name, "stack")
+	helloDir := filepath.Join(name, "hello")
 
 	if _, err := os.Stat(name); err == nil {
 		return hintErr(
@@ -117,12 +118,13 @@ func bootstrapProject(name string) error {
 	}
 
 	dirs := []string{
-		filepath.Join(stackDir, "src", "development"),
-		filepath.Join(stackDir, "src", "production"),
+		filepath.Join(stackDir, "src", "development", "hello"),
+		filepath.Join(stackDir, "src", "production", "hello"),
 		filepath.Join(stackDir, "artifacts", "docs"),
 		filepath.Join(stackDir, "artifacts", "audit-log"),
 		filepath.Join(stackDir, "artifacts", "certificates"),
 		filepath.Join(stackDir, "artifacts", "secrets"),
+		helloDir,
 	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0o755); err != nil {
@@ -160,6 +162,31 @@ func bootstrapProject(name string) error {
 		if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte(content), 0o644); err != nil {
 			return fmt.Errorf("write README.md in %s: %w", dir, err)
 		}
+	}
+
+	// Example service: hello compose definition inside the stack
+	helloCompose := fmt.Sprintf(initHelloCompose, name)
+	if err := os.WriteFile(filepath.Join(stackDir, "src", "development", "hello", "compose.yaml"), []byte(helloCompose), 0o644); err != nil {
+		return fmt.Errorf("write hello compose.yaml: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(stackDir, "src", "development", "hello", "config.yaml"), []byte(initHelloDevConfig), 0o644); err != nil {
+		return fmt.Errorf("write hello config.yaml: %w", err)
+	}
+
+	helloProdCompose := fmt.Sprintf(initHelloProdCompose, name)
+	if err := os.WriteFile(filepath.Join(stackDir, "src", "production", "hello", "compose.yaml"), []byte(helloProdCompose), 0o644); err != nil {
+		return fmt.Errorf("write production hello compose.yaml: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(stackDir, "src", "production", "hello", "config.yaml"), []byte(initHelloProdConfig), 0o644); err != nil {
+		return fmt.Errorf("write production hello config.yaml: %w", err)
+	}
+
+	// Example service: hello source code next to the stack directory
+	if err := os.WriteFile(filepath.Join(helloDir, "Dockerfile"), []byte(initHelloDockerfile), 0o644); err != nil {
+		return fmt.Errorf("write hello Dockerfile: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(helloDir, "main.go"), []byte(initHelloMain), 0o644); err != nil {
+		return fmt.Errorf("write hello main.go: %w", err)
 	}
 
 	// Write project-level README as a sibling to the stack directory
@@ -244,20 +271,24 @@ const initReadmeProject = `# %s
 
 This directory is the project root. The ` + "`stack/`" + ` subdirectory contains the
 dargstack configuration and service definitions.
-
-## Service source directories
-
-Clone your service repositories here as siblings to ` + "`stack/`" + `.
-If a service's ` + "`compose.yaml`" + ` has a ` + "`build:`" + ` directive pointing to one
-of these directories, ` + "`dargstack build`" + ` will build its Docker image
-automatically (a Dockerfile must be present).
+Service source code lives as siblings to ` + "`stack/`" + `.
 
 ` + "```" + `
 %s/
-├── stack/          # dargstack project (compose files, secrets, config)
-├── my-api/         # ← clone of my-api repository (optional)
-├── my-frontend/    # ← clone of my-frontend repository (optional)
-└── README.md       # this file
+├── stack/                         # dargstack project (compose files, config, secrets)
+│   └── src/
+│       ├── development/
+│       │   └── hello/             # development service definition
+│       │       ├── compose.yaml   # service spec (build label, port, config, secret)
+│       │       └── config.yaml    # development config mounted into the container
+│       └── production/
+│           └── hello/             # production overrides
+│               ├── compose.yaml   # Spruce operators: purge ports, append labels, external secret
+│               └── config.yaml    # production config replaces the development one
+├── hello/                         # example service source (build this with Docker)
+│   ├── Dockerfile
+│   └── main.go
+└── README.md                      # this file
 ` + "```" + `
 
 ## Getting started
@@ -266,6 +297,10 @@ automatically (a Dockerfile must be present).
 cd stack
 dargstack deploy
 ` + "```" + `
+
+The ` + "`hello`" + ` service is built automatically from ` + "`hello/`" + ` and served on port 8080.
+Replace it with your own services — clone source repositories next to ` + "`stack/`" + ` and
+add service directories in ` + "`stack/src/development/`" + ` and ` + "`stack/src/production/`" + `.
 `
 
 const initReadmeArtifacts = `# Artifacts
@@ -282,6 +317,116 @@ This directory contains generated outputs and runtime artifacts produced by darg
 
 ` + "`audit-log/`" + ` and ` + "`certificates/`" + ` are ignored via ` + "`artifacts/.gitignore`" + `.
 ` + "`docs/`" + ` is tracked so generated documentation can be shared.
+`
+
+const initHelloDockerfile = `FROM golang:alpine AS builder
+WORKDIR /app
+COPY main.go .
+RUN go mod init hello && go build -o hello .
+
+FROM alpine
+COPY --from=builder /app/hello /usr/local/bin/hello
+EXPOSE 8080
+CMD ["hello"]
+`
+
+const initHelloMain = `package main
+
+import (
+	"fmt"
+	"net/http"
+	"os"
+	"strings"
+)
+
+func main() {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Read greeting from the mounted config file.
+		greeting := "Hello from dargstack!"
+		if data, err := os.ReadFile("/etc/hello/config.yaml"); err == nil {
+			for _, line := range strings.Split(string(data), "\n") {
+				if strings.HasPrefix(line, "greeting: ") {
+					greeting = strings.TrimPrefix(line, "greeting: ")
+				}
+			}
+		}
+		fmt.Fprintln(w, greeting)
+	})
+	_ = http.ListenAndServe(":8080", nil)
+}
+`
+
+// initHelloCompose is the development service definition for the example hello service.
+// The dargstack.development.build label points to the hello source directory that lives
+// next to the stack/ directory (../../../../hello from this service's directory).
+const initHelloCompose = `services:
+  hello:
+    image: %s/hello:development
+    ports:
+      - "8080:8080"
+    configs:
+      - source: hello-config
+        target: /etc/hello/config.yaml
+    secrets:
+      - hello-api-key.secret
+    deploy:
+      labels:
+        # Build context relative to stack/src/development/hello/ — points to <project>/hello/
+        dargstack.development.build: "../../../../hello"
+
+configs:
+  hello-config:
+    file: ./config.yaml
+
+secrets:
+  hello-api-key.secret:
+    file: ./api-key.secret
+
+x-dargstack:
+  secrets:
+    hello-api-key.secret:
+      length: 32
+      special_characters: false
+`
+
+const initHelloDevConfig = `# Development configuration for the hello service.
+greeting: Hello from dargstack!
+debug: true
+`
+
+// initHelloProdCompose is the production overlay for the example hello service.
+// It demonstrates the three most useful Spruce merge operators:
+//   - plain key overwrite (image tag)
+//   - (( purge )) to remove a development-only key
+//   - (( append )) to extend a list without replacing it
+const initHelloProdCompose = `# Production overrides for the hello service.
+# Spruce operators used here:
+#   (( purge ))  — remove this key from the merged result
+#   (( append )) — append to the list instead of replacing it
+# All other keys simply overwrite the development value.
+
+services:
+  hello:
+    image: %s/hello:latest   # overwrite: pin to a versioned release tag
+    ports: (( purge ))       # purge: no direct port binding in production (use an ingress)
+    deploy:
+      labels:
+        - (( append ))       # append: keep existing dev labels and add new ones
+        - "traefik.enable=true"
+
+configs:
+  hello-config:
+    file: ./config.yaml      # overwrite: use the production config file
+
+secrets:
+  hello-api-key.secret:
+    file: (( purge ))        # purge: remove file: so Docker loads the secret from Swarm
+    external: true
+`
+
+const initHelloProdConfig = `# Production configuration for the hello service.
+greeting: Hello from production!
+debug: false
 `
 
 func generateConfigTemplate(name string) string {
