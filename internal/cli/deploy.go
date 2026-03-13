@@ -308,6 +308,7 @@ func runDeployDryRun(env string) error {
 		return wrapWithBugHint(err)
 	}
 
+	applyEnvToProcess(production)
 	printInfo(fmt.Sprintf("[dry-run] Step 2: Compose merged (%d bytes)", len(composeData)))
 
 	// Show profile filtering
@@ -413,6 +414,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	if err := promptForEnvValues(production); err != nil {
 		printWarning(fmt.Sprintf("Environment variable check: %v", err))
 	}
+	applyEnvToProcess(production)
 
 	// 5. Secret setup — filter by profile first so only secrets used by active
 	// services are processed.
@@ -758,6 +760,32 @@ func buildProductionCompose() ([]byte, error) {
 	}
 
 	return merged, nil
+}
+
+// applyEnvToProcess loads the resolved .env values and STACK_DOMAIN into the
+// current process environment so that `docker stack deploy -c -` can
+// interpolate them. The process environment takes precedence — existing values
+// are not overwritten.
+func applyEnvToProcess(prod bool) {
+	env, err := compose.LoadEnvFile(config.DevEnvFile(stackDir))
+	if err != nil {
+		env = map[string]string{}
+	}
+	if prod {
+		if prodEnv, pErr := compose.LoadEnvFile(config.ProdEnvFile(stackDir)); pErr == nil {
+			for k, v := range prodEnv {
+				env[k] = v
+			}
+		}
+	}
+	for k, v := range env {
+		if v != "" && os.Getenv(k) == "" {
+			_ = os.Setenv(k, v)
+		}
+	}
+	if os.Getenv("STACK_DOMAIN") == "" {
+		_ = os.Setenv("STACK_DOMAIN", cfg.Production.Domain)
+	}
 }
 
 func promptForEnvValues(prod bool) error {
