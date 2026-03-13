@@ -63,6 +63,7 @@ func needsSudo(binary string) bool {
 		}
 		// Credentials may have expired. Fall back to interactive sudo so the
 		// user can authenticate once rather than getting a silent permission error.
+		fmt.Fprintln(os.Stderr, "sudo: Docker requires elevated privileges on this system. Please authenticate to continue.")
 		sudoI := exec.Command("sudo", binary, "info")
 		sudoI.Stdin = os.Stdin
 		sudoI.Stdout = nil
@@ -72,10 +73,20 @@ func needsSudo(binary string) bool {
 	return false
 }
 
-// prewarmSudo prompts the user for sudo credentials (if not already cached)
-// by running `sudo -v` with the terminal attached. This caches credentials
-// so that subsequent sudo invocations (even with stdin piped) succeed.
+// prewarmSudo prompts the user for sudo credentials when they are not cached.
+// A hint explaining why sudo is needed is printed only when a password prompt
+// is actually about to appear. If credentials are already valid, returns nil
+// immediately without any output.
 func prewarmSudo() error {
+	// Fast non-interactive check: if credentials are cached, skip the prompt.
+	ni := exec.Command("sudo", "-n", "-v")
+	ni.Stdout = nil
+	ni.Stderr = nil
+	if ni.Run() == nil {
+		return nil
+	}
+	// Credentials not cached — a password prompt is about to appear.
+	fmt.Fprintln(os.Stderr, "sudo: Docker requires elevated privileges on this system. Please authenticate to continue.")
 	cmd := exec.Command("sudo", "-v")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -83,17 +94,10 @@ func prewarmSudo() error {
 	return cmd.Run()
 }
 
-// refreshSudoIfNeeded validates sudo credentials without a command (sudo -n -v).
-// If the timestamp has expired, it re-runs the interactive prewarm so the user
-// is prompted before the actual piped command fails with "permission denied".
+// refreshSudoIfNeeded validates sudo credentials and re-prompts if expired.
+// The hint and password prompt are shown only when credentials are not cached.
 func refreshSudoIfNeeded() error {
-	check := exec.Command("sudo", "-n", "-v")
-	check.Stdout = nil
-	check.Stderr = nil
-	if err := check.Run(); err != nil {
-		return prewarmSudo()
-	}
-	return nil
+	return prewarmSudo()
 }
 
 // Run executes a docker CLI command and returns stdout.
