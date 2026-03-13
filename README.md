@@ -122,7 +122,7 @@ services:
     ports:
       - "3000:3000"
     secrets:
-      - api-key.secret
+      - api-key
     deploy:
       labels:
         - (( append ))
@@ -134,12 +134,12 @@ services:
     user: (( prune ))
 
 secrets:
-  api-key.secret:
+  api-key:
     file: ./key.secret
 
 x-dargstack:
   secrets:
-    api-key.secret:
+    api-key:
       length: 32
       special_characters: false
 ```
@@ -206,20 +206,20 @@ Define secrets with generation settings and template resolution:
 ```yaml
 x-dargstack:
   secrets:
-    postgres-password.secret:
+    postgres-password:
       type: random_string
       # length defaults to 32, special_characters defaults to true
-    jwt-signing-key.secret:
+    jwt-signing-key:
       type: private_key
-    external-api-token.secret:
+    external-api-token:
       type: third_party
       hint: "Get yours at https://example.com/settings/tokens"
-    dev-only-secret.secret:
+    dev-only-secret:
       type: insecure_default
       insecure_default: "CHANGE_ME"
-    api-db_url.secret:
+    api-db_url:
       type: template
-      template: "postgresql://postgres:{{secret:postgres-password.secret}}@postgres:5432/app"
+      template: "postgresql://postgres:{{secret:postgres-password}}@postgres:5432/app"
 ```
 
 - `type` — Secret behavior. Supported values: `random_string`, `word`, `private_key`, `third_party`, `insecure_default`, `template`

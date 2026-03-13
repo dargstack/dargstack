@@ -440,7 +440,7 @@ func TestResolveFilePathsSecrets(t *testing.T) {
 	}
 	doc := map[interface{}]interface{}{
 		"secrets": map[interface{}]interface{}{
-			"my.secret": secretDef,
+			"my": secretDef,
 		},
 	}
 
@@ -460,7 +460,7 @@ func TestResolveFilePathsAbsoluteUnchanged(t *testing.T) {
 	}
 	doc := map[interface{}]interface{}{
 		"secrets": map[interface{}]interface{}{
-			"my.secret": secretDef,
+			"my": secretDef,
 		},
 	}
 

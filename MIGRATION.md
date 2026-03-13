@@ -113,18 +113,18 @@ services:
     ports:
       - "3000:3000"
     secrets:
-      - api-key.secret
+      - api-key
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password.secret
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
     secrets:
-      - postgres-password.secret
+      - postgres-password
 
 secrets:
-  api-key.secret:
+  api-key:
     file: ./secrets/api/api-key.secret
-  postgres-password.secret:
+  postgres-password:
     file: ./secrets/postgres/postgres-password.secret
 ```
 
@@ -137,15 +137,15 @@ services:
     ports:
       - "3000:3000"
     secrets:
-      - api-key.secret
+      - api-key
 
 secrets:
-  api-key.secret:
+  api-key:
     file: ./key.secret
 
 x-dargstack:
   secrets:
-    api-key.secret:
+    api-key:
       type: random_string
       length: 32
 ```
@@ -157,17 +157,17 @@ services:
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password.secret
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
     secrets:
-      - postgres-password.secret
+      - postgres-password
 
 secrets:
-  postgres-password.secret:
+  postgres-password:
     file: ./password.secret
 
 x-dargstack:
   secrets:
-    postgres-password.secret:
+    postgres-password:
       type: random_string
 ```
 
@@ -260,9 +260,9 @@ service's compose file. Generated values are written to `artifacts/secrets/`
    ```yaml
    x-dargstack:
      secrets:
-       db-url.secret:
+       db-url:
          type: template
-         template: "postgresql://postgres:{{secret:postgres-password.secret}}@postgres:5432/mydb"
+         template: "postgresql://postgres:{{secret:postgres-password}}@postgres:5432/mydb"
    ```
 
 4. Delete `src/development/secrets/` and `src/production/secrets/` — those

@@ -215,15 +215,15 @@ services:
     ports:
       - "80:80"
     secrets:
-      - nginx-password.secret
+      - nginx-password
 
 secrets:
-  nginx-password.secret:
+  nginx-password:
     file: ./password.secret
 
 x-dargstack:
   secrets:
-    nginx-password.secret:
+    nginx-password:
       length: 32
       special_characters: false
 ` + "```" + `
@@ -368,7 +368,7 @@ const initHelloCompose = `services:
       - source: hello-config
         target: /etc/hello/config.yaml
     secrets:
-      - hello-api-key.secret
+      - hello-api-key
     deploy:
       labels:
         # Build context relative to stack/src/development/hello/ — points to <project>/hello/
@@ -379,12 +379,12 @@ configs:
     file: ./config.yaml
 
 secrets:
-  hello-api-key.secret:
+  hello-api-key:
     file: ./api-key.secret
 
 x-dargstack:
   secrets:
-    hello-api-key.secret:
+    hello-api-key:
       length: 32
       special_characters: false
 `
@@ -419,7 +419,7 @@ configs:
     file: ./config.yaml      # overwrite: use the production config file
 
 secrets:
-  hello-api-key.secret:
+  hello-api-key:
     file: (( purge ))        # purge: remove file: so Docker loads the secret from Swarm
     external: true
 `

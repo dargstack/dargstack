@@ -12,11 +12,11 @@ func TestExtractTemplates(t *testing.T) {
     image: postgres:16
 x-dargstack:
   secrets:
-    postgres.password:
+    postgres-password:
       length: 16
       special_characters: true
-    api.db_url:
-      template: "postgresql://user:{{postgres.password}}@postgres:5432/db"
+    api-db-url:
+      template: "postgresql://user:{{postgres-password}}@postgres:5432/db"
 `
 
 	templates, err := ExtractTemplates([]byte(composeYAML))
@@ -28,7 +28,7 @@ x-dargstack:
 		t.Fatalf("expected 2 templates, got %d", len(templates))
 	}
 
-	pgTmpl := templates["postgres.password"]
+	pgTmpl := templates["postgres-password"]
 	if pgTmpl.SpecialCharacters == nil || !*pgTmpl.SpecialCharacters {
 		t.Errorf("expected special_characters=true")
 	}
@@ -39,7 +39,7 @@ x-dargstack:
 		t.Errorf("expected type=%s, got %s", TypeRandomString, pgTmpl.Type)
 	}
 
-	dbTmpl := templates["api.db_url"]
+	dbTmpl := templates["api-db-url"]
 	if dbTmpl.Template == "" {
 		t.Error("expected template to be set")
 	}
@@ -166,13 +166,13 @@ func TestResolvePreservesExisting(t *testing.T) {
 func TestWriteAndReadSecrets(t *testing.T) {
 	dir := t.TempDir()
 	values := map[string]string{
-		"db.password":       "s3cret",
-		"api.db_connection": "pg://localhost",
+		"db-password":       "s3cret",
+		"api-db-connection": "pg://localhost",
 	}
 
 	paths := map[string]string{
-		"db.password":       filepath.Join(dir, "db", "password.secret"),
-		"api.db_connection": filepath.Join(dir, "api", "db_connection.secret"),
+		"db-password":       filepath.Join(dir, "db", "password.secret"),
+		"api-db-connection": filepath.Join(dir, "api", "db_connection.secret"),
 	}
 
 	if err := WriteSecrets(paths, values); err != nil {
@@ -181,16 +181,16 @@ func TestWriteAndReadSecrets(t *testing.T) {
 
 	read := ReadSecretValues(paths)
 
-	if read["db.password"] != "s3cret" {
-		t.Errorf("expected s3cret, got %q", read["db.password"])
+	if read["db-password"] != "s3cret" {
+		t.Errorf("expected s3cret, got %q", read["db-password"])
 	}
-	if read["api.db_connection"] != "pg://localhost" {
-		t.Errorf("expected pg://localhost, got %q", read["api.db_connection"])
+	if read["api-db-connection"] != "pg://localhost" {
+		t.Errorf("expected pg://localhost, got %q", read["api-db-connection"])
 	}
 
 	// Path not in map should not appear
 	extraPaths := map[string]string{
-		"db.password": filepath.Join(dir, "db", "password.secret"),
+		"db-password": filepath.Join(dir, "db", "password.secret"),
 		"nonexistent": filepath.Join(dir, "nope"),
 	}
 	read2 := ReadSecretValues(extraPaths)
@@ -289,9 +289,9 @@ func TestGenerateRandom(t *testing.T) {
 
 func TestRewriteSecretFilePaths(t *testing.T) {
 	composeYAML := `secrets:
-  postgres.password:
+  postgres-password:
     file: ./services/postgres/secrets/postgres.password
-  api.key:
+  api-key:
     file: ./services/api/secrets/api.key
 `
 	secretsDir := "/stack/artifacts/secrets"
@@ -301,13 +301,13 @@ func TestRewriteSecretFilePaths(t *testing.T) {
 	}
 
 	paths := ExtractSecretPaths(result)
-	wantPostgres := filepath.Join(secretsDir, "postgres.password")
-	wantAPI := filepath.Join(secretsDir, "api.key")
-	if got := paths["postgres.password"]; got != wantPostgres {
-		t.Errorf("postgres.password path = %q, want %q", got, wantPostgres)
+	wantPostgres := filepath.Join(secretsDir, "postgres-password")
+	wantAPI := filepath.Join(secretsDir, "api-key")
+	if got := paths["postgres-password"]; got != wantPostgres {
+		t.Errorf("postgres-password path = %q, want %q", got, wantPostgres)
 	}
-	if got := paths["api.key"]; got != wantAPI {
-		t.Errorf("api.key path = %q, want %q", got, wantAPI)
+	if got := paths["api-key"]; got != wantAPI {
+		t.Errorf("api-key path = %q, want %q", got, wantAPI)
 	}
 }
 
@@ -344,9 +344,9 @@ func TestTemplateDependency(t *testing.T) {
 		wantDep string
 		wantOk  bool
 	}{
-		{"secret:my.password", "my.password", true},
-		{"secret: my.password ", "my.password", true},
-		{"my.other.secret", "my.other.secret", true},
+		{"secret:my-password", "my-password", true},
+		{"secret: my-password ", "my-password", true},
+		{"my-other-secret", "my-other-secret", true},
 		{"word", "", false},
 		{"private_key", "", false},
 		{"random:16:true", "", false},
@@ -380,13 +380,13 @@ func TestResolveInsecureDefault(t *testing.T) {
 
 func TestResolveThirdPartySkipped(t *testing.T) {
 	templates := map[string]Template{
-		"api.key": {Type: TypeThirdParty},
+		"api-key": {Type: TypeThirdParty},
 	}
 	resolved, err := Resolve(templates, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v, ok := resolved["api.key"]; ok && v != "" {
+	if v, ok := resolved["api-key"]; ok && v != "" {
 		t.Errorf("expected third_party secret to remain unset, got %q", v)
 	}
 }

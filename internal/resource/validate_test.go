@@ -13,7 +13,7 @@ func TestValidateMissingSecrets(t *testing.T) {
 	if err := os.MkdirAll(secretsDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	secretFile := filepath.Join(secretsDir, "db_password.secret")
+	secretFile := filepath.Join(secretsDir, "db-password.secret")
 	if err := os.WriteFile(secretFile, []byte("secret"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -24,9 +24,9 @@ func TestValidateMissingSecrets(t *testing.T) {
   api:
     image: api:latest
 secrets:
-  api.db_password.secret:
+  api-db-password:
     file: ` + secretFile + `
-  api.missing.secret:
+  api-missing:
     file: ` + missingFile + `
 `
 	issues, err := Validate([]byte(composeYAML), stackDir, false)
@@ -36,12 +36,12 @@ secrets:
 
 	foundMissing := false
 	for _, iss := range issues {
-		if iss.Severity == "error" && iss.Resource == "secret:api.missing.secret" {
+		if iss.Severity == "error" && iss.Resource == "secret:api-missing" {
 			foundMissing = true
 		}
 	}
 	if !foundMissing {
-		t.Error("expected error for missing secret api.missing.secret")
+		t.Error("expected error for missing secret api-missing")
 	}
 }
 
@@ -53,11 +53,11 @@ func TestValidateMissingThirdPartySecretIsWarning(t *testing.T) {
   api:
     image: api:latest
 secrets:
-  api.thirdparty.secret:
+  api-thirdparty:
     file: ` + missingFile + `
 x-dargstack:
   secrets:
-    api.thirdparty.secret:
+    api-thirdparty:
       third_party: true
 `
 
@@ -69,7 +69,7 @@ x-dargstack:
 	foundWarning := false
 	foundError := false
 	for _, iss := range issues {
-		if iss.Resource != "secret:api.thirdparty.secret" {
+		if iss.Resource != "secret:api-thirdparty" {
 			continue
 		}
 		if iss.Severity == "warning" {
@@ -113,9 +113,9 @@ func TestValidateCertificates(t *testing.T) {
 
 func TestMissingSecrets(t *testing.T) {
 	issues := []Issue{
-		{Severity: "error", Resource: "secret:api.db.secret", Description: "not found"},
+		{Severity: "error", Resource: "secret:api-db", Description: "not found"},
 		{Severity: "warning", Resource: "certificates", Description: "missing"},
-		{Severity: "error", Resource: "secret:api.key.secret", Description: "not found"},
+		{Severity: "error", Resource: "secret:api-key", Description: "not found"},
 	}
 
 	missing := MissingSecrets(issues)
@@ -143,7 +143,7 @@ func TestGenerateDocumentation(t *testing.T) {
     ports:
       - "3000:3000"
     secrets:
-      - api.db.secret
+      - api-db
 `
 	if err := os.WriteFile(filepath.Join(apiDir, "compose.yaml"), []byte(apiCompose), 0o644); err != nil {
 		t.Fatal(err)
@@ -158,7 +158,7 @@ func TestGenerateDocumentation(t *testing.T) {
   postgres:
     image: postgres:16
     volumes:
-      - postgres.data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
   redis:
     # In-memory cache.
     image: redis:7

@@ -11,15 +11,15 @@ func TestFilterByProfile(t *testing.T) {
   api:
     image: myapi:latest
     secrets:
-      - api.db_password.secret
+      - api-db-password
     volumes:
-      - api.data:/data
+      - api-data:/data
   postgres:
     image: postgres:16
     volumes:
-      - postgres.data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     secrets:
-      - postgres.password.secret
+      - postgres-password
   debug:
     image: debug:latest
     deploy:
@@ -31,16 +31,16 @@ func TestFilterByProfile(t *testing.T) {
       labels:
         dargstack.profiles: monitoring
     volumes:
-      - monitoring.data:/data
+      - monitoring-data:/data
 secrets:
-  api.db_password.secret:
-    file: ./secrets/api.db_password.secret
-  postgres.password.secret:
-    file: ./secrets/postgres.password.secret
+  api-db-password:
+    file: ./secrets/api-db-password.secret
+  postgres-password:
+    file: ./secrets/postgres-password.secret
 volumes:
-  api.data:
-  postgres.data:
-  monitoring.data:
+  api-data:
+  postgres-data:
+  monitoring-data:
 `
 
 	// No profile and no "default" profile exists — all services deployed
@@ -229,26 +229,26 @@ func TestFilterServices(t *testing.T) {
   api:
     image: myapi:latest
     secrets:
-      - api.db_password.secret
+      - api-db-password
     volumes:
-      - api.data:/data
+      - api-data:/data
   postgres:
     image: postgres:16
     volumes:
-      - postgres.data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     secrets:
-      - postgres.password.secret
+      - postgres-password
   redis:
     image: redis:7
 secrets:
-  api.db_password.secret:
-    file: ./secrets/api.db_password.secret
-  postgres.password.secret:
-    file: ./secrets/postgres.password.secret
+  api-db-password:
+    file: ./secrets/api-db-password.secret
+  postgres-password:
+    file: ./secrets/postgres-password.secret
 volumes:
-  api.data:
-  postgres.data:
-  redis.data:
+  api-data:
+  postgres-data:
+  redis-data:
 `
 
 	result, err := FilterServices([]byte(composeYAML), []string{"api"})
@@ -273,13 +273,13 @@ volumes:
 	}
 
 	secrets := doc["secrets"].(map[string]interface{})
-	if _, ok := secrets["postgres.password.secret"]; ok {
-		t.Error("expected postgres.password.secret to be removed")
+	if _, ok := secrets["postgres-password"]; ok {
+		t.Error("expected postgres-password to be removed")
 	}
 
 	volumes := doc["volumes"].(map[string]interface{})
-	if _, ok := volumes["redis.data"]; ok {
-		t.Error("expected redis.data volume to be removed")
+	if _, ok := volumes["redis-data"]; ok {
+		t.Error("expected redis-data volume to be removed")
 	}
 }
 
@@ -347,27 +347,27 @@ func TestFilterByProfileStripsOutOfProfileDargstackSecrets(t *testing.T) {
   api:
     image: api:latest
     secrets:
-      - api.secret
+      - api
     deploy:
       labels:
         dargstack.profiles: default
   grafana:
     image: grafana:latest
     secrets:
-      - grafana.webhook.secret
+      - grafana-webhook
     deploy:
       labels:
         dargstack.profiles: monitoring
 secrets:
-  api.secret:
+  api:
     file: ./secrets/api.secret
-  grafana.webhook.secret:
-    file: ./secrets/grafana.webhook.secret
+  grafana-webhook:
+    file: ./secrets/grafana-webhook.secret
 x-dargstack:
   secrets:
-    api.secret:
+    api:
       type: random_string
-    grafana.webhook.secret:
+    grafana-webhook:
       type: third_party
       hint: "https://discord.com/api/webhooks/..."
 `
@@ -390,11 +390,11 @@ x-dargstack:
 	if !ok {
 		t.Fatal("expected x-dargstack.secrets to be present")
 	}
-	if _, ok := secrets["api.secret"]; !ok {
-		t.Error("expected api.secret template to be retained for active profile")
+	if _, ok := secrets["api"]; !ok {
+		t.Error("expected api secret template to be retained for active profile")
 	}
-	if _, ok := secrets["grafana.webhook.secret"]; ok {
-		t.Error("expected grafana.webhook.secret template to be removed for inactive profile")
+	if _, ok := secrets["grafana-webhook"]; ok {
+		t.Error("expected grafana-webhook secret template to be removed for inactive profile")
 	}
 }
 
@@ -404,7 +404,7 @@ func TestFilterByProfileLongFormSecretsKept(t *testing.T) {
   api:
     image: api:latest
     secrets:
-      - source: api.db.secret
+      - source: api-db
         target: /run/secrets/db
     deploy:
       labels:
@@ -415,9 +415,9 @@ func TestFilterByProfileLongFormSecretsKept(t *testing.T) {
       labels:
         dargstack.profiles: other
 secrets:
-  api.db.secret:
+  api-db:
     file: ./secrets/api.db.secret
-  other.secret:
+  other:
     file: ./secrets/other.secret
 `
 	result, err := FilterByProfile([]byte(composeYAML), []string{"default"})
@@ -434,11 +434,11 @@ secrets:
 	if !ok {
 		t.Fatal("expected secrets section")
 	}
-	if _, ok := secrets["api.db.secret"]; !ok {
-		t.Error("expected api.db.secret to be kept (referenced via long form)")
+	if _, ok := secrets["api-db"]; !ok {
+		t.Error("expected api-db secret to be kept (referenced via long form)")
 	}
-	if _, ok := secrets["other.secret"]; ok {
-		t.Error("expected other.secret to be removed (unreferenced after profile filter)")
+	if _, ok := secrets["other"]; ok {
+		t.Error("expected other secret to be removed (unreferenced after profile filter)")
 	}
 }
 
