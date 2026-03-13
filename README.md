@@ -1,92 +1,257 @@
 # dargstack
 
-Dargstack addresses the challenge of maintaining separate development and production environments within an otherwise well-structured, containerized software development workflow.
-It prioritizes development configuration, derives production configurations from it, and simplifies deployments!
+Docker Swarm, made simple. Dev-first deployments, production overlays, built-in audit trail.
 
-This repository contains the dargstack script.
-If you're looking for guidance on initiating and running a project with dargstack, refer to the [template documentation](./docs/template.md).
-To bootstrap your project using the dargstack template, visit [dargstack/dargstack_template](https://github.com/dargstack/dargstack_template).
+dargstack is a **CLI tool and project structure specification** that **reduces Docker Swarm complexity** to a minimal command set. Define your development setup as the base, express production as incremental changes on top.
 
-The following projects showcase dargstack in action:
+dargstack does **not** replace `docker stack`. You can interact with `docker stack` on the same stack that you manage with dargstack.
+
+---
+
+The following projects successfully employ dargstack in production:
 
 - [maevsi/stack](https://github.com/maevsi/stack/)
 - [dargmuesli/jonas-thelemann_stack](https://github.com/dargmuesli/jonas-thelemann_stack/)
 - [flipdot/drinks-touch_stack](https://github.com/flipdot/drinks-touch_stack/)
 
-You can explore a minimal setup example here:
+## Why dargstack?
 
-- [dargstack/dargstack-example](https://github.com/dargstack/dargstack-example/)
-- [dargstack/dargstack-example_stack](https://github.com/dargstack/dargstack-example_stack/)
+Deploying the same app to development and production with Docker Swarm usually means maintaining two nearly identical compose files. Change one thing? Manually copy, edit, hope nothing breaks.
 
-## Table of Contents
+dargstack inverts this: define development as the source of truth, then express production as **changes** on top. One deploy command. One audit trail. Done.
 
-1. **[Installation](#installation)**
-2. **[Configuration Options](#configuration-options)**
+| dargstack                                                      | `docker stack`                                                                 |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| ✅ A single resource and diff specification                    | ❌ Two compose files for dev and prod – risk of configuration drift            |
+| ✅ Clear file separation by service                            | ❌ Monolithic compose file – hard to maintain if big                           |
+| ✅ Snapshot for every deploy; easy inspect and diff            | ❌ Volatile audit trail – live console tracing only                            |
+| ✅ Safer secret management with auto-generation and templating | ❌ Manual secret management – tedious, often insecure defaults                 |
+| ✅ Development certificates auto‑generated                     | ❌ No TLS certificates – out of scope, traffic unencrypted                     |
+| ✅ Zero downtime service update motivation                     | ❌ Stop-first update order by default – unreliable availability in production |
 
-## Installation
+## Install
 
-Dargstack requires `sudo >= 1.8.21` due to its use of the extended `--preserve-env` list syntax.
-The minimum supported Debian version is `buster`.
+### Recommended — From Source
 
-To set up the script as an executable using Bash, follow these steps:
+**Prerequisite** – Go installed, see [go.dev: Download and install](https://go.dev/doc/install).
 
 ```bash
-mkdir ~/scripts/ \
-    && wget https://raw.githubusercontent.com/dargstack/dargstack/main/src/dargstack -O ~/scripts/dargstack \
-    && chmod +x ~/scripts/dargstack \
-    && echo 'export PATH="$PATH:$HOME/scripts"' >> ~/.bashrc \
-    && . ~/.bashrc
+go install github.com/dargstack/dargstack/v4/cmd/dargstack@latest
 ```
 
-Feel free to adjust this setup to match your preferences!
+Package integrity is enforced by the Go module proxy and the module's `go.sum` lockfile.
+Pin to a specific version (e.g. `@v4.1.0`) to get a reproducible, auditable install.
 
-### macOS Installation Notes
+### Alternative — From GitHub Releases
 
-1. The `getopt` utility on macOS [differs from its Linux counterpart](https://en.wikipedia.org/wiki/Getopt#Extensions) as it does not support long options with two hyphens.
-   To resolve this, install GNU `getopt`:
+> **Security note:** Binary downloads do not include checksum verification in the snippet below.
+> Before moving the binary to your PATH, verify the SHA-256 checksum published on the
+> [Releases page](https://github.com/dargstack/dargstack/releases), or prefer `go install` above.
 
-   ```sh
-   brew install gnu-getopt
+```bash
+curl -sL https://github.com/dargstack/dargstack/releases/latest/download/dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz | tar xz
+sudo mv dargstack /usr/local/bin/
+```
+
+## Quick Start
+
+**Prerequisite** – Docker installed, see [docs.docker.com: Install Docker Engine](https://docs.docker.com/engine/install/).
+
+1. Initialize a new dargstack project:
+
+   ```bash
+   dargstack init
    ```
 
-   Dargstack will automatically detect `getopt` under `/opt/homebrew/opt/gnu-getopt/bin/getopt`.
+2. Fill in your service configuration according to the [docker.com: Compose file reference](https://docs.docker.com/reference/compose-file).
 
-2. macOS ships with Bash version 3.x, which does not support [globstars](https://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html).
-   To run dargstack, install a newer version of Bash via [Homebrew](https://brew.sh/):
+3. Then deploy:
 
-   ```sh
-   brew install bash
+   ```bash
+   cd <project_name>
+   dargstack deploy
    ```
 
-   You must **always** use the newly installed Bash version to invoke dargstack. To simplify this, consider adding an alias to your [`~/.bashrc`](https://wiki.ubuntuusers.de/alias/):
+Done! 🎉 Your project is live now.
 
-   ```sh
-   /opt/homebrew/Cellar/bash/5.2.2/bin/bash dargstack
-   # or
-   echo "alias dargstack='/opt/homebrew/Cellar/bash/5.2.2/bin/bash dargstack'" >> ~/.bashrc
-   ```
+## Project Structure
 
-
-## Configuration Options
+Suppose you have an `api` service as part of an `example` project. Your project structure would look like this:
 
 ```
-Dargstack template helper script.
-
-usage: dargstack <module> <options>
-
-modules
-    build [sibling]           Builds the main project or the specified sibling, tagged as dev. Only for development.
-    deploy                    Deploys a Docker project either from a full local development clone of the project or, with the --production parameter provided, by doing a sparse Git checkout containing only the production configuration. In the latter case derive is executed first and the existence of required environment variables is checked before deployment starts.
-    derive                    Derives a ./production/stack.yml from ./development/stack.yml.
-    rgen                      Generate the README.
-    rm                        Removes the stack.
-    self-update               Updates the helper script.
-    validate                  Checks for an up-2-date README.
-
-options
-    -a, --advertise-addr      The address Docker Swarm advertises.
-    -h, --help                Display this help. Usable with modules: all.
-    -o, --offline             Do not try to update the checkout
-    -p, --production <tag>    Execute in production mode. Version must equal a tag name or latest. Usable with modules: deploy.
-    -u, --url <url>           The URL to clone from. May include the substrings <owner> and <name> that are replaced by their corresponding value that is inferred from the dargstack directory structure. Usable with modules: deploy.
+example/
+├── api/                                # The service's source code
+│   ├── Dockerfile                      # Dockerfile for the api service
+:   :
+├── stack/
+│   ├── artifacts/                      # Generated files
+│   │   ├── audit-log/                  # Deployment snapshots (gitignored)
+│   │   ├── certificates/               # Local TLS certificates (gitignored)
+│   │   ├── docs/
+│   │   │   └── README.md               # Generated stack documentation
+│   │   ├── .gitignore
+│   │   └── README.md                   # Explains artifacts folder contents
+│   ├── src/
+│   │   ├── development/
+│   │   │   ├── api/
+│   │   │   │   ├── compose.yaml        # Full Docker Compose document
+│   │   │   │   ├── configuration.toml  # File-based volume mount by the service
+│   │   │   │   ├── key.secret          # Secret used by the service
+│   │   │   :   :
+│   │   │   └── .env                    # Environment variables
+│   │   └── production/
+│   │       ├── api/
+│   │       │   ├── compose.yaml        # Yaml deep-merge override
+│   │       │   ├── configuration.toml  # File-based override
+│   │       :   :
+│   │       └── .env                    # Key-based override
+│   └── dargstack.yaml                  # Project configuration
+:
 ```
+
+### Service Files
+
+Each service file is a full Docker Compose document — files are deep-merged by [spruce](https://github.com/geofffranks/spruce).
+See [github.com: What are all the Spruce operators?](https://github.com/geofffranks/spruce/blob/main/doc/operators.md) for special keywords controlling the merge behavior.
+
+```yaml
+# src/development/api/compose.yaml
+services:
+  api:
+    image: api:latest
+    ports:
+      - "3000:3000"
+    secrets:
+      - api-key
+    deploy:
+      labels:
+        - (( append ))
+        - dargstack.development.build=../../../../api
+        - traefik.http.routers.api.rule=Host(`api.${STACK_DOMAIN}`)
+        - traefik.http.routers.api.tls=true
+        - traefik.http.services.api.loadbalancer.server.port=8080
+        - some.label=for-development # dargstack:dev-only
+    user: (( prune ))
+
+secrets:
+  api-key:
+    file: ./key.secret
+
+x-dargstack:
+  secrets:
+    api-key:
+      length: 32
+      special_characters: false
+```
+
+**Key rules:**
+
+- Each service file has a `services:` top-level key
+- Secrets, volumes, networks, and configs are declared in the same file as the service that uses them
+- Production files contain only **differences** from development:
+
+```yaml
+# src/production/api/compose.yaml
+services:
+  api:
+    image: ghcr.io/myorg/api:v1.0.0
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        order: start-first # Zero-downtime updates
+```
+
+### Configuration: dargstack.yaml
+
+```yaml
+compatibility: ">=4.0.0 <5.0.0" # required, string (semver range)
+name: my-stack # optional, defaults to parent directory name
+production:
+  branch: main # optional, string
+  tag: latest # optional, `latest` | string
+  domain: example.com # optional, string
+development:
+  domain: app.localhost # optional, defaults to "app.localhost"
+  certificate:
+    domains: [] # optional, extra domains added to dev TLS cert
+sudo: auto # optional, `auto` | `always` | `never`
+```
+
+### Profiles & Performance
+
+Deploy named groups of services to save resources:
+
+```yaml
+# src/development/adminer/compose.yaml
+services:
+  adminer:
+    image: adminer
+    deploy:
+      labels:
+        dargstack.profiles: db # Only deployed with --profiles db
+```
+
+Multiple profiles: `dargstack.profiles: "db,monitoring"` (comma-separated).
+
+If no profile selection is made and any service declares `default`, only services with `dargstack.profiles: default` are deployed; unlabeled services are excluded.
+If no profile selection is made and no service declares `default`, all services (including unlabeled) are deployed.
+
+When one or more profiles are explicitly activated with `--profiles`, only services whose `dargstack.profiles` intersect the active profile set are deployed. Services without a `dargstack.profiles` label are deployed only if the special `unlabeled` profile is explicitly activated (for example: `--profiles unlabeled` or `--profiles db --profiles unlabeled`).
+
+### Secret Templating
+
+Define secrets with generation settings and template resolution:
+
+```yaml
+x-dargstack:
+  secrets:
+    postgres-password:
+      type: random_string
+      # length defaults to 32, special_characters defaults to true
+    jwt-signing-key:
+      type: private_key
+    external-api-token:
+      type: third_party
+      hint: "Get yours at https://example.com/settings/tokens"
+    dev-only-secret:
+      type: insecure_default
+      insecure_default: "CHANGE_ME"
+    api-db_url:
+      type: template
+      template: "postgresql://postgres:{{secret:postgres-password}}@postgres:5432/app"
+```
+
+- `type` — Secret behavior. Supported values: `random_string`, `word`, `private_key`, `third_party`, `insecure_default`, `template`
+- `hint` — Human-readable hint for expected value (shown for `third_party` secrets when unset)
+- `length` — Random string length for `type: random_string` (default: `32`)
+- `special_characters` — Include special characters for `type: random_string` (default: `true`; set `false` to opt out)
+- `insecure_default` — Default value used for `type: insecure_default`
+- `template` — Template string for `type: template`
+
+Template tokens:
+
+- `{{secret:<name>}}` (or legacy `{{<name>}}`) — Reference another secret
+- `{{random}}`, `{{random:<length>}}`, `{{random:<length>:<special>}}` — Inline random generation
+- `{{word}}` — Inline word generation
+- `{{private_key}}` — Inline private key generation
+
+### Environment Files
+
+`.env` files use `KEY=VALUE` format. During deploy, missing values are prompted. Production blocks on missing values.
+
+## Commands
+
+Go to [docs: dargstack](docs/dargstack.md) for detailed command documentation.
+
+| Command                                              | Description                            |
+| ---------------------------------------------------- | -------------------------------------- |
+| [dargstack build](docs/dargstack_build.md)           | Build development Dockerfiles          |
+| [dargstack certify](docs/dargstack_certify.md)       | Generate TLS certificates              |
+| [dargstack deploy](docs/dargstack_deploy.md)         | Deploy the stack                       |
+| [dargstack document](docs/dargstack_document.md)     | Generate the stack documentation       |
+| [dargstack initialize](docs/dargstack_initialize.md) | Initialize a new dargstack project     |
+| [dargstack inspect](docs/dargstack_inspect.md)       | Inspect deployed compose snapshots     |
+| [dargstack remove](docs/dargstack_remove.md)         | Remove the deployed stack              |
+| [dargstack update](docs/dargstack_update.md)         | Update dargstack to the latest version |
+| [dargstack validate](docs/dargstack_validate.md)     | Validate stack resources               |
