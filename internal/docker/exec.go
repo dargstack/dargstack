@@ -10,8 +10,9 @@ import (
 
 // Executor runs docker CLI commands, handling sudo as needed.
 type Executor struct {
-	useSudo bool
-	binary  string
+	useSudo     bool
+	binary      string
+	composeEnv  map[string]string // extra vars forwarded explicitly in sudo RunWithStdin
 }
 
 // NewExecutor creates an Executor that auto-detects sudo requirement
@@ -52,10 +53,21 @@ func needsSudo(binary string) bool {
 		// Only use sudo when it actually fixes the problem (permission denied).
 		// If the daemon is down or Docker is broken, sudo won't help and we
 		// should let the underlying error surface via the normal command path.
-		sudoCmd := exec.Command("sudo", "-n", binary, "info")
-		sudoCmd.Stdout = nil
-		sudoCmd.Stderr = nil
-		return sudoCmd.Run() == nil
+
+		// First try non-interactive (fast, no prompt) to see if credentials are cached.
+		sudoNI := exec.Command("sudo", "-n", binary, "info")
+		sudoNI.Stdout = nil
+		sudoNI.Stderr = nil
+		if sudoNI.Run() == nil {
+			return true
+		}
+		// Credentials may have expired. Fall back to interactive sudo so the
+		// user can authenticate once rather than getting a silent permission error.
+		sudoI := exec.Command("sudo", binary, "info")
+		sudoI.Stdin = os.Stdin
+		sudoI.Stdout = nil
+		sudoI.Stderr = os.Stderr
+		return sudoI.Run() == nil
 	}
 	return false
 }
@@ -131,6 +143,10 @@ func (e *Executor) RunPassthrough(args ...string) error {
 }
 
 // RunWithStdin executes a docker command passing data via stdin.
+// When sudo is required, any compose environment variables registered via
+// SetComposeEnv are forwarded explicitly using `sudo env KEY=VAL…` so that
+// Docker Compose variable substitution works without inheriting the full user
+// environment (which would break rootless Docker socket paths etc.).
 func (e *Executor) RunWithStdin(input []byte, args ...string) error {
 	if e.useSudo {
 		if err := refreshSudoIfNeeded(); err != nil {
@@ -139,7 +155,14 @@ func (e *Executor) RunWithStdin(input []byte, args ...string) error {
 	}
 	var cmd *exec.Cmd
 	if e.useSudo {
-		fullArgs := append([]string{e.binary}, args...)
+		// Build: sudo env KEY=VAL ... docker args
+		// This forwards only the compose variable-substitution env vars, not the
+		// full user environment, so Docker socket routing is unaffected.
+		envArgs := []string{"env"}
+		for k, v := range e.composeEnv {
+			envArgs = append(envArgs, fmt.Sprintf("%s=%s", k, v))
+		}
+		fullArgs := append(append(envArgs, e.binary), args...)
 		cmd = exec.Command("sudo", fullArgs...)
 	} else {
 		cmd = exec.Command(e.binary, args...)
@@ -158,6 +181,13 @@ func (e *Executor) RunWithStdin(input []byte, args ...string) error {
 // NeedsSudo reports whether the executor uses sudo for commands.
 func (e *Executor) NeedsSudo() bool {
 	return e.useSudo
+}
+
+// SetComposeEnv stores environment variables to be forwarded explicitly when
+// running `docker stack deploy` via sudo. This avoids inheriting the full user
+// environment (which would break rootless Docker socket routing).
+func (e *Executor) SetComposeEnv(env map[string]string) {
+	e.composeEnv = env
 }
 
 // Ping checks whether the Docker daemon is reachable via the CLI.

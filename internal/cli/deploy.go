@@ -414,7 +414,8 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	if err := promptForEnvValues(production); err != nil {
 		printWarning(fmt.Sprintf("Environment variable check: %v", err))
 	}
-	applyEnvToProcess(production)
+	composeVars := applyEnvToProcess(production)
+	executor.SetComposeEnv(composeVars)
 
 	// 5. Secret setup — filter by profile first so only secrets used by active
 	// services are processed.
@@ -766,7 +767,9 @@ func buildProductionCompose() ([]byte, error) {
 // current process environment so that `docker stack deploy -c -` can
 // interpolate them. The process environment takes precedence — existing values
 // are not overwritten.
-func applyEnvToProcess(prod bool) {
+// It returns the map of vars that were applied so the caller can forward them
+// explicitly to sudo subprocesses via Executor.SetComposeEnv.
+func applyEnvToProcess(prod bool) map[string]string {
 	env, err := compose.LoadEnvFile(config.DevEnvFile(stackDir))
 	if err != nil {
 		env = map[string]string{}
@@ -778,14 +781,20 @@ func applyEnvToProcess(prod bool) {
 			}
 		}
 	}
+	applied := make(map[string]string, len(env)+1)
 	for k, v := range env {
 		if v != "" && os.Getenv(k) == "" {
 			_ = os.Setenv(k, v)
+		}
+		if v != "" {
+			applied[k] = v
 		}
 	}
 	if os.Getenv("STACK_DOMAIN") == "" {
 		_ = os.Setenv("STACK_DOMAIN", cfg.Production.Domain)
 	}
+	applied["STACK_DOMAIN"] = cfg.Production.Domain
+	return applied
 }
 
 func promptForEnvValues(prod bool) error {
