@@ -97,6 +97,28 @@ func TestDomainDefault(t *testing.T) {
 	if cfg.Production.Domain != "app.localhost" {
 		t.Errorf("expected default production.domain=app.localhost, got %s", cfg.Production.Domain)
 	}
+	if cfg.Development.Domain != "app.localhost" {
+		t.Errorf("expected default development.domain=app.localhost, got %s", cfg.Development.Domain)
+	}
+}
+
+func TestDevDomainCustom(t *testing.T) {
+	dir := t.TempDir()
+	content := "production:\n  domain: myapp.example.com\ndevelopment:\n  domain: dev.localhost\n"
+	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Production.Domain != "myapp.example.com" {
+		t.Errorf("expected production.domain=myapp.example.com, got %s", cfg.Production.Domain)
+	}
+	if cfg.Development.Domain != "dev.localhost" {
+		t.Errorf("expected development.domain=dev.localhost, got %s", cfg.Development.Domain)
+	}
 }
 
 func TestDomainCustom(t *testing.T) {

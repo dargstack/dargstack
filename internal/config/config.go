@@ -46,6 +46,7 @@ type ProductionConfig struct {
 }
 
 type DevelopmentConfig struct {
+	Domain  string   `yaml:"domain"`
 	Domains []string `yaml:"domains"`
 }
 
@@ -121,6 +122,9 @@ func (c *Config) applyDefaults(stackDir string) {
 	}
 	if c.Production.Domain == "" {
 		c.Production.Domain = "app.localhost"
+	}
+	if c.Development.Domain == "" {
+		c.Development.Domain = "app.localhost"
 	}
 }
 

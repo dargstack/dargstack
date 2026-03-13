@@ -37,10 +37,12 @@ func applyEnvToProcess(prod bool) map[string]string {
 			applied[k] = v
 		}
 	}
-	if os.Getenv("STACK_DOMAIN") == "" {
-		_ = os.Setenv("STACK_DOMAIN", cfg.Production.Domain)
+	stackDomain := cfg.Development.Domain
+	if prod {
+		stackDomain = cfg.Production.Domain
 	}
-	applied["STACK_DOMAIN"] = cfg.Production.Domain
+	_ = os.Setenv("STACK_DOMAIN", stackDomain)
+	applied["STACK_DOMAIN"] = stackDomain
 	return applied
 }
 

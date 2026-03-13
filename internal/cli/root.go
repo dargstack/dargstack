@@ -68,9 +68,11 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		// Set STACK_DOMAIN if not already set
+		// Set STACK_DOMAIN if not already set — use the development domain as the
+		// default since most non-deploy commands (certify, validate, inspect) operate
+		// in a development context. The deploy command overrides this explicitly.
 		if os.Getenv("STACK_DOMAIN") == "" {
-			_ = os.Setenv("STACK_DOMAIN", cfg.Production.Domain)
+			_ = os.Setenv("STACK_DOMAIN", cfg.Development.Domain)
 		}
 
 		return nil
