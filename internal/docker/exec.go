@@ -10,9 +10,9 @@ import (
 
 // Executor runs docker CLI commands, handling sudo as needed.
 type Executor struct {
-	useSudo     bool
-	binary      string
-	composeEnv  map[string]string // extra vars forwarded explicitly in sudo RunWithStdin
+	useSudo    bool
+	binary     string
+	composeEnv map[string]string // extra vars forwarded explicitly in sudo RunWithStdin
 }
 
 // NewExecutor creates an Executor that auto-detects sudo requirement

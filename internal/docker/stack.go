@@ -3,6 +3,7 @@ package docker
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 // StackDeploy deploys a stack from compose YAML data.
@@ -23,6 +24,35 @@ func StackRemove(exec *Executor, stackName string) error {
 		return fmt.Errorf("remove stack %q: %w", stackName, err)
 	}
 	return nil
+}
+
+// WaitForStackRemoval polls until all networks belonging to the stack have
+// been removed, which indicates containers have fully exited. Services are
+// de-listed almost immediately; networks are the last artefact to disappear.
+// progress is called on each tick with the remaining network count.
+func WaitForStackRemoval(exec *Executor, stackName string, timeout time.Duration, progress func(remaining int)) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		out, err := exec.Run(
+			"network", "ls",
+			"--filter", "label=com.docker.stack.namespace="+stackName,
+			"--quiet",
+		)
+		if err != nil {
+			// Transient error; keep polling.
+			time.Sleep(time.Second)
+			continue
+		}
+		networks := strings.Fields(strings.TrimSpace(out))
+		if len(networks) == 0 {
+			return nil
+		}
+		if progress != nil {
+			progress(len(networks))
+		}
+		time.Sleep(time.Second)
+	}
+	return fmt.Errorf("stack %q networks still present after %s", stackName, timeout)
 }
 
 // ServiceList lists service names in a stack, returning only the bare service name

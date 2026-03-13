@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -69,7 +71,38 @@ func runRm(cmd *cobra.Command, args []string) error {
 	if err := docker.StackRemove(executor, cfg.Name); err != nil {
 		return err
 	}
-	printSuccess(fmt.Sprintf("Stack %q removed", cfg.Name))
+
+	printInfo(fmt.Sprintf("Waiting for stack %q services to stop...", cfg.Name))
+
+	spinDone := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		frames := []rune{'⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'}
+		i := 0
+		for {
+			select {
+			case <-spinDone:
+				fmt.Print("\r\033[K") // clear the spinner line
+				return
+			default:
+				fmt.Printf("\r  %c Waiting for stack %q to stop...", frames[i%len(frames)], cfg.Name)
+				i++
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+
+	waitErr := docker.WaitForStackRemoval(executor, cfg.Name, 60*time.Second, nil)
+	close(spinDone)
+	wg.Wait()
+
+	if waitErr != nil {
+		printWarning(waitErr.Error())
+	} else {
+		printSuccess(fmt.Sprintf("Stack %q removed", cfg.Name))
+	}
 
 	if removeVolumes {
 		if !noInteraction {
