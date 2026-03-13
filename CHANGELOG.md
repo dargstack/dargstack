@@ -1,3 +1,20 @@
+## [4.0.0-beta.6](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.5...v4.0.0-beta.6) (2026-03-13)
+
+### Features
+
+* **deploy:** add parameter shorthand for production ([afb76e2](https://github.com/dargstack/dargstack/commit/afb76e20676d434cb942848cacade221c998fe94))
+* **deploy:** add redeploy ([ae60167](https://github.com/dargstack/dargstack/commit/ae6016702906f6534d1387c99df3b111b46a92e7))
+* **deploy:** list removed volumes ([68016ab](https://github.com/dargstack/dargstack/commit/68016abe45de4c4d3f7f7b539ca862c782958bc2))
+* **exec:** explain sudo prompt ([ae92290](https://github.com/dargstack/dargstack/commit/ae922901021e03aa61b8bca7b666e2ea143c80b2))
+* **initialize:** include example service ([9f8cefe](https://github.com/dargstack/dargstack/commit/9f8cefe8a33b2344109cf0414992700ad207c2f1))
+
+### Bug Fixes
+
+* **deploy:** correct environment variable loading ([07468d5](https://github.com/dargstack/dargstack/commit/07468d57f6ec965d4dfc2ec45b6bdeb07ce4b98d))
+* **exec:** preserve environment variables for sudo ([83c8d8b](https://github.com/dargstack/dargstack/commit/83c8d8bf5cddd27fa1acd1d86f1ae0d910d0944a))
+* **exec:** refresh sudo ([ed657e0](https://github.com/dargstack/dargstack/commit/ed657e0e1ae1685081dba2693407b8339391f40b))
+* **stack:** wait for full removal ([7319ad0](https://github.com/dargstack/dargstack/commit/7319ad02e99e5ce8ccc760d96aa72add930066cf))
+
 ## [4.0.0-beta.5](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.4...v4.0.0-beta.5) (2026-03-11)
 
 ### Bug Fixes
