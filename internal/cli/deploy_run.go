@@ -260,7 +260,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 				return fmt.Errorf("apply default profile semantics: %w", err)
 			}
 			if defaultProfileExists {
-				printInfo("Default profile detected: deploying only services in profile \"default\" (use --profiles unlabeled to include unlabeled services)")
+				printInfo("Default profile detected: deploying only services in profile \"default\". Use --profiles, --services, --unlabeled or --all to change the set of deployed services.")
 			} else {
 				printInfo("No default profile detected: deploying all services")
 			}
