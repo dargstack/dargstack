@@ -1,3 +1,14 @@
+## [4.0.0-beta.8](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.7...v4.0.0-beta.8) (2026-03-16)
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** add secret command
+
+### Features
+
+* **cli:** add secret command ([9884c35](https://github.com/dargstack/dargstack/commit/9884c35b76777a6ae01600c4f0a58329504a449c))
+* **secret:** add key types and sizes ([ed2e74b](https://github.com/dargstack/dargstack/commit/ed2e74b4ff50eaaa979ca55544c1ff222898bcbc))
+
 ## [4.0.0-beta.7](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.6...v4.0.0-beta.7) (2026-03-13)
 
 ### ⚠ BREAKING CHANGES
