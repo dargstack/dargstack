@@ -110,6 +110,8 @@ golangci-lint run ./...
 
 ## Implementation Guides
 
+- Always run `go build ./cmd/dargstack` after changing the source code to keep the binary up to date.
+
 ### Adding a CLI command
 
 1. Create `internal/cli/<command>.go` with a `*cobra.Command` (Short, Long, RunE)
