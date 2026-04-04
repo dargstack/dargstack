@@ -135,15 +135,16 @@ func validateServices(doc map[string]interface{}, stackDir string, production bo
 			continue
 		}
 
-		// In production, warn when a service lacks deploy.update_config.order: start-first,
-		// since rolling updates without it will cause downtime.
-		// Skip services without an image — they cannot be deployed and are
-		// likely dev-only stubs left over after # dargstack:dev-only stripping.
-		if production && hasImage(svcDef) && !hasStartFirst(svcDef) {
+		// In production, warn when a service has no explicit deploy.update_config.order.
+		// Docker defaults to "stop-first" which causes downtime for replicated services.
+		// Any explicit value ("start-first" or "stop-first") silences the warning —
+		// the important thing is that the author has consciously chosen a policy.
+		// Skip services without an image — they are dev-only stubs that won't be deployed.
+		if production && hasImage(svcDef) && !hasUpdateOrder(svcDef) {
 			issues = append(issues, Issue{
 				Severity:    "warning",
 				Resource:    fmt.Sprintf("service:%s", name),
-				Description: "deploy.update_config.order is not \"start-first\" — rolling updates may cause downtime",
+				Description: `deploy.update_config.order is not set — use "start-first" for zero-downtime or "stop-first" for stateful services`,
 			})
 		}
 
@@ -207,7 +208,10 @@ func extractDargstackBuildLabel(svc map[string]interface{}) string {
 	return ""
 }
 
-func hasStartFirst(svc map[string]interface{}) bool {
+// hasUpdateOrder reports whether the service has an explicit deploy.update_config.order value.
+// Any non-empty value ("start-first" or "stop-first") is accepted — the check only
+// ensures the author has consciously chosen a rolling-update policy.
+func hasUpdateOrder(svc map[string]interface{}) bool {
 	deploy, ok := svc["deploy"].(map[string]interface{})
 	if !ok {
 		return false
@@ -217,7 +221,7 @@ func hasStartFirst(svc map[string]interface{}) bool {
 		return false
 	}
 	order, ok := updateConfig["order"].(string)
-	return ok && order == "start-first"
+	return ok && order != ""
 }
 
 func hasImage(svc map[string]interface{}) bool {

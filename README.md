@@ -159,7 +159,7 @@ services:
       replicas: 3
       update_config:
         parallelism: 1
-        order: start-first # Zero-downtime updates
+        order: start-first # Zero-downtime (use stop-first for stateful services)
 ```
 
 ### Configuration: dargstack.yaml
