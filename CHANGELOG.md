@@ -1,3 +1,119 @@
+## [4.0.0-beta.9](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.8...v4.0.0-beta.9) (2026-04-04)
+
+### Features
+
+* **deploy:** check image access before deployment ([ae71d18](https://github.com/dargstack/dargstack/commit/ae71d18d545ee2ad7ffff2607f39e3d7f7d313e2))
+* **deploy:** drop pre-pulling in favor of validation ([2d2fe6e](https://github.com/dargstack/dargstack/commit/2d2fe6e46f89175b6ce90650197745ab6b21b363))
+* **validate:** beautify output ([b86d226](https://github.com/dargstack/dargstack/commit/b86d226cb00bbe8d1e2877c107e1928f519240e1))
+
+### Bug Fixes
+
+* **validate:** apply development only comments ([f814942](https://github.com/dargstack/dargstack/commit/f814942b98a11c8899927a106f0db9a08fc61fc1))
+* **validate:** only check for any update configuration to be set ([508bba9](https://github.com/dargstack/dargstack/commit/508bba96e9d8eb1a3e646a6838fd6f9bf398478b))
+
+## [4.0.0-beta.8](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.7...v4.0.0-beta.8) (2026-03-16)
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** add secret command
+
+### Features
+
+* **cli:** add secret command ([9884c35](https://github.com/dargstack/dargstack/commit/9884c35b76777a6ae01600c4f0a58329504a449c))
+* **secret:** add key types and sizes ([ed2e74b](https://github.com/dargstack/dargstack/commit/ed2e74b4ff50eaaa979ca55544c1ff222898bcbc))
+
+## [4.0.0-beta.7](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.6...v4.0.0-beta.7) (2026-03-13)
+
+### ⚠ BREAKING CHANGES
+
+* **certify:** restructure configuration category
+
+### Features
+
+* **certify:** restructure configuration category ([1e6a88d](https://github.com/dargstack/dargstack/commit/1e6a88dcf4928415c7f8645bbe89f88c89e7d8a2))
+* **cli:** add parameter shorthands ([d6a7295](https://github.com/dargstack/dargstack/commit/d6a72955a50dae5f02f01c6dd07e5a3168165966))
+* **deploy:** allow to deploy all services in any case ([4925771](https://github.com/dargstack/dargstack/commit/4925771cd9128d09d4990505e309e2b03617495e))
+* **deploy:** point out more set options ([5c0d4d4](https://github.com/dargstack/dargstack/commit/5c0d4d42196bebd487e0a5f35447afcb71d8d3b1))
+* **initialize:** lock development domain ([fb1f4c6](https://github.com/dargstack/dargstack/commit/fb1f4c67b430ef374524a411ab954dd80fede258))
+* rename secrets and volume examples ([5e53fc2](https://github.com/dargstack/dargstack/commit/5e53fc2f5b1429162af0faba330fc43bc3a2e16a))
+
+### Bug Fixes
+
+* **certify:** use development domain ([d0e5cdd](https://github.com/dargstack/dargstack/commit/d0e5cddc024ddfab939de44b53be287d865da439))
+* **deploy:** override any selection on all ([5f29728](https://github.com/dargstack/dargstack/commit/5f29728b47ffd472ada1fdcf354f39fdb43ed26e))
+
+## [4.0.0-beta.6](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.5...v4.0.0-beta.6) (2026-03-13)
+
+### Features
+
+* **deploy:** add parameter shorthand for production ([afb76e2](https://github.com/dargstack/dargstack/commit/afb76e20676d434cb942848cacade221c998fe94))
+* **deploy:** add redeploy ([ae60167](https://github.com/dargstack/dargstack/commit/ae6016702906f6534d1387c99df3b111b46a92e7))
+* **deploy:** list removed volumes ([68016ab](https://github.com/dargstack/dargstack/commit/68016abe45de4c4d3f7f7b539ca862c782958bc2))
+* **exec:** explain sudo prompt ([ae92290](https://github.com/dargstack/dargstack/commit/ae922901021e03aa61b8bca7b666e2ea143c80b2))
+* **initialize:** include example service ([9f8cefe](https://github.com/dargstack/dargstack/commit/9f8cefe8a33b2344109cf0414992700ad207c2f1))
+
+### Bug Fixes
+
+* **deploy:** correct environment variable loading ([07468d5](https://github.com/dargstack/dargstack/commit/07468d57f6ec965d4dfc2ec45b6bdeb07ce4b98d))
+* **exec:** preserve environment variables for sudo ([83c8d8b](https://github.com/dargstack/dargstack/commit/83c8d8bf5cddd27fa1acd1d86f1ae0d910d0944a))
+* **exec:** refresh sudo ([ed657e0](https://github.com/dargstack/dargstack/commit/ed657e0e1ae1685081dba2693407b8339391f40b))
+* **stack:** wait for full removal ([7319ad0](https://github.com/dargstack/dargstack/commit/7319ad02e99e5ce8ccc760d96aa72add930066cf))
+
+## [4.0.0-beta.5](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.4...v4.0.0-beta.5) (2026-03-11)
+
+### Bug Fixes
+
+* **version:** fall back to build info ([86c05a0](https://github.com/dargstack/dargstack/commit/86c05a06e3af1af0d63953899fb97730a9fb93cd))
+
+## [4.0.0-beta.4](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.3...v4.0.0-beta.4) (2026-03-11)
+
+### Bug Fixes
+
+* **go:** add v4 path suffix ([60c23a9](https://github.com/dargstack/dargstack/commit/60c23a9d61313ab881f29fe3b073921353e79ae1))
+
+## [4.0.0-beta.3](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.2...v4.0.0-beta.3) (2026-03-11)
+
+### Bug Fixes
+
+* **ci:** drop deprecated goreleaser properties ([7af5ee4](https://github.com/dargstack/dargstack/commit/7af5ee475646a5e8717d7f96d6545fac8d17bfa2))
+
+## [4.0.0-beta.2](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.1...v4.0.0-beta.2) (2026-03-11)
+
+### Bug Fixes
+
+* **release:** use semantic release over tag workflow ([41dfaa8](https://github.com/dargstack/dargstack/commit/41dfaa84f674a4e68fc74dc24238fdbad8661230))
+
+## [4.0.0-beta.1](https://github.com/dargstack/dargstack/compare/v3.0.0...v4.0.0-beta.1) (2026-03-11)
+
+### ⚠ BREAKING CHANGES
+
+* drop v3
+
+### Features
+
+* add audit log for deployment tracking ([31a6ed8](https://github.com/dargstack/dargstack/commit/31a6ed8f85bdf1c6d1250b4f13e598634f98426a))
+* add build, certify, inspect, update, and document commands ([62f58bb](https://github.com/dargstack/dargstack/commit/62f58bb050b53d60e2016b7d9b35e05c6b60bab2))
+* add CLI root command with shared flags and helpers ([edaf55b](https://github.com/dargstack/dargstack/commit/edaf55b8d4d35b6c008c48fc9493fdee73ae7b3e))
+* add compose file merging with spruce and path resolution ([f50f456](https://github.com/dargstack/dargstack/commit/f50f4564ca948f900ad32a9148c1ae040d3c5622))
+* add compose profile and service filtering ([c04a441](https://github.com/dargstack/dargstack/commit/c04a4417a81792d43d2c8fc3438359940248f875))
+* add config and stack directory detection ([200a7d3](https://github.com/dargstack/dargstack/commit/200a7d32987f33904fd9a98ba074cae3a61e0d99))
+* add deploy command with secret setup, profiles, and dry-run support ([9f910bf](https://github.com/dargstack/dargstack/commit/9f910bf791dae83bfc3e3f3ec4dfe9830c5c2862))
+* add docgen tool and auto-generated CLI reference docs ([69cc61e](https://github.com/dargstack/dargstack/commit/69cc61e46c7c09f1216492667e099a056c926f6b))
+* add docker client, executor, swarm, and stack management ([1ae2894](https://github.com/dargstack/dargstack/commit/1ae28942abc7b993e4d45f9cbaf10cfd91c3760f))
+* add init command to scaffold a new dargstack project ([758e3f5](https://github.com/dargstack/dargstack/commit/758e3f5898cdc39f8f5d3bcc0c9e70afaa6df13f))
+* add interactive terminal prompt helpers ([e070672](https://github.com/dargstack/dargstack/commit/e0706724e3533dfbe95ce631ac27eaf332123ac3))
+* add remove command with targeted service and volume removal ([2998296](https://github.com/dargstack/dargstack/commit/29982963316cd92fef391672de6cc4955b11b395))
+* add resource validation and documentation generation ([0c4f8c2](https://github.com/dargstack/dargstack/commit/0c4f8c2707057af81d295d5834ef2d9820599a9c))
+* add secret templating, generation, and topological resolution ([a486dd8](https://github.com/dargstack/dargstack/commit/a486dd880fcb0b8fff5eb1d2965a3d9ca74bd08c))
+* add self-update mechanism via GitHub releases ([c2f5617](https://github.com/dargstack/dargstack/commit/c2f5617fe87d236bc8c0049ca7af3b4002403f1c))
+* add TLS certificate retrieval and management ([1d57a1d](https://github.com/dargstack/dargstack/commit/1d57a1d56a8a4213757ee25b36df7067854b6c2d))
+* add validate command for compose config verification ([962ad43](https://github.com/dargstack/dargstack/commit/962ad43a110ed9b75f947fe560b7bd13829e0a7d))
+* drop v3 ([373106a](https://github.com/dargstack/dargstack/commit/373106aa21f70fe9e06123a9be1f6170f1717cea))
+
+### Bug Fixes
+
+* implement feedback ([d120968](https://github.com/dargstack/dargstack/commit/d12096880ffdb917524f756bbc51957ac5dacbfa))
+
 ## [3.0.0](https://github.com/dargstack/dargstack/compare/2.5.1...3.0.0) (2025-12-07)
 
 ### ⚠ BREAKING CHANGES
