@@ -162,17 +162,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		return wrapWithBugHint(err)
 	}
 
-	hasErrors := false
-	for _, iss := range issues {
-		if iss.Severity == "error" {
-			printError(iss.String())
-			hasErrors = true
-		} else {
-			printWarning(iss.String())
-		}
-	}
-
-	if hasErrors {
+	if printIssues(issues) {
 		missing := resource.MissingSecrets(issues)
 		if len(missing) > 0 {
 			printInfo("Tip: Define missing secrets in x-dargstack.secrets with typed secret metadata to auto-generate them during deploy.")

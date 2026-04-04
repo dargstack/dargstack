@@ -54,20 +54,9 @@ func runValidate(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	hasErrors := false
-	for _, iss := range issues {
-		if iss.Severity == "error" {
-			printError(iss.String())
-			hasErrors = true
-		} else {
-			printWarning(iss.String())
-		}
-	}
-
-	if hasErrors {
+	if printIssues(issues) {
 		return fmt.Errorf("validation failed")
 	}
 
-	printWarning(fmt.Sprintf("%d warning(s) found", len(issues)))
 	return nil
 }
