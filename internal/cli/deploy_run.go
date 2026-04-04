@@ -252,7 +252,23 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 12. For production, strip dargstack.development.* before deploying.
+	// 12. For production, check that all referenced images are reachable in
+	// their registries before touching the live stack. This catches authentication
+	// failures and missing tags early, preventing partial updates that cause downtime.
+	if production {
+		images := compose.ExtractServiceImages(composeData)
+		if len(images) > 0 {
+			unreachable := docker.CheckImagesAccessible(executor, images)
+			if len(unreachable) > 0 {
+				for img := range unreachable {
+					printError(fmt.Sprintf("image not accessible: %s", img))
+				}
+				return fmt.Errorf("one or more images are not accessible — fix registry credentials or image references before deploying")
+			}
+		}
+	}
+
+	// 13. For production, strip dargstack.development.* before deploying.
 	if production {
 		composeData, err = compose.StripProductionDevelopmentLabels(composeData)
 		if err != nil {
