@@ -66,13 +66,12 @@ func buildProductionCompose() ([]byte, error) {
 		return nil, fmt.Errorf("no compose sources found")
 	}
 
-	merged, err := compose.MergeFiles(paths...)
+	// MergeFilesProduction strips # dargstack:dev-only markers from each source
+	// file's raw bytes before YAML parsing, since YAML roundtrips discard comments.
+	merged, err := compose.MergeFilesProduction(paths...)
 	if err != nil {
 		return nil, err
 	}
-
-	// Strip dev-only markers in production
-	merged = compose.StripDevOnlyMarkers(merged)
 
 	// Remap bind mounts from development paths to mirrored production paths
 	// when production files/directories exist.

@@ -137,7 +137,9 @@ func validateServices(doc map[string]interface{}, stackDir string, production bo
 
 		// In production, warn when a service lacks deploy.update_config.order: start-first,
 		// since rolling updates without it will cause downtime.
-		if production && !hasStartFirst(svcDef) {
+		// Skip services without an image — they cannot be deployed and are
+		// likely dev-only stubs left over after # dargstack:dev-only stripping.
+		if production && hasImage(svcDef) && !hasStartFirst(svcDef) {
 			issues = append(issues, Issue{
 				Severity:    "warning",
 				Resource:    fmt.Sprintf("service:%s", name),
@@ -216,6 +218,11 @@ func hasStartFirst(svc map[string]interface{}) bool {
 	}
 	order, ok := updateConfig["order"].(string)
 	return ok && order == "start-first"
+}
+
+func hasImage(svc map[string]interface{}) bool {
+	img, ok := svc["image"].(string)
+	return ok && img != ""
 }
 
 func validateCertificates(stackDir string) []Issue {

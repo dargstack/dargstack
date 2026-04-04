@@ -14,6 +14,19 @@ import (
 // MergeFiles merges multiple compose YAML files using spruce.
 // Later files override earlier ones. Spruce operators like (( prune )) are evaluated.
 func MergeFiles(paths ...string) ([]byte, error) {
+	return mergeFiles(nil, paths...)
+}
+
+// MergeFilesProduction merges compose YAML files like MergeFiles but strips
+// # dargstack:dev-only markers from each file's raw bytes before YAML parsing.
+// This must be called before the YAML roundtrip, since YAML parsers discard comments.
+func MergeFilesProduction(paths ...string) ([]byte, error) {
+	return mergeFiles(StripDevOnlyMarkers, paths...)
+}
+
+// mergeFiles is the shared implementation for MergeFiles and MergeFilesProduction.
+// preProcess, when non-nil, is applied to each file's raw bytes before YAML parsing.
+func mergeFiles(preProcess func([]byte) []byte, paths ...string) ([]byte, error) {
 	if len(paths) == 0 {
 		return nil, fmt.Errorf("no compose files provided")
 	}
@@ -24,6 +37,10 @@ func MergeFiles(paths ...string) ([]byte, error) {
 		data, err := os.ReadFile(p)
 		if err != nil {
 			return nil, fmt.Errorf("read %s: %w", p, err)
+		}
+
+		if preProcess != nil {
+			data = preProcess(data)
 		}
 
 		// Use yaml.v2 for spruce compatibility (spruce traverses map[interface{}]interface{})
