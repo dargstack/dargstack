@@ -199,12 +199,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 9. Pre-pull images and warn about start-first (production only)
-	if production {
-		prePullAndWarn(executor, composeData)
-	}
-
-	// 10. Volume cleanup prompt (development, not already running)
+	// 9. Volume cleanup prompt (development, not already running)
 	if !production && !noInteraction {
 		// Check behavior.prompt.volume.remove (defaults to true)
 		promptVolumes := true

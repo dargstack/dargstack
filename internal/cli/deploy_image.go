@@ -130,48 +130,6 @@ func extractDargstackBuildContext(svc map[string]interface{}) string {
 	return ""
 }
 
-// prePullAndWarn pre-pulls images for production services and warns if start-first is missing.
-func prePullAndWarn(executor *docker.Executor, composeData []byte) {
-	var doc map[string]interface{}
-	if err := yaml.Unmarshal(composeData, &doc); err != nil {
-		return
-	}
-
-	svcMap, ok := doc["services"].(map[string]interface{})
-	if !ok {
-		return
-	}
-
-	for name, def := range svcMap {
-		svc, ok := def.(map[string]interface{})
-		if !ok {
-			continue
-		}
-
-		if !hasStartFirst(svc) {
-			printWarning(fmt.Sprintf("Service %q lacks deploy.update_config.order: start-first — updates may cause downtime", name))
-		}
-
-		if img, ok := svc["image"].(string); ok {
-			printInfo(fmt.Sprintf("Pre-pulling %s", img))
-			_, _ = executor.Run("pull", img)
-		}
-	}
-}
-
-func hasStartFirst(svc map[string]interface{}) bool {
-	deploy, ok := svc["deploy"].(map[string]interface{})
-	if !ok {
-		return false
-	}
-	updateConfig, ok := deploy["update_config"].(map[string]interface{})
-	if !ok {
-		return false
-	}
-	order, ok := updateConfig["order"].(string)
-	return ok && order == "start-first"
-}
-
 // offerRuntimeCleanup prompts to remove stopped containers and then unused images.
 func offerRuntimeCleanup(executor *docker.Executor) {
 	ok, err := prompt.Confirm("Remove stopped containers and unused images now?", false)

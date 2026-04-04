@@ -135,6 +135,16 @@ func validateServices(doc map[string]interface{}, stackDir string, production bo
 			continue
 		}
 
+		// In production, warn when a service lacks deploy.update_config.order: start-first,
+		// since rolling updates without it will cause downtime.
+		if production && !hasStartFirst(svcDef) {
+			issues = append(issues, Issue{
+				Severity:    "warning",
+				Resource:    fmt.Sprintf("service:%s", name),
+				Description: "deploy.update_config.order is not \"start-first\" — rolling updates may cause downtime",
+			})
+		}
+
 		// dargstack.development.build labels are dev-only and stripped before
 		// production deployment, so skip this check in production mode.
 		if production {
@@ -193,6 +203,19 @@ func extractDargstackBuildLabel(svc map[string]interface{}) string {
 		}
 	}
 	return ""
+}
+
+func hasStartFirst(svc map[string]interface{}) bool {
+	deploy, ok := svc["deploy"].(map[string]interface{})
+	if !ok {
+		return false
+	}
+	updateConfig, ok := deploy["update_config"].(map[string]interface{})
+	if !ok {
+		return false
+	}
+	order, ok := updateConfig["order"].(string)
+	return ok && order == "start-first"
 }
 
 func validateCertificates(stackDir string) []Issue {

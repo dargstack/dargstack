@@ -124,6 +124,10 @@ func composeHasProfile(composeData []byte, profile string) bool {
 // filter to composeData and returns the filtered result. This must be called
 // before any operation that should only concern the active portion of the stack
 // (e.g. secret setup, validation).
+//
+// In production mode without an explicit --profiles or --services flag, all
+// services are included (matching the deploy step that skips the default-profile
+// filter in production).
 func applyProfileFilter(composeData []byte) ([]byte, error) {
 	if deployAll {
 		return composeData, nil
@@ -133,6 +137,9 @@ func applyProfileFilter(composeData []byte) ([]byte, error) {
 		return compose.FilterByProfile(composeData, profiles)
 	case len(services) > 0:
 		return compose.FilterServices(composeData, services)
+	case production:
+		// Production deploys all services by default; skip the default-profile filter.
+		return composeData, nil
 	default:
 		return compose.FilterByProfile(composeData, nil)
 	}

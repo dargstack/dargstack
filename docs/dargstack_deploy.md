@@ -15,7 +15,6 @@ By default, deploys to the development environment. This includes:
 use --production to deploy to production, which:
 - Requires all environment variables and secrets to be set
 - Blocks deployment if default insecure secrets are present
-- Pre-pulls images before deployment
 - Includes production-only services
 
 ```
