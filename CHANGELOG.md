@@ -1,3 +1,16 @@
+## [4.0.0-beta.9](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.8...v4.0.0-beta.9) (2026-04-04)
+
+### Features
+
+* **deploy:** check image access before deployment ([ae71d18](https://github.com/dargstack/dargstack/commit/ae71d18d545ee2ad7ffff2607f39e3d7f7d313e2))
+* **deploy:** drop pre-pulling in favor of validation ([2d2fe6e](https://github.com/dargstack/dargstack/commit/2d2fe6e46f89175b6ce90650197745ab6b21b363))
+* **validate:** beautify output ([b86d226](https://github.com/dargstack/dargstack/commit/b86d226cb00bbe8d1e2877c107e1928f519240e1))
+
+### Bug Fixes
+
+* **validate:** apply development only comments ([f814942](https://github.com/dargstack/dargstack/commit/f814942b98a11c8899927a106f0db9a08fc61fc1))
+* **validate:** only check for any update configuration to be set ([508bba9](https://github.com/dargstack/dargstack/commit/508bba96e9d8eb1a3e646a6838fd6f9bf398478b))
+
 ## [4.0.0-beta.8](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.7...v4.0.0-beta.8) (2026-03-16)
 
 ### ⚠ BREAKING CHANGES
