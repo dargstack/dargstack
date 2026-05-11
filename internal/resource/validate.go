@@ -13,9 +13,9 @@ import (
 
 // Issue represents a validation problem with a resource.
 type Issue struct {
-	Severity    string
-	Resource    string
 	Description string
+	Resource    string
+	Severity    string
 }
 
 func (i Issue) String() string {

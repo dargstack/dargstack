@@ -30,8 +30,8 @@ Without arguments, shows the latest deployment.`,
 
 func init() {
 	inspectCmd.Flags().BoolVarP(&inspectList, "list", "l", false, "list all past deployments")
-	inspectCmd.Flags().BoolVarP(&inspectDiff, "diff", "d", false, "show diff between current and last deployed")
-	inspectCmd.Flags().StringVarP(&inspectEnv, "env", "e", "development", "environment to inspect (development or production)")
+	inspectCmd.Flags().BoolVarP(&inspectDiff, "difference", "d", false, "show diff between current and last deployed")
+	inspectCmd.Flags().StringVarP(&inspectEnv, "environment", "e", "development", "environment to inspect (development or production)")
 }
 
 func runInspect(cmd *cobra.Command, args []string) error {
@@ -64,7 +64,7 @@ func runInspect(cmd *cobra.Command, args []string) error {
 		return showDiff(auditDir, dep, data)
 	}
 
-	fmt.Printf("# Latest %s deployment (%s)\n\n", dep.Env, dep.Timestamp.Format("2006-01-02 15:04:05 UTC"))
+	fmt.Printf("# Latest %s deployment (%s)\n\n", dep.Environment, dep.Timestamp.Format("2006-01-02 15:04:05 UTC"))
 	fmt.Print(string(data))
 	return nil
 }
@@ -86,7 +86,7 @@ func listDeployments(auditDir string) error {
 	for _, d := range deployments {
 		fmt.Printf("%-24s  %-14s  %s\n",
 			d.Timestamp.Format("2006-01-02 15:04:05 UTC"),
-			d.Env,
+			d.Environment,
 			d.Path,
 		)
 	}
@@ -106,7 +106,7 @@ func showDeploymentByPrefix(auditDir, prefix string) error {
 			if loadErr != nil {
 				return loadErr
 			}
-			fmt.Printf("# %s deployment (%s)\n\n", d.Env, d.Timestamp.Format("2006-01-02 15:04:05 UTC"))
+			fmt.Printf("# %s deployment (%s)\n\n", d.Environment, d.Timestamp.Format("2006-01-02 15:04:05 UTC"))
 			fmt.Print(string(data))
 			return nil
 		}
@@ -123,7 +123,7 @@ func showDiff(auditDir string, latest *audit.Deployment, latestData []byte) erro
 	var currentData []byte
 	var err error
 
-	if latest.Env == "production" {
+	if latest.Environment == "production" {
 		currentData, err = buildProductionCompose()
 	} else {
 		currentData, err = buildDevelopmentCompose()
@@ -148,7 +148,7 @@ func showDiff(auditDir string, latest *audit.Deployment, latestData []byte) erro
 		return fmt.Errorf("write current compose for diff: %w", err)
 	}
 
-	fmt.Printf("# Diff: last deployed vs current (%s)\n\n", latest.Env)
+	fmt.Printf("# Diff: last deployed vs current (%s)\n\n", latest.Environment)
 
 	// Delegate to system diff for a proper unified diff output.
 	// diff exits 0 (no diff), 1 (differ), or 2 (error). Both 0 and 1 produce

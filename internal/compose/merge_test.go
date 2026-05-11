@@ -498,8 +498,8 @@ func TestResolveFilePathsBindMount(t *testing.T) {
 }
 func TestSplitVolumeSpec(t *testing.T) {
 	tests := []struct {
-		input string
 		host  string
+		input string
 		rest  string
 	}{
 		{"myvolume:/data", "myvolume", "/data"},

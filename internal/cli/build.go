@@ -19,13 +19,13 @@ var buildCmd = &cobra.Command{
 	Short: "Build development Dockerfiles",
 	Long: `Build service Docker images.
 
-Builds Dockerfiles for services with a dargstack.development.build label in their compose definition.
+Builds Dockerfiles for services with a ` + "`dargstack.development.build`" + ` label in their compose definition.
 Each service must have a Dockerfile in the build context directory.
 
 Without arguments, lists available services and prompts you to select which to build.
 With service names as arguments, builds only those services.
 
-Images are tagged as <stack>/<service>:development.`,
+Images are tagged as ` + "`<stack>/<service>:development`" + `.`,
 	RunE: runBuild,
 }
 
@@ -106,7 +106,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// selectBuildableServices discovers services with a dargstack.development.build label,
+// selectBuildableServices discovers services with a `dargstack.development.build` label,
 // classifies them as available (context exists) or unavailable, and prompts the user.
 func selectBuildableServices(svcMap map[string]interface{}) ([]string, error) {
 	var available, unavailable []string
@@ -118,7 +118,7 @@ func selectBuildableServices(svcMap map[string]interface{}) ([]string, error) {
 		}
 		contextPath := extractDargstackBuildContext(svc)
 		if contextPath == "" {
-			continue // no dargstack.development.build label
+			continue // no `dargstack.development.build` label
 		}
 		if !filepath.IsAbs(contextPath) {
 			// Context is relative to the service directory.
@@ -136,7 +136,7 @@ func selectBuildableServices(svcMap map[string]interface{}) ([]string, error) {
 	sort.Strings(unavailable)
 
 	if len(available) == 0 && len(unavailable) == 0 {
-		printInfo("No services have a dargstack.development.build label")
+		printInfo("No services have a `dargstack.development.build` label")
 		return nil, nil
 	}
 

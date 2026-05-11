@@ -7,10 +7,10 @@ Remove the deployed stack
 Remove the deployed stack.
 
 Removes all services, networks, and secrets from the Docker Swarm stack.
-Use --profiles or --services to remove only a subset of services. Without
-those flags the full stack is removed. Use --production to build the compose
+Use `--profiles` or `--services` to remove only a subset of services. Without
+those flags the full stack is removed. Use `--production` to build the compose
 from production sources when resolving which services belong to a profile.
-Optionally (with --volumes) removes all stack volumes, clearing persistent data.
+Optionally (with `--volumes`) removes all stack volumes, clearing persistent data.
 
 ```
 dargstack remove [flags]
@@ -29,10 +29,10 @@ dargstack remove [flags]
 ### Options inherited from parent commands
 
 ```
-  -c, --config string    path to stack directory (default: auto-detect)
-  -f, --format string    output format for compatible commands: table|json (default "table")
-  -n, --no-interaction   disable interactive prompts
-  -v, --verbose          verbose output
+  -c, --configuration string   path to stack directory (default: auto-detect)
+  -f, --format string          output format for compatible commands: table|json (default "table")
+  -n, --no-interaction         disable interactive prompts
+  -v, --verbose                verbose output
 ```
 
 ### SEE ALSO

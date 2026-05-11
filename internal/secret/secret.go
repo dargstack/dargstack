@@ -14,14 +14,14 @@ import (
 // Template defines secret metadata from x-dargstack.secrets in compose.
 type Template struct {
 	Hint              string `yaml:"hint"` // human-readable hint for expected value (e.g. for third_party)
-	Type              string `yaml:"type"`
+	InsecureDefault   string `yaml:"insecure_default"`
+	KeySize           int    `yaml:"key_size"`           // private_key rsa: default 2048; ecdsa: 256 (P-256), 384 (P-384), 521 (P-521)
+	KeyType           string `yaml:"key_type"`           // private_key: "ed25519" (default), "rsa", "ecdsa"
 	Length            int    `yaml:"length"`             // >0 enables secret generation
 	SpecialCharacters *bool  `yaml:"special_characters"` // nil = use default (true), false = opt-out
 	Template          string `yaml:"template"`           // template with {{secret_name}} references
 	ThirdParty        bool   `yaml:"third_party"`
-	InsecureDefault   string `yaml:"insecure_default"`
-	KeyType           string `yaml:"key_type"` // private_key: "ed25519" (default), "rsa", "ecdsa"
-	KeySize           int    `yaml:"key_size"` // private_key rsa: default 2048; ecdsa: 256 (P-256), 384 (P-384), 521 (P-521)
+	Type              string `yaml:"type"`
 }
 
 const (

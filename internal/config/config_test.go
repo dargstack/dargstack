@@ -186,13 +186,13 @@ func TestPathHelpers(t *testing.T) {
 		fn   func(string) string
 		want string
 	}{
-		{"DevDir", DevDir, "/project/stack/src/development"},
-		{"ProdDir", ProdDir, "/project/stack/src/production"},
 		{"ArtifactsDir", ArtifactsDir, "/project/stack/artifacts"},
 		{"CertificatesDir", CertificatesDir, "/project/stack/artifacts/certificates"},
-		{"SecretsDir", SecretsDir, "/project/stack/artifacts/secrets"},
+		{"DevDir", DevDir, "/project/stack/src/development"},
 		{"DevEnvFile", DevEnvFile, "/project/stack/src/development/.env"},
+		{"ProdDir", ProdDir, "/project/stack/src/production"},
 		{"ProdEnvFile", ProdEnvFile, "/project/stack/src/production/.env"},
+		{"SecretsDir", SecretsDir, "/project/stack/artifacts/secrets"},
 	}
 
 	for _, tt := range tests {

@@ -313,8 +313,8 @@ func TestRewriteSecretFilePaths(t *testing.T) {
 
 func TestNormalizeTemplateAliases(t *testing.T) {
 	tests := []struct {
-		input    string
 		expected string
+		input    string
 	}{
 		{"random", TypeRandomString},
 		{"RANDOM_STRING", TypeRandomString},

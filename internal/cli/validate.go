@@ -15,7 +15,7 @@ var validateCmd = &cobra.Command{
 
 Checks:
 - All secrets files referenced in compose definitions exist
-- All Dockerfile contexts for services with dargstack.development.build labels are present
+- All Dockerfile contexts for services with ` + "`dargstack.development.build`" + ` labels are present
 - TLS certificates directory exists for development`,
 	RunE: runValidate,
 }

@@ -13,13 +13,13 @@ import (
 )
 
 type Config struct {
-	Compatibility string            `yaml:"compatibility"`
-	Name          string            `yaml:"name"`
-	Sudo          string            `yaml:"sudo"`
 	Behavior      BehaviorConfig    `yaml:"behavior"`
-	Production    ProductionConfig  `yaml:"production"`
+	Compatibility string            `yaml:"compatibility"`
 	Development   DevelopmentConfig `yaml:"development"`
+	Name          string            `yaml:"name"`
+	Production    ProductionConfig  `yaml:"production"`
 	Source        SourceConfig      `yaml:"source"`
+	Sudo          string            `yaml:"sudo"`
 }
 
 type BehaviorConfig struct {
@@ -41,13 +41,13 @@ type VolumeBehavior struct {
 
 type ProductionConfig struct {
 	Branch string `yaml:"branch"`
-	Tag    string `yaml:"tag"`
 	Domain string `yaml:"domain"`
+	Tag    string `yaml:"tag"`
 }
 
 type DevelopmentConfig struct {
-	Domain      string            `yaml:"domain"`
 	Certificate CertificateConfig `yaml:"certificate"`
+	Domain      string            `yaml:"domain"`
 }
 
 type CertificateConfig struct {

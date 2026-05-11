@@ -175,8 +175,8 @@ func checkLatest() (*CheckResult, error) {
 }
 
 type cacheEntry struct {
-	CheckedAt  time.Time `json:"checked_at"`
 	Available  bool      `json:"available"`
+	CheckedAt  time.Time `json:"checked_at"`
 	NewVersion string    `json:"new_version"`
 }
 

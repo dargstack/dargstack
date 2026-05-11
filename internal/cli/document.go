@@ -16,7 +16,7 @@ var docsCmd = &cobra.Command{
 	Short:   "Generate the stack documentation",
 	Long: `Generate stack documentation.
 
-Creates a README.md in the artifacts directory listing all services
+Creates a ` + "`README.md`" + ` in the artifacts directory listing all services
 found in compose files, along with YAML comments describing each.
 Includes a link to the stack domain and source code repository.`,
 	RunE: runDocs,

@@ -38,9 +38,9 @@ func SaveDeployment(auditDir, env string, composeData []byte) (string, error) {
 
 // Deployment represents a single deployment snapshot.
 type Deployment struct {
-	Timestamp time.Time
-	Env       string
-	Path      string
+	Environment string
+	Path        string
+	Timestamp   time.Time
 }
 
 // ListDeployments returns all deployment snapshots in the audit-log directory, sorted newest first.
@@ -68,9 +68,9 @@ func ListDeployments(auditDir string) ([]Deployment, error) {
 			continue
 		}
 		deployments = append(deployments, Deployment{
-			Timestamp: ts,
-			Env:       parts[1],
-			Path:      filepath.Join(auditDir, e.Name()),
+			Environment: parts[1],
+			Path:        filepath.Join(auditDir, e.Name()),
+			Timestamp:   ts,
 		})
 	}
 
@@ -94,9 +94,9 @@ func LatestDeployment(auditDir, env string) (*Deployment, error) {
 	}
 
 	return &Deployment{
-		Timestamp: info.ModTime(),
-		Env:       env,
-		Path:      latestPath,
+		Environment: env,
+		Path:        latestPath,
+		Timestamp:   info.ModTime(),
 	}, nil
 }
 

@@ -30,8 +30,8 @@ var secretCmd = &cobra.Command{
 	Long: `Inspect stack secrets.
 
 Without flags, lists all secret names and their file paths.
-Use --show to include values (with clipboard support if available).
-Use --public-key to derive and display the public key for private_key type secrets.`,
+Use ` + "`--show`" + ` to include values (with clipboard support if available).
+Use ` + "`--public-key`" + ` to derive and display the public key for private_key type secrets.`,
 	RunE: runSecret,
 }
 
@@ -183,8 +183,8 @@ func runSecretPublicKeys(composeData []byte, names []string, paths map[string]st
 	}
 
 	type pubEntry struct {
-		Name      string `json:"name"`
 		KeyType   string `json:"key_type"`
+		Name      string `json:"name"`
 		PublicKey string `json:"public_key"`
 	}
 

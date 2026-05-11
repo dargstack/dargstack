@@ -7,12 +7,12 @@ Deploy the stack
 Deploy services to a Docker Swarm stack.
 
 By default, deploys to the development environment. This includes:
-- Auto-building images for services with dargstack.development.build labels (unless behavior.build.skip is set)
+- Auto-building images for services with `dargstack.development.build` labels (unless `behavior.build.skip` is set)
 - Generating TLS certificates for local development
 - Setting up secrets interactively or with defaults
 - Validating all stack resources
 
-use --production to deploy to production, which:
+Use `--production` to deploy to production, which:
 - Requires all environment variables and secrets to be set
 - Blocks deployment if default insecure secrets are present
 - Includes production-only services
@@ -27,10 +27,10 @@ dargstack deploy [flags]
   -a, --all                deploy the full stack ignoring --profiles and --services filters
   -d, --dry-run            trace all steps without deploying
   -h, --help               help for deploy
-      --list-profiles      list discovered deploy profiles and exit
   -p, --production         deploy in production mode
       --profiles strings   activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
-  -r, --re                 remove the running stack before deploying
+      --profiles-list      list discovered deploy profiles and exit
+  -r, --remove             remove the running stack before deploying
       --secrets-only       run secret setup only without deploying
   -s, --services strings   deploy only these services (comma-separated)
   -t, --tag string         deploy a specific git tag (production only)
@@ -39,10 +39,10 @@ dargstack deploy [flags]
 ### Options inherited from parent commands
 
 ```
-  -c, --config string    path to stack directory (default: auto-detect)
-  -f, --format string    output format for compatible commands: table|json (default "table")
-  -n, --no-interaction   disable interactive prompts
-  -v, --verbose          verbose output
+  -c, --configuration string   path to stack directory (default: auto-detect)
+  -f, --format string          output format for compatible commands: table|json (default "table")
+  -n, --no-interaction         disable interactive prompts
+  -v, --verbose                verbose output
 ```
 
 ### SEE ALSO

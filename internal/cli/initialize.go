@@ -21,22 +21,22 @@ var initCmd = &cobra.Command{
 	Long: `Initialize a new dargstack project.
 
 Creates a project directory structure with:
-- dargstack.yaml config file with all options (commented with defaults)
-- src/development and src/production service directories
-- artifacts directory for generated outputs (docs, certificates, audit logs)
+- ` + "`dargstack.yaml`" + ` config file with all options (commented with defaults)
+- ` + "`src/development`" + ` and ` + "`src/production`" + ` service directories
+- ` + "`artifacts`" + ` directory for generated outputs (docs, certificates, audit logs)
 
 Optionally clone an existing dargstack project from a Git URL instead.
 
 Without arguments, init prompts you for a project name.
 With an argument, uses it as the project name or Git URL directly.
 
-Use --config-only to print a full config template to stdout without creating a project.`,
+Use ` + "`--configuration-only`" + ` to print a full config template to stdout without creating a project.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runInit,
 }
 
 func init() {
-	initCmd.Flags().BoolVarP(&configOnly, "config-only", "o", false, "print config template to stdout without creating a project")
+	initCmd.Flags().BoolVarP(&configOnly, "configuration-only", "o", false, "print config template to stdout without creating a project")
 }
 
 func runInit(cmd *cobra.Command, args []string) error {

@@ -15,16 +15,15 @@ import (
 )
 
 var (
-	production bool
-	profiles   []string
-	services   []string
-	deployTag  string
-	dryRun     bool
-
-	listProfiles bool
-	secretsOnly  bool
-	redeployFlag bool
 	deployAll    bool
+	deployTag    string
+	dryRun       bool
+	listProfiles bool
+	production   bool
+	profiles     []string
+	redeploy     bool
+	secretsOnly  bool
+	services     []string
 )
 
 var deployCmd = &cobra.Command{
@@ -33,12 +32,12 @@ var deployCmd = &cobra.Command{
 	Long: `Deploy services to a Docker Swarm stack.
 
 By default, deploys to the development environment. This includes:
-- Auto-building images for services with dargstack.development.build labels (unless behavior.build.skip is set)
+- Auto-building images for services with ` + "`dargstack.development.build`" + ` labels (unless ` + "`behavior.build.skip`" + ` is set)
 - Generating TLS certificates for local development
 - Setting up secrets interactively or with defaults
 - Validating all stack resources
 
-use --production to deploy to production, which:
+Use ` + "`--production`" + ` to deploy to production, which:
 - Requires all environment variables and secrets to be set
 - Blocks deployment if default insecure secrets are present
 - Includes production-only services`,
@@ -46,15 +45,15 @@ use --production to deploy to production, which:
 }
 
 func init() {
-	deployCmd.Flags().BoolVarP(&production, "production", "p", false, "deploy in production mode")
+	deployCmd.Flags().BoolVarP(&deployAll, "all", "a", false, "deploy the full stack ignoring --profiles and --services filters")
+	deployCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "trace all steps without deploying")
 	deployCmd.Flags().StringSliceVar(&profiles, "profiles", nil, "activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined")
+	deployCmd.Flags().BoolVar(&listProfiles, "profiles-list", false, "list discovered deploy profiles and exit")
+	deployCmd.Flags().BoolVarP(&production, "production", "p", false, "deploy in production mode")
+	deployCmd.Flags().BoolVarP(&redeploy, "remove", "r", false, "remove the running stack before deploying")
+	deployCmd.Flags().BoolVar(&secretsOnly, "secrets-only", false, "run secret setup only without deploying")
 	deployCmd.Flags().StringSliceVarP(&services, "services", "s", nil, "deploy only these services (comma-separated)")
 	deployCmd.Flags().StringVarP(&deployTag, "tag", "t", "", "deploy a specific git tag (production only)")
-	deployCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "trace all steps without deploying")
-	deployCmd.Flags().BoolVarP(&redeployFlag, "re", "r", false, "remove the running stack before deploying")
-	deployCmd.Flags().BoolVarP(&deployAll, "all", "a", false, "deploy the full stack ignoring --profiles and --services filters")
-	deployCmd.Flags().BoolVar(&listProfiles, "list-profiles", false, "list discovered deploy profiles and exit")
-	deployCmd.Flags().BoolVar(&secretsOnly, "secrets-only", false, "run secret setup only without deploying")
 }
 
 func runDeploy(cmd *cobra.Command, _ []string) error {
@@ -76,8 +75,8 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 		return runSecretsOnly()
 	}
 
-	// --re: remove the running stack before deploying.
-	if redeployFlag && !dryRun {
+	// --remove: remove the running stack before deploying.
+	if redeploy && !dryRun {
 		if err := runRm(cmd, nil); err != nil {
 			return fmt.Errorf("pre-deploy remove: %w", err)
 		}

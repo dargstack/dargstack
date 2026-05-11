@@ -16,8 +16,8 @@ var certificatesCmd = &cobra.Command{
 	Short:   "Generate TLS certificates",
 	Long: `Generate TLS certificates for development.
 
-Creates self-signed certificates for localhost and all service subdomains.
-Certificates are stored in artifacts/certificates and must be trusted in your browser or client.`,
+Creates self-signed certificates for ` + "`localhost`" + ` and all service subdomains.
+Certificates are stored in ` + "`artifacts/certificates`" + ` and must be trusted in your browser or client.`,
 	RunE: runGenerateCerts,
 }
 

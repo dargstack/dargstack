@@ -15,11 +15,11 @@ import (
 // DocsConfig controls the output of GenerateDocumentation.
 type DocsConfig struct {
 	OutputDir      string
-	StackDir       string
-	StackName      string
-	StackDomain    string
 	SourceCodeName string
 	SourceCodeURL  string
+	StackDir       string
+	StackDomain    string
+	StackName      string
 }
 
 // GenerateDocumentation generates a markdown documentation file for the stack.
