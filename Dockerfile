@@ -4,30 +4,44 @@
 FROM golang:1.26.1-alpine AS base
 WORKDIR /src
 COPY go.mod go.sum ./
-RUN go mod download
-
-# ── lint ────────────────────────────────────────────────────────────────────
-FROM golangci/golangci-lint:2.11.3-alpine AS lint
-WORKDIR /src
-COPY --from=base /go /go
-COPY . .
-RUN golangci-lint run ./...
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 # ── copy: shared source snapshot ────────────────────────────────────────────
 FROM base AS copy
 COPY . .
 
+# ── lint ────────────────────────────────────────────────────────────────────
+FROM golangci/golangci-lint:v2.12.2-alpine AS lint
+WORKDIR /src
+COPY --from=copy /src .
+RUN golangci-lint run ./...
+
 # ── test ────────────────────────────────────────────────────────────────────
 FROM copy AS test
-RUN go test -race -coverprofile=/tmp/coverage.txt -covermode=atomic ./...
+RUN --mount=type=cache,target=/var/cache/apk \
+    --mount=type=cache,target=/go/pkg/mod \
+    apk update && apk add gcc musl-dev \
+    && go test -race -coverprofile=/tmp/coverage.txt -covermode=atomic ./...
 
 # ── build ───────────────────────────────────────────────────────────────────
 FROM copy AS build
-RUN CGO_ENABLED=0 go build -trimpath -o /out/dargstack ./cmd/dargstack
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 go build \
+      -trimpath \
+      -ldflags="-s -w" \
+      -o /out/dargstack \
+      ./cmd/dargstack \
+    && /out/dargstack --version
 
-# ── final: smoke-test the binary ────────────────────────────────────────────
-FROM alpine:3.23.3 AS final
-COPY --from=lint /dev/null /dev/null
-COPY --from=test /dev/null /dev/null
+# ── final: minimal scratch image ────────────────────────────────────────────
+FROM scratch AS final
+COPY --from=base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=lint /src/go.mod /dev/null
+COPY --from=test /src/go.mod /dev/null
 COPY --from=build /out/dargstack /usr/local/bin/dargstack
-RUN dargstack --help
+USER 65532:65532
+ENTRYPOINT ["dargstack"]
+LABEL org.opencontainers.image.source="https://github.com/dargstack/dargstack"
+LABEL org.opencontainers.image.description="Docker Swarm stack helper CLI"
