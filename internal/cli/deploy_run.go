@@ -86,11 +86,11 @@ func runDeployDryRun(env string) error {
 				printInfo(msg)
 			case tmpl.Type == secret.TypeTemplate || tmpl.Template != "":
 				printInfo(fmt.Sprintf("  %s: template", name))
-			case tmpl.Type == secret.TypeWord:
+			case tmpl.Type == secret.TypeWordlistWord:
 				printInfo(fmt.Sprintf("  %s: generated word", name))
 			case tmpl.Type == secret.TypePrivateKey:
 				printInfo(fmt.Sprintf("  %s: generated private key", name))
-			case tmpl.Type == secret.TypeInsecureValue:
+			case tmpl.Type == secret.TypeInsecureDefault:
 				printInfo(fmt.Sprintf("  %s: insecure default value", name))
 			case secret.IsAutoGeneratable(&tmpl):
 				length := tmpl.Length

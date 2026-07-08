@@ -25,12 +25,12 @@ type Template struct {
 }
 
 const (
-	TypeRandomString  = "random_string"
-	TypeWord          = "word"
-	TypePrivateKey    = "private_key"
-	TypeThirdParty    = "third_party"
-	TypeTemplate      = "template"
-	TypeInsecureValue = "insecure_default"
+	TypeRandomString    = "random_string"
+	TypeWordlistWord    = "wordlist_word"
+	TypePrivateKey      = "private_key"
+	TypeThirdParty      = "third_party"
+	TypeTemplate        = "template"
+	TypeInsecureDefault = "insecure_default"
 )
 
 const thirdPartyPlaceholder = "UNSET THIRD PARTY SECRET"
@@ -252,24 +252,24 @@ func IsAutoGeneratable(t *Template) bool {
 	normalizeTemplate(t)
 	return t.Type == TypeTemplate ||
 		t.Type == TypeRandomString ||
-		t.Type == TypeWord ||
+		t.Type == TypeWordlistWord ||
 		t.Type == TypePrivateKey ||
-		t.Type == TypeInsecureValue
+		t.Type == TypeInsecureDefault
 }
 
 func normalizeTemplate(t *Template) {
 	t.Type = strings.ToLower(strings.TrimSpace(t.Type))
 	switch t.Type {
-	case "random":
+	case "random_string":
 		t.Type = TypeRandomString
-	case "wordlist", "wordlist_word":
-		t.Type = TypeWord
-	case "privatekey":
+	case "wordlist_word":
+		t.Type = TypeWordlistWord
+	case "private_key":
 		t.Type = TypePrivateKey
-	case "thirdparty":
+	case "third_party":
 		t.Type = TypeThirdParty
-	case "default":
-		t.Type = TypeInsecureValue
+	case "insecure_default":
+		t.Type = TypeInsecureDefault
 	}
 
 	if t.Type == "" {
@@ -279,7 +279,7 @@ func normalizeTemplate(t *Template) {
 		case t.Template != "":
 			t.Type = TypeTemplate
 		case t.InsecureDefault != "":
-			t.Type = TypeInsecureValue
+			t.Type = TypeInsecureDefault
 		case t.Length > 0 || t.SpecialCharacters != nil:
 			t.Type = TypeRandomString
 		}
