@@ -38,10 +38,10 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 # ── final: minimal scratch image ────────────────────────────────────────────
 FROM scratch AS final
 COPY --from=base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=lint /src/go.mod /dev/null
-COPY --from=test /src/go.mod /dev/null
+COPY --from=lint /src/go.mod /.lint-stage.go.mod
+COPY --from=test /src/go.mod /.test-stage.go.mod
 COPY --from=build /out/dargstack /usr/local/bin/dargstack
 USER 65532:65532
-ENTRYPOINT ["dargstack"]
+ENTRYPOINT ["/usr/local/bin/dargstack"]
 LABEL org.opencontainers.image.source="https://github.com/dargstack/dargstack"
 LABEL org.opencontainers.image.description="Docker Swarm stack helper CLI"
