@@ -72,7 +72,9 @@ dargstack is organized into focused packages, each with a clear responsibility:
 
 ## Development Setup
 
-**Prerequisite** – Git installed, see [git-scm.com: Install](https://git-scm.com/).
+**Prerequisites** – Git and golangci-lint installed, see…
+- [git-scm.com: Install](https://git-scm.com/)
+- [golangci-lint.run: Local Installation](https://golangci-lint.run/docs/welcome/install/local/)
 
 ```bash
 # Clone the repository
