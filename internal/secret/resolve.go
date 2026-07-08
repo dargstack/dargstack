@@ -135,7 +135,7 @@ func Resolve(templates map[string]Template, values map[string]string) (map[strin
 			if err != nil {
 				return nil, fmt.Errorf("generate %s: %w", name, err)
 			}
-		case TypeWord:
+		case TypeWordlistWord:
 			value, err = generateWord()
 			if err != nil {
 				return nil, fmt.Errorf("generate word %s: %w", name, err)
@@ -145,7 +145,7 @@ func Resolve(templates map[string]Template, values map[string]string) (map[strin
 			if err != nil {
 				return nil, fmt.Errorf("generate private key %s: %w", name, err)
 			}
-		case TypeInsecureValue:
+		case TypeInsecureDefault:
 			value = tmpl.InsecureDefault
 		case TypeThirdParty:
 			continue

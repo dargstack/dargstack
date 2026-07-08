@@ -316,16 +316,13 @@ func TestNormalizeTemplateAliases(t *testing.T) {
 		expected string
 		input    string
 	}{
-		{"random", TypeRandomString},
-		{"RANDOM_STRING", TypeRandomString},
-		{" Random_String ", TypeRandomString},
-		{"thirdparty", TypeThirdParty},
-		{"insecure_default", TypeInsecureValue},
-		{"default", TypeInsecureValue},
-		{"private_key", TypePrivateKey},
-		{"privatekey", TypePrivateKey},
-		{"wordlist", TypeWord},
-		{"wordlist_word", TypeWord},
+		{TypeRandomString, "random_string"},
+		{TypeRandomString, "RANDOM_STRING"},
+		{TypeRandomString, " Random_String "},
+		{TypeThirdParty, "third_party"},
+		{TypeInsecureDefault, "insecure_default"},
+		{TypePrivateKey, "private_key"},
+		{TypeWordlistWord, "wordlist_word"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
@@ -367,7 +364,7 @@ func TestTemplateDependency(t *testing.T) {
 
 func TestResolveInsecureDefault(t *testing.T) {
 	templates := map[string]Template{
-		"db_password": {Type: TypeInsecureValue, InsecureDefault: "changeme"},
+		"db_password": {Type: TypeInsecureDefault, InsecureDefault: "changeme"},
 	}
 	resolved, err := Resolve(templates, nil)
 	if err != nil {
@@ -393,7 +390,7 @@ func TestResolveThirdPartySkipped(t *testing.T) {
 
 func TestResolveWord(t *testing.T) {
 	templates := map[string]Template{
-		"passphrase": {Type: TypeWord},
+		"passphrase": {Type: TypeWordlistWord},
 	}
 	resolved, err := Resolve(templates, nil)
 	if err != nil {
