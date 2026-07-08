@@ -27,5 +27,7 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/dargstack ./cmd/dargstack
 
 # ── final: smoke-test the binary ────────────────────────────────────────────
 FROM alpine:3.23.3 AS final
+COPY --from=lint /dev/null /dev/null
+COPY --from=test /dev/null /dev/null
 COPY --from=build /out/dargstack /usr/local/bin/dargstack
 RUN dargstack --help
