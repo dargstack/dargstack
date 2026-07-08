@@ -452,8 +452,8 @@ sudo: "auto"
 # Behavior configuration
 behavior:
   build:
-    # Skip rebuilding images if they already exist
-    skip: false
+    # Build mode: "always" rebuilds every time, "missing" only builds if image doesn't exist
+    mode: "always"
   prompt:
     volume:
       # Prompt to remove volumes before deploying (development only)

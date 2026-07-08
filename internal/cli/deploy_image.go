@@ -39,8 +39,8 @@ func latestGitTag(branch string) (string, error) {
 }
 
 // autoBuildServices builds images for services that have a dargstack.development.build label.
-// Unless behavior.build.skip is true, images are always built (ensuring up-to-date images).
-// When skip is true, images are only built if they don't already exist locally.
+// When behavior.build.mode is "missing", images are only built if they don't already exist locally.
+// When behavior.build.mode is "always" (default), images are always rebuilt.
 func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
@@ -80,8 +80,8 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 
 		tag := fmt.Sprintf("%s/%s:development", cfg.Name, name)
 
-		// Skip building if behavior.build.skip is enabled and image already exists.
-		if cfg.Behavior.Build != nil && cfg.Behavior.Build.Skip && imageExists(executor, tag) {
+		// Skip building if behavior.build.mode is "missing" and image already exists.
+		if cfg.Behavior.Build != nil && cfg.Behavior.Build.Mode == "missing" && imageExists(executor, tag) {
 			continue
 		}
 

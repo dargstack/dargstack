@@ -7,7 +7,7 @@ Deploy the stack
 Deploy services to a Docker Swarm stack.
 
 By default, deploys to the development environment. This includes:
-- Auto-building images for services with `dargstack.development.build` labels (unless `behavior.build.skip` is set)
+- Auto-building images for services with `dargstack.development.build` labels (controlled by `behavior.build.mode`)
 - Generating TLS certificates for local development
 - Setting up secrets interactively or with defaults
 - Validating all stack resources

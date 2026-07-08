@@ -189,6 +189,62 @@ func TestCollectServiceFilesNonexistent(t *testing.T) {
 	}
 }
 
+func TestBuildBehaviorMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		yaml     string
+		wantMode string
+	}{
+		{
+			name:     "mode always",
+			yaml:     "behavior:\n  build:\n    mode: always\n",
+			wantMode: "always",
+		},
+		{
+			name:     "mode missing",
+			yaml:     "behavior:\n  build:\n    mode: missing\n",
+			wantMode: "missing",
+		},
+		{
+			name:     "no build config",
+			yaml:     "",
+			wantMode: "",
+		},
+		{
+			name:     "empty build config",
+			yaml:     "behavior:\n  build:\n",
+			wantMode: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(tt.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+
+			cfg, err := Load(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tt.wantMode == "" {
+				if cfg.Behavior.Build != nil && cfg.Behavior.Build.Mode != "" {
+					t.Errorf("expected empty mode, got %q", cfg.Behavior.Build.Mode)
+				}
+				return
+			}
+			if cfg.Behavior.Build == nil {
+				t.Fatal("expected Build to be set")
+			}
+			if cfg.Behavior.Build.Mode != tt.wantMode {
+				t.Errorf("expected mode=%q, got %q", tt.wantMode, cfg.Behavior.Build.Mode)
+			}
+		})
+	}
+}
+
 func TestPathHelpers(t *testing.T) {
 	stackDir := "/project/stack"
 

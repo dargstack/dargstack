@@ -28,7 +28,7 @@ type BehaviorConfig struct {
 }
 
 type BuildBehavior struct {
-	Skip bool `yaml:"skip"`
+	Mode string `yaml:"mode"`
 }
 
 type PromptBehavior struct {
