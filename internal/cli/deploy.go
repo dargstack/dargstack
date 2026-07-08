@@ -21,7 +21,7 @@ var (
 	listProfiles bool
 	production   bool
 	profiles     []string
-	redeploy     bool
+	remove       bool
 	secretsOnly  bool
 	services     []string
 )
@@ -32,7 +32,7 @@ var deployCmd = &cobra.Command{
 	Long: `Deploy services to a Docker Swarm stack.
 
 By default, deploys to the development environment. This includes:
-- Auto-building images for services with ` + "`dargstack.development.build`" + ` labels (unless ` + "`behavior.build.skip`" + ` is set)
+- Auto-building images for services with ` + "`dargstack.development.build`" + ` labels (controlled by ` + "`behavior.build.mode`" + `)
 - Generating TLS certificates for local development
 - Setting up secrets interactively or with defaults
 - Validating all stack resources
@@ -50,7 +50,7 @@ func init() {
 	deployCmd.Flags().StringSliceVar(&profiles, "profiles", nil, "activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined")
 	deployCmd.Flags().BoolVar(&listProfiles, "profiles-list", false, "list discovered deploy profiles and exit")
 	deployCmd.Flags().BoolVarP(&production, "production", "p", false, "deploy in production mode")
-	deployCmd.Flags().BoolVarP(&redeploy, "remove", "r", false, "remove the running stack before deploying")
+	deployCmd.Flags().BoolVarP(&remove, "remove", "r", false, "remove the running stack before deploying")
 	deployCmd.Flags().BoolVar(&secretsOnly, "secrets-only", false, "run secret setup only without deploying")
 	deployCmd.Flags().StringSliceVarP(&services, "services", "s", nil, "deploy only these services (comma-separated)")
 	deployCmd.Flags().StringVarP(&deployTag, "tag", "t", "", "deploy a specific git tag (production only)")
@@ -68,16 +68,15 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 	}
 
 	if listProfiles {
-		return runDeployListMode()
+		return runProfileList()
 	}
 
 	if secretsOnly {
 		return runSecretsOnly()
 	}
 
-	// --remove: remove the running stack before deploying.
-	if redeploy && !dryRun {
-		if err := runRm(cmd, nil); err != nil {
+	if remove && !dryRun {
+		if err := runRemove(cmd, nil); err != nil {
 			return fmt.Errorf("pre-deploy remove: %w", err)
 		}
 	}
@@ -146,7 +145,7 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 	return runDeployDryRun(env)
 }
 
-func runDeployListMode() error {
+func runProfileList() error {
 	var composeData []byte
 	var err error
 	if production {

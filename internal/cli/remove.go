@@ -28,7 +28,7 @@ Use ` + "`--profiles`" + ` or ` + "`--services`" + ` to remove only a subset of 
 those flags the full stack is removed. Use ` + "`--production`" + ` to build the compose
 from production sources when resolving which services belong to a profile.
 Optionally (with ` + "`--volumes`" + `) removes all stack volumes, clearing persistent data.`,
-	RunE: runRm,
+	RunE: runRemove,
 }
 
 func init() {
@@ -38,7 +38,7 @@ func init() {
 	rmCmd.Flags().StringSliceVarP(&services, "services", "s", nil, "remove only the specified services")
 }
 
-func runRm(cmd *cobra.Command, args []string) error {
+func runRemove(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
 	executor, err := docker.NewExecutor(cfg.Sudo)
@@ -65,7 +65,7 @@ func runRm(cmd *cobra.Command, args []string) error {
 
 	// Targeted removal: only a profile or specific services.
 	if len(profiles) > 0 || len(services) > 0 {
-		return runRmTargeted(executor)
+		return runRemoveTargeted(executor)
 	}
 
 	if err := docker.StackRemove(executor, cfg.Name); err != nil {
@@ -127,8 +127,8 @@ func runRm(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// runRmTargeted removes only the services selected by --profiles / --services.
-func runRmTargeted(executor *docker.Executor) error {
+// runRemoveTargeted removes only the services selected by --profiles / --services.
+func runRemoveTargeted(executor *docker.Executor) error {
 	// Build compose to determine which services belong to the active profile.
 	var composeData []byte
 	var err error
