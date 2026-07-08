@@ -78,8 +78,19 @@ func TestDetectStackDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if found != dir {
-		t.Errorf("expected %s, got %s", dir, found)
+	// On macOS, /var is a symlink to /private/var. os.Getwd() (used internally
+	// by DetectStackDir) returns the resolved path, while t.TempDir() may
+	// return the canonical symlink path. Resolve both sides for comparison.
+	resolvedDir, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolvedFound, err := filepath.EvalSymlinks(found)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolvedFound != resolvedDir {
+		t.Errorf("expected %s, got %s", resolvedDir, resolvedFound)
 	}
 }
 

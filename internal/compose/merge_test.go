@@ -502,14 +502,14 @@ func TestSplitVolumeSpec(t *testing.T) {
 		input string
 		rest  string
 	}{
-		{"myvolume:/data", "myvolume", "/data"},
-		{"/absolute:/container", "/absolute", "/container"},
-		{"./relative:/container", "./relative", "/container"},
-		{"named:ro", "named", "ro"},
+		{"myvolume", "myvolume:/data", "/data"},
+		{"/absolute", "/absolute:/container", "/container"},
+		{"./relative", "./relative:/container", "/container"},
+		{"named", "named:ro", "ro"},
 		{"nocolon", "nocolon", ""},
 		// Windows drive letters: treat C:\path as part of host, not as a split point
-		{`C:\path:/container`, `C:\path`, "/container"},
-		{"C:/path:/container", "C:/path", "/container"},
+		{`C:\path`, `C:\path:/container`, "/container"},
+		{"C:/path", "C:/path:/container", "/container"},
 		{`C:\path`, `C:\path`, ""},
 	}
 	for _, tt := range tests {
