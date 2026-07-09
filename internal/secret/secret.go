@@ -276,6 +276,8 @@ func normalizeTemplate(t *Template) {
 
 	if t.Type == "" {
 		switch {
+		case t.KeyType != "" || t.KeySize > 0:
+			t.Type = TypePrivateKey
 		case t.ThirdParty:
 			t.Type = TypeThirdParty
 		case t.Template != "":
