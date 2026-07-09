@@ -21,11 +21,26 @@ func resolveDeployTag() (string, error) {
 	if cfg.Production.Tag != "latest" {
 		return cfg.Production.Tag, nil
 	}
+	if !offline {
+		if err := gitFetchTags(); err != nil {
+			printWarning(fmt.Sprintf("Failed to fetch remote tags: %v", err))
+		}
+	}
 	tag, err := latestGitTag(cfg.Production.Branch)
 	if err != nil {
 		return "", fmt.Errorf("resolve deploy tag from branch %q: %w — use --tag to set explicitly", cfg.Production.Branch, err)
 	}
 	return tag, nil
+}
+
+func gitFetchTags() error {
+	cmd := exec.Command("git", "fetch", "--tags", "origin")
+	cmd.Dir = stackDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%s: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
 }
 
 func latestGitTag(branch string) (string, error) {

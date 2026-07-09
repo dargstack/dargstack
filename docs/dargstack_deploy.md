@@ -27,6 +27,7 @@ dargstack deploy [flags]
   -a, --all                deploy the full stack ignoring --profiles and --services filters
   -d, --dry-run            trace all steps without deploying
   -h, --help               help for deploy
+      --offline            skip fetching remote git tags
   -p, --production         deploy in production mode
       --profiles strings   activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
       --profiles-list      list discovered deploy profiles and exit

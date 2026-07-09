@@ -19,6 +19,7 @@ var (
 	deployTag    string
 	dryRun       bool
 	listProfiles bool
+	offline      bool
 	production   bool
 	profiles     []string
 	remove       bool
@@ -53,6 +54,7 @@ func init() {
 	deployCmd.Flags().BoolVarP(&remove, "remove", "r", false, "remove the running stack before deploying")
 	deployCmd.Flags().BoolVar(&secretsOnly, "secrets-only", false, "run secret setup only without deploying")
 	deployCmd.Flags().StringSliceVarP(&services, "services", "s", nil, "deploy only these services (comma-separated)")
+	deployCmd.Flags().BoolVar(&offline, "offline", false, "skip fetching remote git tags")
 	deployCmd.Flags().StringVarP(&deployTag, "tag", "t", "", "deploy a specific git tag (production only)")
 }
 
