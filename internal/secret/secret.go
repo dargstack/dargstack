@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/dargstack/dargstack/v4/internal/compose"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -44,7 +46,7 @@ var templateTokenRegex = regexp.MustCompile(`\{\{([^}]+)\}\}`)
 func ExtractTemplates(composeData []byte) (map[string]Template, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
-		return nil, fmt.Errorf("parse compose: %w", err)
+		return nil, fmt.Errorf("%s: %w", compose.ErrParseCompose, err)
 	}
 
 	result := make(map[string]Template)

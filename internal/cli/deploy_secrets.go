@@ -36,7 +36,7 @@ func secretSetupFlow(composeData []byte, prod bool) error {
 				sort.Strings(placeholderThirdParty)
 				return hintErr(
 					fmt.Errorf("production deployment blocked: third-party secrets still hold placeholder values: %s", strings.Join(placeholderThirdParty, ", ")),
-					"Replace those secret files with real values before deploying to production.",
+					MsgReplaceSecretFiles,
 				)
 			}
 		}
@@ -95,7 +95,7 @@ func secretSetupFlow(composeData []byte, prod bool) error {
 					values[name] = secret.ThirdPartyPlaceholder
 				}
 				printWarning(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(noFile, ", ")))
-				printInfo("Replace those secret files with real values before deploying to production.")
+				printInfo(MsgReplaceSecretFiles)
 				_ = secret.WriteSecrets(secretPaths, values)
 			}
 		}
@@ -104,7 +104,7 @@ func secretSetupFlow(composeData []byte, prod bool) error {
 
 	if noInteraction {
 		printWarning(fmt.Sprintf("Unset secrets: %s — run interactively to set them", strings.Join(missing, ", ")))
-		printInfo("Tip: Add x-dargstack.secrets entries with typed secret metadata to auto-generate missing secrets.")
+		printInfo(TipAddSecretMetadata)
 		return nil
 	}
 
@@ -127,8 +127,8 @@ func secretSetupFlow(composeData []byte, prod bool) error {
 			choice, choiceErr := prompt.Select(
 				fmt.Sprintf("Secret %s", name),
 				[]string{
-					"Auto-generate this and remaining auto-generatable secrets (skip all)",
-					"Auto-generate this secret (skip)",
+					ChoiceAutoGenAll,
+					ChoiceAutoGenThis,
 					"Enter value",
 				},
 			)
@@ -136,11 +136,11 @@ func secretSetupFlow(composeData []byte, prod bool) error {
 				return choiceErr
 			}
 
-			if choice == "Auto-generate this and remaining auto-generatable secrets (skip all)" {
+			if choice == ChoiceAutoGenAll {
 				skipAllAuto = true
 				continue
 			}
-			if choice == "Auto-generate this secret (skip)" {
+			if choice == ChoiceAutoGenThis {
 				continue
 			}
 		}
@@ -195,7 +195,7 @@ func secretSetupFlow(composeData []byte, prod bool) error {
 	sort.Strings(stillMissing)
 	if len(stillMissing) > 0 {
 		printWarning(fmt.Sprintf("Unset secrets remain: %s", strings.Join(stillMissing, ", ")))
-		printInfo("Tip: Add x-dargstack.secrets entries with typed secret metadata to auto-generate missing secrets.")
+		printInfo(TipAddSecretMetadata)
 	}
 
 	return secret.WriteSecrets(secretPaths, values)

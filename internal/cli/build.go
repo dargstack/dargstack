@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
+	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/docker"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
@@ -43,7 +44,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
-		return fmt.Errorf("parse compose: %w", err)
+		return fmt.Errorf("%s: %w", compose.ErrParseCompose, err)
 	}
 
 	svcMap, ok := doc["services"].(map[string]interface{})
@@ -100,7 +101,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		if err := docker.StackBuild(executor, contextPath, "development", tag); err != nil {
 			return fmt.Errorf("build %s: %w", svcName, err)
 		}
-		printSuccess(fmt.Sprintf("Built %s", tag))
+		printSuccess(fmt.Sprintf(MsgBuiltImage, tag))
 	}
 
 	return nil

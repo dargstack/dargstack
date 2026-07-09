@@ -120,7 +120,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 			if err := docker.VolumeRemove(executor, volumes); err != nil {
 				return fmt.Errorf("remove volumes: %w", err)
 			}
-			printSuccess(fmt.Sprintf("Removed %d volume(s)", len(volumes)))
+			printSuccess(fmt.Sprintf(MsgRemovedVolumes, len(volumes)))
 		}
 	}
 
@@ -143,7 +143,7 @@ func runRemoveTargeted(executor *docker.Executor) error {
 
 	composeData, err = applyProfileFilter(composeData)
 	if err != nil {
-		return fmt.Errorf("filter compose by profile: %w", err)
+		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
 	}
 
 	// Extract service names from the filtered compose.

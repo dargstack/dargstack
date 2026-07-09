@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,7 +23,7 @@ func buildDevelopmentCompose() ([]byte, error) {
 
 	if len(paths) == 0 {
 		return nil, hintErr(
-			fmt.Errorf("no compose sources found"),
+			errors.New(ErrNoComposeSources),
 			fmt.Sprintf("Create service directories in %s, each containing a compose.yaml.", config.DevDir(stackDir)),
 		)
 	}
@@ -39,7 +40,7 @@ func buildDevelopmentCompose() ([]byte, error) {
 
 	data, err = secret.RewriteSecretFilePaths(data, config.SecretsDir(stackDir))
 	if err != nil {
-		return nil, fmt.Errorf("rewrite secret file paths: %w", err)
+		return nil, fmt.Errorf("%s: %w", ErrRewriteSecretFilePaths, err)
 	}
 
 	return data, nil
@@ -63,7 +64,7 @@ func buildProductionCompose() ([]byte, error) {
 	paths = append(paths, prodSvcFiles...)
 
 	if len(paths) == 0 {
-		return nil, fmt.Errorf("no compose sources found")
+		return nil, errors.New(ErrNoComposeSources)
 	}
 
 	// MergeFilesProduction strips # dargstack:dev-only markers from each source
@@ -100,7 +101,7 @@ func buildProductionCompose() ([]byte, error) {
 
 	merged, err = secret.RewriteSecretFilePaths(merged, config.SecretsDir(stackDir))
 	if err != nil {
-		return nil, fmt.Errorf("rewrite secret file paths: %w", err)
+		return nil, fmt.Errorf("%s: %w", ErrRewriteSecretFilePaths, err)
 	}
 
 	return merged, nil

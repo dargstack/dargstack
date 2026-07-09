@@ -1,6 +1,7 @@
 package compose
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -15,12 +16,12 @@ import (
 func FilterByProfile(composeData []byte, activeProfiles []string) ([]byte, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
-		return nil, fmt.Errorf("parse compose for filtering: %w", err)
+		return nil, fmt.Errorf("%s: %w", ErrParseComposeForFiltering, err)
 	}
 
 	serviceMap, ok := doc["services"].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("compose file has no services section")
+		return nil, errors.New(ErrNoServicesSection)
 	}
 
 	// Detect whether any service declares profile "default".
@@ -88,7 +89,7 @@ func FilterByProfile(composeData []byte, activeProfiles []string) ([]byte, error
 
 	result, err := yaml.Marshal(doc)
 	if err != nil {
-		return nil, fmt.Errorf("serialize filtered compose: %w", err)
+		return nil, fmt.Errorf("%s: %w", ErrSerializeFilteredCompose, err)
 	}
 	return result, nil
 }
@@ -98,12 +99,12 @@ func FilterByProfile(composeData []byte, activeProfiles []string) ([]byte, error
 func FilterServices(composeData []byte, services []string) ([]byte, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
-		return nil, fmt.Errorf("parse compose for filtering: %w", err)
+		return nil, fmt.Errorf("%s: %w", ErrParseComposeForFiltering, err)
 	}
 
 	serviceMap, ok := doc["services"].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("compose file has no services section")
+		return nil, errors.New(ErrNoServicesSection)
 	}
 
 	serviceSet := make(map[string]bool, len(services))
@@ -123,7 +124,7 @@ func FilterServices(composeData []byte, services []string) ([]byte, error) {
 
 	result, err := yaml.Marshal(doc)
 	if err != nil {
-		return nil, fmt.Errorf("serialize filtered compose: %w", err)
+		return nil, fmt.Errorf("%s: %w", ErrSerializeFilteredCompose, err)
 	}
 	return result, nil
 }

@@ -89,7 +89,7 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 		if err := docker.StackBuild(executor, contextPath, "development", tag); err != nil {
 			return fmt.Errorf("build %s: %w", name, err)
 		}
-		printSuccess(fmt.Sprintf("Built %s", tag))
+		printSuccess(fmt.Sprintf(MsgBuiltImage, tag))
 	}
 
 	return nil

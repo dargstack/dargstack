@@ -47,7 +47,7 @@ Use ` + "`--production`" + ` to deploy to production, which:
 func init() {
 	deployCmd.Flags().BoolVarP(&deployAll, "all", "a", false, "deploy the full stack ignoring --profiles and --services filters")
 	deployCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "trace all steps without deploying")
-	deployCmd.Flags().StringSliceVar(&profiles, "profiles", nil, "activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined")
+	deployCmd.Flags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
 	deployCmd.Flags().BoolVar(&listProfiles, "profiles-list", false, "list discovered deploy profiles and exit")
 	deployCmd.Flags().BoolVarP(&production, "production", "p", false, "deploy in production mode")
 	deployCmd.Flags().BoolVarP(&remove, "remove", "r", false, "remove the running stack before deploying")
@@ -97,8 +97,8 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 	if executor.NeedsSudo() {
 		if err := executor.Ping(); err != nil {
 			return hintErr(
-				fmt.Errorf("docker is not running: %w", err),
-				"Start Docker Desktop or the docker daemon, then try again.",
+				fmt.Errorf("%s: %w", ErrDockerNotRunning, err),
+				HintStartDocker,
 			)
 		}
 
@@ -124,8 +124,8 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 
 	if err := dockerClient.Ping(ctx); err != nil {
 		return hintErr(
-			fmt.Errorf("docker is not running: %w", err),
-			"Start Docker Desktop or the docker daemon, then try again.",
+			fmt.Errorf("%s: %w", ErrDockerNotRunning, err),
+			HintStartDocker,
 		)
 	}
 
@@ -187,7 +187,7 @@ func runSecretsOnly() error {
 
 	composeData, err = applyProfileFilter(composeData)
 	if err != nil {
-		return fmt.Errorf("filter compose by profile: %w", err)
+		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
 	}
 
 	if err := secretSetupFlow(composeData, production); err != nil {

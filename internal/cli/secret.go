@@ -127,8 +127,8 @@ func runSecretShow(names []string, paths map[string]string) error {
 			for {
 				title := fmt.Sprintf("Secret %d/%d: %s", i+1, len(names), name)
 				choice, choiceErr := prompt.Select(title, []string{
-					"Copy key to clipboard",
-					"Copy value to clipboard",
+					ChoiceCopyKey,
+					ChoiceCopyValue,
 					"Next",
 					"Done",
 				})
@@ -136,15 +136,15 @@ func runSecretShow(names []string, paths map[string]string) error {
 					return choiceErr
 				}
 				switch choice {
-				case "Copy key to clipboard":
+				case ChoiceCopyKey:
 					if copyErr := copyToClipboard(name); copyErr != nil {
-						printWarning(fmt.Sprintf("Clipboard copy failed: %v", copyErr))
+						printWarning(fmt.Sprintf(MsgClipboardCopyFailed, copyErr))
 					} else {
 						printSuccess(fmt.Sprintf("Copied key %q", name))
 					}
-				case "Copy value to clipboard":
+				case ChoiceCopyValue:
 					if copyErr := copyToClipboard(values[name]); copyErr != nil {
-						printWarning(fmt.Sprintf("Clipboard copy failed: %v", copyErr))
+						printWarning(fmt.Sprintf(MsgClipboardCopyFailed, copyErr))
 					} else {
 						printSuccess(fmt.Sprintf("Copied value for %q", name))
 					}

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -93,7 +94,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		// Warn if any secrets still hold the UNSET THIRD PARTY SECRET placeholder.
 		if placeholders := secret.PlaceholderSecrets(secretComposeData, stackDir); len(placeholders) > 0 {
 			printWarning(fmt.Sprintf("Third party secrets hold placeholder value: %s", strings.Join(placeholders, ", ")))
-			printInfo("Replace those secrets with real values before using this stack with third party APIs.")
+			printInfo(TipDefineSecretMetadata)
 		}
 	}
 
@@ -112,7 +113,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 				printInfo("Tip: Define missing secrets in x-dargstack.secrets with typed secret metadata to auto-generate them during deploy.")
 			}
 			return hintErr(
-				fmt.Errorf("validation failed"),
+				errors.New(ErrValidationFailed),
 				"Fix the errors listed above, then run `dargstack deploy` again.",
 			)
 		}
@@ -170,7 +171,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 								for _, v := range volumes {
 									printInfo(fmt.Sprintf("  Removed volume: %s", v))
 								}
-								printSuccess(fmt.Sprintf("Removed %d volume(s)", len(volumes)))
+								printSuccess(fmt.Sprintf(MsgRemovedVolumes, len(volumes)))
 							}
 						}
 					}

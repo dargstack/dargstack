@@ -8,6 +8,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/secret"
 )
 
@@ -26,7 +27,7 @@ func (i Issue) String() string {
 func Validate(composeData []byte, stackDir string, production bool) ([]Issue, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
-		return nil, fmt.Errorf("parse compose: %w", err)
+		return nil, fmt.Errorf("%s: %w", compose.ErrParseCompose, err)
 	}
 
 	var issues []Issue
