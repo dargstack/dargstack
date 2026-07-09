@@ -414,6 +414,46 @@ func TestResolvePrivateKey(t *testing.T) {
 	}
 }
 
+func TestGenerateWord(t *testing.T) {
+	if len(bip39Words) != 2048 {
+		t.Fatalf("expected 2048 words, got %d", len(bip39Words))
+	}
+
+	word, err := generateWord()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if word == "" {
+		t.Fatal("expected non-empty word")
+	}
+
+	// Verify word is from the wordlist
+	found := false
+	for _, w := range bip39Words {
+		if w == word {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("word %q not found in wordlist", word)
+	}
+}
+
+func TestGenerateWordUniqueness(t *testing.T) {
+	seen := make(map[string]bool)
+	for i := 0; i < 100; i++ {
+		word, err := generateWord()
+		if err != nil {
+			t.Fatal(err)
+		}
+		seen[word] = true
+	}
+	if len(seen) == 1 {
+		t.Error("expected different words across multiple calls")
+	}
+}
+
 func TestSpecialCharsEnabled(t *testing.T) {
 	trueVal := true
 	falseVal := false

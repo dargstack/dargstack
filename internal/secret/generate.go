@@ -31,18 +31,11 @@ func generateRandom(length int, includeSpecial bool) (string, error) {
 }
 
 func generateWord() (string, error) {
-	adjectives := []string{"amber", "brisk", "calm", "daring", "ember", "frost", "gentle", "hazel", "ivory", "jolly"}
-	nouns := []string{"falcon", "harbor", "island", "jungle", "keystone", "lantern", "meadow", "nebula", "orchid", "pioneer"}
-
-	a, err := rand.Int(rand.Reader, big.NewInt(int64(len(adjectives))))
+	i, err := rand.Int(rand.Reader, big.NewInt(int64(len(bip39Words))))
 	if err != nil {
 		return "", err
 	}
-	n, err := rand.Int(rand.Reader, big.NewInt(int64(len(nouns))))
-	if err != nil {
-		return "", err
-	}
-	return adjectives[a.Int64()] + "-" + nouns[n.Int64()], nil
+	return bip39Words[i.Int64()], nil
 }
 
 func generatePrivateKey(keyType string, keySize int) (string, error) {
