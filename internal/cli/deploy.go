@@ -81,68 +81,67 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
-	// 1. Docker prerequisite check — create executor first so sudo is pre-warmed
+	if dryRun {
+		return runDeployWithExecutor(ctx, cmd, nil, nil, env, true)
+	}
+
+	// Docker prerequisite check — create executor first so sudo is pre-warmed
 	// before any Docker socket access.
-	if !dryRun {
-		executor, err := docker.NewExecutor(cfg.Sudo)
-		if err != nil {
-			return wrapWithBugHint(err)
-		}
+	executor, err := docker.NewExecutor(cfg.Sudo)
+	if err != nil {
+		return wrapWithBugHint(err)
+	}
 
-		// When sudo is needed the Docker SDK cannot reach the socket directly,
-		// so perform all pre-flight checks through the CLI executor.
-		if executor.NeedsSudo() {
-			if err := executor.Ping(); err != nil {
-				return hintErr(
-					fmt.Errorf("docker is not running: %w", err),
-					"Start Docker Desktop or the docker daemon, then try again.",
-				)
-			}
-
-			swarmActive, err := executor.SwarmActive()
-			if err != nil {
-				return wrapWithBugHint(err)
-			}
-			if !swarmActive {
-				if err := ensureSwarm(executor); err != nil {
-					return err
-				}
-			}
-
-			return runDeployWithExecutor(ctx, cmd, nil, executor, env)
-		}
-
-		// No sudo required — use the SDK for richer checks.
-		dockerClient, err := docker.NewClient()
-		if err != nil {
-			return wrapWithBugHint(err)
-		}
-		defer func() { _ = dockerClient.Close() }()
-
-		if err := dockerClient.Ping(ctx); err != nil {
+	// When sudo is needed the Docker SDK cannot reach the socket directly,
+	// so perform all pre-flight checks through the CLI executor.
+	if executor.NeedsSudo() {
+		if err := executor.Ping(); err != nil {
 			return hintErr(
 				fmt.Errorf("docker is not running: %w", err),
 				"Start Docker Desktop or the docker daemon, then try again.",
 			)
 		}
 
-		// 2. Swarm check
-		swarmState, err := dockerClient.SwarmStatus(ctx)
+		swarmActive, err := executor.SwarmActive()
 		if err != nil {
 			return wrapWithBugHint(err)
 		}
-
-		if swarmState != swarm.LocalNodeStateActive {
+		if !swarmActive {
 			if err := ensureSwarm(executor); err != nil {
 				return err
 			}
 		}
 
-		return runDeployWithExecutor(ctx, cmd, dockerClient, executor, env)
+		return runDeployWithExecutor(ctx, cmd, nil, executor, env, false)
 	}
 
-	// Dry-run path — no Docker interaction needed
-	return runDeployDryRun(env)
+	// No sudo required — use the SDK for richer checks.
+	dockerClient, err := docker.NewClient()
+	if err != nil {
+		return wrapWithBugHint(err)
+	}
+	defer func() { _ = dockerClient.Close() }()
+
+	if err := dockerClient.Ping(ctx); err != nil {
+		return hintErr(
+			fmt.Errorf("docker is not running: %w", err),
+			"Start Docker Desktop or the docker daemon, then try again.",
+		)
+	}
+
+	// Swarm check
+	swarmState, err := dockerClient.SwarmStatus(ctx)
+	if err != nil {
+		return wrapWithBugHint(err)
+	}
+
+	if swarmState != swarm.LocalNodeStateActive {
+		if err := ensureSwarm(executor); err != nil {
+			return err
+		}
+	}
+
+	return runDeployWithExecutor(ctx, cmd, dockerClient, executor, env, false)
 }
 
 func runProfileList() error {
