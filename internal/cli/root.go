@@ -16,16 +16,16 @@ import (
 var (
 	cfgPath       string
 	noInteraction bool
-	verbose       bool
 	outputFormat  string
+	verbose       bool
 
-	stackDir string
 	cfg      *config.Config
+	stackDir string
 
 	styleErr  = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
-	styleWarn = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
-	styleOK   = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
 	styleInfo = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
+	styleOK   = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+	styleWarn = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
 )
 
 var rootCmd = &cobra.Command{
@@ -85,20 +85,20 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgPath, "configuration", "c", "", "path to stack directory (default: auto-detect)")
+	rootCmd.PersistentFlags().StringVarP(&outputFormat, "format", "f", "table", "output format for compatible commands: table|json")
 	rootCmd.PersistentFlags().BoolVarP(&noInteraction, "no-interaction", "n", false, "disable interactive prompts")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
-	rootCmd.PersistentFlags().StringVarP(&outputFormat, "format", "f", "table", "output format for compatible commands: table|json")
 
-	rootCmd.AddCommand(deployCmd)
-	rootCmd.AddCommand(secretCmd)
-	rootCmd.AddCommand(certificatesCmd)
 	rootCmd.AddCommand(buildCmd)
+	rootCmd.AddCommand(certificatesCmd)
+	rootCmd.AddCommand(deployCmd)
 	rootCmd.AddCommand(docsCmd)
-	rootCmd.AddCommand(validateCmd)
+	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(inspectCmd)
 	rootCmd.AddCommand(rmCmd)
+	rootCmd.AddCommand(secretCmd)
 	rootCmd.AddCommand(updateCmd)
-	rootCmd.AddCommand(initCmd)
+	rootCmd.AddCommand(validateCmd)
 }
 
 // Root returns the root command for use by external tools such as doc generators.
@@ -108,10 +108,10 @@ func Root() *cobra.Command { return rootCmd }
 // is one that doesn't require a stack project directory.
 func isSkippedCommand(cmd *cobra.Command) bool {
 	skipped := map[string]bool{
-		"update":     true,
+		"completion": true,
 		"help":       true,
 		"initialize": true,
-		"completion": true,
+		"update":     true,
 	}
 	// Walk up from the leaf command to the first child of root.
 	for c := cmd; c != nil; c = c.Parent() {

@@ -20,8 +20,8 @@ import (
 )
 
 var (
-	secretShow      bool
 	secretPublicKey bool
+	secretShow      bool
 )
 
 var secretCmd = &cobra.Command{
@@ -30,15 +30,15 @@ var secretCmd = &cobra.Command{
 	Long: `Inspect stack secrets.
 
 Without flags, lists all secret names and their file paths.
-Use ` + "`--show`" + ` to include values (with clipboard support if available).
-Use ` + "`--public-key`" + ` to derive and display the public key for private_key type secrets.`,
+Use ` + "`--public-key`" + ` to derive and display the public key for private_key type secrets.
+Use ` + "`--show`" + ` to include values (with clipboard support if available).`,
 	RunE: runSecret,
 }
 
 func init() {
-	secretCmd.Flags().BoolVarP(&secretShow, "show", "s", false, "show secret values")
-	secretCmd.Flags().BoolVarP(&secretPublicKey, "public-key", "k", false, "show public keys for private_key type secrets")
 	secretCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
+	secretCmd.Flags().BoolVarP(&secretPublicKey, "public-key", "k", false, "show public keys for private_key type secrets")
+	secretCmd.Flags().BoolVarP(&secretShow, "show", "s", false, "show secret values")
 }
 
 func runSecret(_ *cobra.Command, _ []string) error {
@@ -102,8 +102,7 @@ func runSecret(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-// runSecretShow replicates the former deploy --list-secrets behaviour: values
-// with clipboard support when available, falling back to a table.
+// Values with clipboard support when available, falling back to a table.
 func runSecretShow(names []string, paths map[string]string) error {
 	values := secret.ReadSecretValues(paths)
 

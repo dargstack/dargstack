@@ -32,10 +32,10 @@ Optionally (with ` + "`--volumes`" + `) removes all stack volumes, clearing pers
 }
 
 func init() {
-	rmCmd.Flags().BoolVar(&removeVolumes, "volumes", false, "also remove stack volumes")
 	rmCmd.Flags().BoolVarP(&production, "production", "p", false, "remove in production mode")
 	rmCmd.Flags().StringSliceVar(&profiles, "profiles", nil, "remove only services in the given compose profiles")
 	rmCmd.Flags().StringSliceVarP(&services, "services", "s", nil, "remove only the specified services")
+	rmCmd.Flags().BoolVar(&removeVolumes, "volumes", false, "also remove stack volumes")
 }
 
 func runRemove(cmd *cobra.Command, args []string) error {

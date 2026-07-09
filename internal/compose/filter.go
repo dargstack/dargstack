@@ -222,26 +222,26 @@ func splitProfileLabel(val string) []string {
 }
 
 func cleanupResources(doc, filteredServices map[string]interface{}) {
+	usedConfigs := make(map[string]bool)
+	usedNetworks := make(map[string]bool)
 	usedSecrets := make(map[string]bool)
 	usedVolumes := make(map[string]bool)
-	usedNetworks := make(map[string]bool)
-	usedConfigs := make(map[string]bool)
 
 	for _, svc := range filteredServices {
 		svcMap, ok := svc.(map[string]interface{})
 		if !ok {
 			continue
 		}
+		collectRefs(svcMap, "configs", usedConfigs)
+		collectRefs(svcMap, "networks", usedNetworks)
 		collectRefs(svcMap, "secrets", usedSecrets)
 		collectVolumeRefs(svcMap, usedVolumes)
-		collectRefs(svcMap, "networks", usedNetworks)
-		collectRefs(svcMap, "configs", usedConfigs)
 	}
 
+	filterTopLevel(doc, "configs", usedConfigs)
+	filterTopLevel(doc, "networks", usedNetworks)
 	filterTopLevel(doc, "secrets", usedSecrets)
 	filterTopLevel(doc, "volumes", usedVolumes)
-	filterTopLevel(doc, "networks", usedNetworks)
-	filterTopLevel(doc, "configs", usedConfigs)
 
 	// Also filter x-dargstack.secrets to only the keys in usedSecrets so that
 	// secret template metadata for out-of-profile services is not visible to

@@ -309,9 +309,9 @@ This directory contains generated outputs and runtime artifacts produced by darg
 
 ## Contents
 
-- ` + "`docs/`" + `: generated stack documentation (` + "`README.md`" + `).
 - ` + "`audit-log/`" + `: deployment snapshots for audit/history.
 - ` + "`certificates/`" + `: local development TLS certificates.
+- ` + "`docs/`" + `: generated stack documentation (` + "`README.md`" + `).
 
 ## Version Control
 
@@ -359,28 +359,28 @@ func main() {
 // initHelloCompose is the development service definition for the example hello service.
 // The dargstack.development.build label points to the hello source directory that lives
 // next to the stack/ directory (../../../../hello from this service's directory).
-const initHelloCompose = `services:
-  hello:
-    image: %s/hello:development
-    ports:
-      - "8080:8080"
-    configs:
-      - source: hello-config
-        target: /etc/hello/config.yaml
-    secrets:
-      - hello-api-key
-    deploy:
-      labels:
-        # Build context relative to stack/src/development/hello/ — points to <project>/hello/
-        dargstack.development.build: "../../../../hello"
-
-configs:
+const initHelloCompose = `configs:
   hello-config:
     file: ./config.yaml
 
 secrets:
   hello-api-key:
     file: ./api-key.secret
+
+services:
+  hello:
+    configs:
+      - source: hello-config
+        target: /etc/hello/config.yaml
+    deploy:
+      labels:
+        # Build context relative to stack/src/development/hello/ — points to <project>/hello/
+        dargstack.development.build: "../../../../hello"
+    image: %s/hello:development
+    ports:
+      - "8080:8080"
+    secrets:
+      - hello-api-key
 
 x-dargstack:
   secrets:
@@ -390,8 +390,8 @@ x-dargstack:
 `
 
 const initHelloDevConfig = `# Development configuration for the hello service.
-greeting: Hello from dargstack!
 debug: true
+greeting: Hello from dargstack!
 `
 
 // initHelloProdCompose is the production overlay for the example hello service.
@@ -405,15 +405,6 @@ const initHelloProdCompose = `# Production overrides for the hello service.
 #   (( append )) — append to the list instead of replacing it
 # All other keys simply overwrite the development value.
 
-services:
-  hello:
-    image: %s/hello:latest   # overwrite: pin to a versioned release tag
-    ports: (( purge ))       # purge: no direct port binding in production (use an ingress)
-    deploy:
-      labels:
-        - (( append ))       # append: keep existing dev labels and add new ones
-        - "traefik.enable=true"
-
 configs:
   hello-config:
     file: ./config.yaml      # overwrite: use the production config file
@@ -422,11 +413,20 @@ secrets:
   hello-api-key:
     file: (( purge ))        # purge: remove file: so Docker loads the secret from Swarm
     external: true
+
+services:
+  hello:
+    image: %s/hello:latest   # overwrite: pin to a versioned release tag
+    ports: (( purge ))       # purge: no direct port binding in production (use an ingress)
+    deploy:
+      labels:
+        - (( append ))       # append: keep existing dev labels and add new ones
+        - "traefik.enable=true"
 `
 
 const initHelloProdConfig = `# Production configuration for the hello service.
-greeting: Hello from production!
 debug: false
+greeting: Hello from production!
 `
 
 func generateConfigTemplate(name string) string {
@@ -454,19 +454,10 @@ behavior:
   build:
     # Build mode: "always" rebuilds every time, "missing" only builds if image doesn't exist
     mode: "always"
-    volume:
+  volume:
     remove:
       # Prompt to remove volumes before deploying (development only)
-      remove: true
-
-# Production environment settings
-production:
-  # Stack domain — used by the public to reach the services
-  domain: "app.localhost"
-  # Git branch for production deployments
-  branch: "main"
-  # Tag strategy for production — use "latest" to auto-detect from git tags
-  tag: "latest"
+      prompt: true
 
 # Development environment settings
 development:
@@ -477,5 +468,14 @@ development:
     domains: []
       # - "*.app.localhost"
       # - "custom.localhost"
+
+# Production environment settings
+production:
+  # Stack domain — used by the public to reach the services
+  domain: "app.localhost"
+  # Git branch for production deployments
+  branch: "main"
+  # Tag strategy for production — use "latest" to auto-detect from git tags
+  tag: "latest"
 `, name, name, name)
 }

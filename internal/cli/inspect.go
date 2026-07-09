@@ -14,9 +14,9 @@ import (
 )
 
 var (
-	inspectList bool
 	inspectDiff bool
 	inspectEnv  string
+	inspectList bool
 )
 
 var inspectCmd = &cobra.Command{
@@ -29,9 +29,9 @@ Without arguments, shows the latest deployment.`,
 }
 
 func init() {
-	inspectCmd.Flags().BoolVarP(&inspectList, "list", "l", false, "list all past deployments")
 	inspectCmd.Flags().BoolVarP(&inspectDiff, "difference", "d", false, "show diff between current and last deployed")
 	inspectCmd.Flags().StringVarP(&inspectEnv, "environment", "e", "development", "environment to inspect (development or production)")
+	inspectCmd.Flags().BoolVarP(&inspectList, "list", "l", false, "list all past deployments")
 }
 
 func runInspect(cmd *cobra.Command, args []string) error {
