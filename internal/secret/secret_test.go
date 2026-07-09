@@ -241,7 +241,7 @@ func TestResolveTemplate(t *testing.T) {
 }
 
 func TestResolveTemplateSpecialTokens(t *testing.T) {
-	result, err := resolveTemplate("{{random:8:false}}-{{word}}-{{secret:name}}", map[string]string{"name": "alice"})
+	result, err := resolveTemplate("{{random_string:8:false}}-{{wordlist_word}}-{{secret:name}}", map[string]string{"name": "alice"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -344,9 +344,9 @@ func TestTemplateDependency(t *testing.T) {
 		{"secret:my-password", "my-password", true},
 		{"secret: my-password ", "my-password", true},
 		{"my-other-secret", "my-other-secret", true},
-		{"word", "", false},
+		{"wordlist_word", "", false},
 		{"private_key", "", false},
-		{"random:16:true", "", false},
+		{"random_string:16:true", "", false},
 		{"", "", false},
 	}
 	for _, tt := range tests {

@@ -170,7 +170,7 @@ func specialCharsEnabled(t *Template) bool {
 func templateDependency(token string) (string, bool) {
 	token = strings.TrimSpace(token)
 	switch {
-	case token == "", token == "word", token == "private_key", strings.HasPrefix(token, "random"):
+	case token == "", token == "wordlist_word", token == "private_key", strings.HasPrefix(token, "random_string"):
 		return "", false
 	case strings.HasPrefix(token, "secret:"):
 		dep := strings.TrimSpace(strings.TrimPrefix(token, "secret:"))
@@ -212,11 +212,11 @@ func resolveTemplate(tmpl string, values map[string]string) (string, error) {
 
 func evaluateTemplateToken(token string, values map[string]string) (string, error) {
 	switch {
-	case token == "word":
+	case token == "wordlist_word":
 		return generateWord()
 	case token == "private_key":
 		return generatePrivateKey("", 0)
-	case strings.HasPrefix(token, "random"):
+	case strings.HasPrefix(token, "random_string"):
 		return parseRandomToken(token)
 	case strings.HasPrefix(token, "secret:"):
 		name := strings.TrimSpace(strings.TrimPrefix(token, "secret:"))
@@ -227,7 +227,7 @@ func evaluateTemplateToken(token string, values map[string]string) (string, erro
 }
 
 func parseRandomToken(token string) (string, error) {
-	// token forms: random | random:<len> | random:<len>:<special>
+	// token forms: random_string | random_string:<len> | random_string:<len>:<special>
 	length := 32
 	includeSpecial := false
 

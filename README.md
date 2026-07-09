@@ -236,8 +236,8 @@ x-dargstack:
 Template tokens:
 
 - `{{secret:<name>}}` (or legacy `{{<name>}}`) — Reference another secret
-- `{{random}}`, `{{random:<length>}}`, `{{random:<length>:<special>}}` — Inline random generation
-- `{{word}}` — Inline word generation
+- `{{random_string}}`, `{{random_string:<length>}}`, `{{random_string:<length>:<special>}}` — Inline random generation
+- `{{wordlist_word}}` — Inline word generation
 - `{{private_key}}` — Inline private key generation
 
 ### Environment Files
