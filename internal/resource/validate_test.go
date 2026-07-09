@@ -3,7 +3,6 @@ package resource
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -192,58 +191,30 @@ func TestGenerateDocumentation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if content == "" {
-		t.Error("expected non-empty documentation")
-	}
+	expected := `# example-stack
 
-	// Stack name in title
-	if !strings.Contains(content, "# example-stack") {
-		t.Error("expected stack name in title")
-	}
+The Docker stack configuration for [example.localhost](https://example.localhost/). Related to [my-project](https://github.com/example/my-project).
 
-	// Prefix with domain and source code link
-	if !strings.Contains(content, "[example.localhost](https://example.localhost/)") {
-		t.Error("expected stack domain link in prefix")
-	}
-	if !strings.Contains(content, "[my-project](https://github.com/example/my-project)") {
-		t.Error("expected source code link in prefix")
-	}
+## Services
 
-	// Service headings
-	for _, svc := range []string{"### api", "### postgres", "### redis", "### worker"} {
-		if !strings.Contains(content, svc) {
-			t.Errorf("expected service heading %q in output", svc)
-		}
-	}
+### api
 
-	// YAML comments extracted
-	if !strings.Contains(content, "The main API service.") {
-		t.Error("expected API comment in output")
-	}
-	if !strings.Contains(content, "In-memory cache.") {
-		t.Error("expected redis comment in output")
-	}
-	if !strings.Contains(content, "Background job processor.") {
-		t.Error("expected worker comment in output")
-	}
+The main API service.
+Handles HTTP requests.
 
-	// Production-only indicator
-	if !strings.Contains(content, "*(production only)*") {
-		t.Error("expected production-only indicator for worker service")
-	}
+### postgres
 
-	// Should NOT contain old-style resource listings
-	if strings.Contains(content, "**Image:**") {
-		t.Error("expected no image listing in new docs format")
-	}
-	if strings.Contains(content, "**Volumes:**") {
-		t.Error("expected no volumes listing in new docs format")
-	}
-	if strings.Contains(content, "**Secrets:**") {
-		t.Error("expected no secrets listing in new docs format")
-	}
-	if strings.Contains(content, "## Networks") {
-		t.Error("expected no networks section in new docs format")
+### redis
+
+In-memory cache.
+
+### worker *(production only)*
+
+Background job processor.
+
+`
+	if content != expected {
+		t.Fatalf("documentation mismatch:\n--- got ---\n%s\n--- expected ---\n%s", content, expected)
 	}
 }
 
@@ -276,7 +247,7 @@ configs:
 
 	var configErrors []string
 	for _, iss := range issues {
-		if strings.HasPrefix(iss.Resource, "config:") && iss.Severity == "error" {
+		if len(iss.Resource) >= 7 && iss.Resource[:7] == "config:" && iss.Severity == "error" {
 			configErrors = append(configErrors, iss.Resource)
 		}
 	}
