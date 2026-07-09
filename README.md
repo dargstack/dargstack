@@ -167,14 +167,14 @@ services:
 ```yaml
 compatibility: ">=4.0.0 <5.0.0" # required, string (semver range)
 name: my-stack # optional, defaults to parent directory name
-production:
-  branch: main # optional, string
-  tag: latest # optional, `latest` | string
-  domain: example.com # optional, string
 development:
   domain: app.localhost # optional, defaults to "app.localhost"
   certificate:
     domains: [] # optional, extra domains added to dev TLS cert
+production:
+  branch: main # optional, string
+  tag: latest # optional, `latest` | string
+  domain: example.com # optional, string
 sudo: auto # optional, `auto` | `always` | `never`
 ```
 
@@ -210,25 +210,21 @@ x-dargstack:
       type: random_string
       # length defaults to 32, special_characters defaults to true
     jwt-signing-key.secret:
-      type: private_key
-      # key_type: ed25519  # default; also: rsa, ecdsa
+      # type: private_key
+      key_type: ed25519  # default; also: rsa, ecdsa
       # key_size: 2048     # rsa default 2048; ecdsa: 256 (P-256), 384 (P-384), 521 (P-521)
-    rsa-jwt-key.secret:
-      type: private_key
-      key_type: rsa
-      key_size: 2048
     external-api-token:
       type: third_party
       hint: "Get yours at https://example.com/settings/tokens"
     dev-only-secret:
-      type: insecure_default
+      # type: insecure_default
       insecure_default: "CHANGE_ME"
     api-db_url:
-      type: template
+      # type: template
       template: "postgresql://postgres:{{secret:postgres-password}}@postgres:5432/app"
 ```
 
-- `type` — Secret behavior. Supported values: `random_string`, `word`, `private_key`, `third_party`, `insecure_default`, `template`
+- `type` — Secret behavior. Supported values: `random_string`, `wordlist_word`, `private_key`, `third_party`, `insecure_default`, `template`. If omitted, the type is inferred from the fields provided: `private_key` if `key_type` or `key_size` is set, `third_party` if `third_party` is set, `template` if `template` is set, `insecure_default` if `insecure_default` is set, otherwise `random_string` if `length` or `special_characters` is set.
 - `hint` — Human-readable hint for expected value (shown for `third_party` secrets when unset)
 - `length` — Random string length for `type: random_string` (default: `32`)
 - `special_characters` — Include special characters for `type: random_string` (default: `true`; set `false` to opt out)
