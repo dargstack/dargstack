@@ -5,7 +5,8 @@ FROM golang:1.26.1-alpine AS base
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
-    go mod download
+    go mod download \
+    && apk update && apk add git
 
 # ── copy: shared source snapshot ────────────────────────────────────────────
 FROM base AS copy

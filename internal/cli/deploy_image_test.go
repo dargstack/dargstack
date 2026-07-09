@@ -21,7 +21,7 @@ func runGit(t *testing.T, dir string, args ...string) {
 
 func setupGitRepo(t *testing.T, dir string) {
 	t.Helper()
-	runGit(t, dir, "init")
+	runGit(t, dir, "init", "-b", "main")
 	runGit(t, dir, "config", "user.email", "test@test.com")
 	runGit(t, dir, "config", "user.name", "Test")
 	runGit(t, dir, "config", "commit.gpgSign", "false")

@@ -506,6 +506,10 @@ func TestSplitVolumeSpec(t *testing.T) {
 		{"/absolute", "/absolute:/container", "/container"},
 		{"./relative", "./relative:/container", "/container"},
 		{"named", "named:ro", "ro"},
+		{"/src", "/src:/dst:ro", "/dst:ro"},
+		{"/src", "/src:/dst:rw", "/dst:rw"},
+		{"/src", "/src:/dst:ro,z", "/dst:ro,z"},
+		{"named", "named:/data:rw", "/data:rw"},
 		{"nocolon", "nocolon", ""},
 		// Windows drive letters: treat C:\path as part of host, not as a split point
 		{`C:\path`, `C:\path:/container`, "/container"},
