@@ -245,6 +245,65 @@ func TestBuildBehaviorMode(t *testing.T) {
 	}
 }
 
+func TestVolumeRemovePromptBehavior(t *testing.T) {
+	tests := []struct {
+		name          string
+		yaml          string
+		wantPrompt    bool
+		wantPromptSet bool
+	}{
+		{
+			name:          "prompt true",
+			yaml:          "behavior:\n  volume:\n    remove:\n      prompt: true\n",
+			wantPrompt:    true,
+			wantPromptSet: true,
+		},
+		{
+			name:          "prompt false",
+			yaml:          "behavior:\n  volume:\n    remove:\n      prompt: false\n",
+			wantPrompt:    false,
+			wantPromptSet: true,
+		},
+		{
+			name:          "no volume config",
+			yaml:          "",
+			wantPromptSet: false,
+		},
+		{
+			name:          "empty volume config",
+			yaml:          "behavior:\n  volume:\n",
+			wantPromptSet: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(tt.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+
+			cfg, err := Load(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if !tt.wantPromptSet {
+				if cfg.Behavior.Volume != nil && cfg.Behavior.Volume.Remove != nil {
+					t.Error("expected Volume.Remove to be nil")
+				}
+				return
+			}
+			if cfg.Behavior.Volume == nil || cfg.Behavior.Volume.Remove == nil {
+				t.Fatal("expected Volume.Remove to be set")
+			}
+			if cfg.Behavior.Volume.Remove.Prompt != tt.wantPrompt {
+				t.Errorf("expected prompt=%v, got %v", tt.wantPrompt, cfg.Behavior.Volume.Remove.Prompt)
+			}
+		})
+	}
+}
+
 func TestPathHelpers(t *testing.T) {
 	stackDir := "/project/stack"
 

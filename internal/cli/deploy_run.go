@@ -153,10 +153,10 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		if dryRun {
 			printInfo("[dry-run] Would prompt for volume cleanup (first-time deploy)")
 		} else if !noInteraction {
-			// Check behavior.prompt.volume.remove (defaults to true)
+			// Check behavior.volume.remove.prompt (defaults to true)
 			promptVolumes := true
-			if cfg.Behavior.Prompt != nil && cfg.Behavior.Prompt.Volume != nil {
-				promptVolumes = cfg.Behavior.Prompt.Volume.Remove
+			if cfg.Behavior.Volume != nil && cfg.Behavior.Volume.Remove != nil {
+				promptVolumes = cfg.Behavior.Volume.Remove.Prompt
 			}
 			if promptVolumes {
 				running := isStackRunning(ctx, dockerClient, executor)

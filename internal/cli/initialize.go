@@ -454,8 +454,8 @@ behavior:
   build:
     # Build mode: "always" rebuilds every time, "missing" only builds if image doesn't exist
     mode: "always"
-  prompt:
     volume:
+    remove:
       # Prompt to remove volumes before deploying (development only)
       remove: true
 

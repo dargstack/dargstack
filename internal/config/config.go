@@ -24,19 +24,19 @@ type Config struct {
 
 type BehaviorConfig struct {
 	Build  *BuildBehavior  `yaml:"build"`
-	Prompt *PromptBehavior `yaml:"prompt"`
+	Volume *VolumeBehavior `yaml:"volume"`
 }
 
 type BuildBehavior struct {
 	Mode string `yaml:"mode"`
 }
 
-type PromptBehavior struct {
-	Volume *VolumeBehavior `yaml:"volume"`
+type VolumeBehavior struct {
+	Remove *VolumeRemoveBehavior `yaml:"remove"`
 }
 
-type VolumeBehavior struct {
-	Remove bool `yaml:"remove"`
+type VolumeRemoveBehavior struct {
+	Prompt bool `yaml:"prompt"`
 }
 
 type ProductionConfig struct {
