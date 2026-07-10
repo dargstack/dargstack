@@ -196,3 +196,124 @@ func TestGitFetchTagsNoRemote(t *testing.T) {
 		t.Errorf("expected error mentioning origin, got: %v", err)
 	}
 }
+
+func TestExtractDargstackBuildContext(t *testing.T) {
+	tests := []struct {
+		name     string
+		svc      map[string]interface{}
+		expected string
+	}{
+		{
+			name: "labels as map",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"dargstack.development.build": "./build",
+					},
+				},
+			},
+			expected: "./build",
+		},
+		{
+			name: "labels as list with key=value",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"labels": []interface{}{
+						"dargstack.development.build=../docker",
+						"other.label=value",
+					},
+				},
+			},
+			expected: "../docker",
+		},
+		{
+			name: "no deploy key",
+			svc: map[string]interface{}{
+				"image": "nginx",
+			},
+			expected: "",
+		},
+		{
+			name: "no labels key",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"replicas": "3",
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "labels map without build key",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"other.label": "value",
+					},
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "labels list without build entry",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"labels": []interface{}{
+						"other.label=value",
+					},
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "labels list with non-string items",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"labels": []interface{}{
+						123,
+						true,
+					},
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "deploy is not a map",
+			svc: map[string]interface{}{
+				"deploy": "string",
+			},
+			expected: "",
+		},
+		{
+			name:     "empty service",
+			svc:      map[string]interface{}{},
+			expected: "",
+		},
+		{
+			name: "labels as empty map",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"labels": map[string]interface{}{},
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "labels as empty list",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"labels": []interface{}{},
+				},
+			},
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractDargstackBuildContext(tt.svc)
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}

@@ -35,11 +35,35 @@ var (
 	bgResultCh = make(chan *CheckResult, 1)
 	bgOnce     sync.Once
 	bgStarted  atomic.Bool
+
+	// doHTTPRequest abstracts HTTP requests for testability.
+	doHTTPRequest = defaultDoHTTPRequest
+
+	// cacheDirFunc abstracts os.UserCacheDir for testability.
+	cacheDirFunc = os.UserCacheDir
+
+	// currentVersion returns the running version; overridden in tests.
+	currentVersion = func() string { return version.Version }
 )
+
+func defaultDoHTTPRequest(req *http.Request) (*http.Response, error) {
+	return http.DefaultClient.Do(req)
+}
+
+// resetBackgroundState resets the background check state for testing.
+func resetBackgroundState() {
+	bgOnce = sync.Once{}
+	bgStarted.Store(false)
+	// Drain any leftover result.
+	select {
+	case <-bgResultCh:
+	default:
+	}
+}
 
 // BackgroundCheck starts a non-blocking update check.
 func BackgroundCheck() {
-	if version.Version == "dev" {
+	if currentVersion() == "dev" {
 		return
 	}
 	bgOnce.Do(func() {
@@ -70,13 +94,13 @@ func PrintUpdateNotice(result *CheckResult) {
 	if result == nil || !result.Available {
 		return
 	}
-	fmt.Fprintf(os.Stderr, "\n  A new version of dargstack is available: %s -> %s\n", version.Version, result.NewVersion)
+	fmt.Fprintf(os.Stderr, "\n  A new version of dargstack is available: %s -> %s\n", currentVersion(), result.NewVersion)
 	fmt.Fprintf(os.Stderr, "  Run `dargstack update --self` to update.\n\n")
 }
 
 // SelfUpdate downloads and replaces the current binary with the latest release.
 func SelfUpdate() error {
-	if version.Version == "dev" {
+	if currentVersion() == "dev" {
 		return fmt.Errorf("cannot self-update a development build")
 	}
 
@@ -101,13 +125,13 @@ func SelfUpdate() error {
 		return fmt.Errorf("no releases found")
 	}
 
-	current, err := semver.NewVersion(version.Version)
+	current, err := semver.NewVersion(currentVersion())
 	if err != nil {
 		return fmt.Errorf("parse current version: %w", err)
 	}
 
 	if !latest.GreaterThan(current.String()) {
-		fmt.Printf("Already at latest version %s\n", version.Version)
+		fmt.Printf("Already at latest version %s\n", currentVersion())
 		return nil
 	}
 
@@ -137,10 +161,10 @@ func checkLatest() (*CheckResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "dargstack/"+version.Version)
+	req.Header.Set("User-Agent", "dargstack/"+currentVersion())
 	req.Header.Set("Accept", "application/vnd.github+json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := doHTTPRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +184,7 @@ func checkLatest() (*CheckResult, error) {
 	latestTag := strings.TrimPrefix(release.TagName, "v")
 	result := &CheckResult{NewVersion: latestTag}
 
-	current, err := semver.NewVersion(version.Version)
+	current, err := semver.NewVersion(currentVersion())
 	if err != nil {
 		return result, nil
 	}
@@ -184,7 +208,7 @@ type cacheEntry struct {
 // Returns an empty string when the user cache directory is unavailable;
 // callers must treat an empty return value as "caching disabled".
 func cacheFilePath() string {
-	dir, err := os.UserCacheDir()
+	dir, err := cacheDirFunc()
 	if err != nil || dir == "" {
 		// Do not fall back to os.TempDir(): a shared temp directory allows
 		// symlink/hardlink attacks and cross-user cache poisoning.
