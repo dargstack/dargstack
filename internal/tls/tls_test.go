@@ -141,6 +141,30 @@ func TestCertNeedsRegenerationDomainChanged(t *testing.T) {
 	}
 }
 
+func TestCertNeedsRegenerationSameCountDifferentDomains(t *testing.T) {
+	dir := t.TempDir()
+	certFile := filepath.Join(dir, "cert.pem")
+	keyFile := filepath.Join(dir, "key.pem")
+
+	// Generate cert with two domains
+	original := []string{"localhost", "api.app.localhost"}
+	if err := generateSelfSigned(certFile, keyFile, original); err != nil {
+		t.Fatal(err)
+	}
+
+	// Same count, but one domain swapped — should still trigger regen
+	needsRegen, reason := certNeedsRegeneration(certFile, []string{"localhost", "web.app.localhost"})
+	if !needsRegen {
+		t.Error("expected regeneration when a domain was swapped out")
+	}
+	if reason == "" {
+		t.Error("expected a reason for regeneration")
+	}
+	if reason != `missing domain "web.app.localhost"` {
+		t.Errorf("unexpected reason: %s", reason)
+	}
+}
+
 func TestCertNeedsRegenerationSameDomains(t *testing.T) {
 	dir := t.TempDir()
 	certFile := filepath.Join(dir, "cert.pem")
