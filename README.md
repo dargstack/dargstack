@@ -26,7 +26,7 @@ dargstack inverts this: define development as the source of truth, then express 
 | ✅ Clear file separation by service                            | ❌ Monolithic compose file – hard to maintain if big                          |
 | ✅ Snapshot for every deploy; easy inspect and diff            | ❌ Volatile audit trail – live console tracing only                           |
 | ✅ Safer secret management with auto-generation and templating | ❌ Manual secret management – tedious, often insecure defaults                |
-| ✅ Development certificates auto‑generated                     | ❌ No TLS certificates – out of scope, traffic unencrypted                    |
+| ✅ Development certificates auto-generated                     | ❌ No TLS certificates – out of scope, traffic unencrypted                    |
 | ✅ Zero downtime service update motivation                     | ❌ Stop-first update order by default – unreliable availability in production |
 
 ## Install
@@ -40,7 +40,7 @@ go install github.com/dargstack/dargstack/v4/cmd/dargstack@latest
 ```
 
 Package integrity is enforced by the Go module proxy and the module's `go.sum` lockfile.
-Pin to a specific version (e.g. `@v4.1.0`) to get a reproducible, auditable install.
+Pin to a specific version (e.g., `@v4.1.0`) for a reproducible, auditable install.
 
 ### Alternative — From GitHub Releases
 
@@ -65,24 +65,24 @@ sudo mv dargstack /usr/local/bin/
 
 2. Fill in your service configuration according to the [docker.com: Compose file reference](https://docs.docker.com/reference/compose-file).
 
-3. Then deploy:
+3. Deploy:
 
    ```bash
    cd <project_name>
    dargstack deploy
    ```
 
-Done! 🎉 Your project is live now.
+Done! 🎉 Your stack is live.
 
 ## Project Structure
 
-Suppose you have an `api` service as part of an `example` project. Your project structure would look like this:
+Suppose you have an `api` service as part of an `example` project:
 
 ```
 example/
 ├── api/                                # The service's source code
 │   ├── Dockerfile                      # Dockerfile for the api service
-:   :
+│   └── ...
 ├── stack/
 │   ├── artifacts/                      # Generated files
 │   │   ├── audit-log/                  # Deployment snapshots (gitignored)
@@ -95,24 +95,24 @@ example/
 │   │   ├── development/
 │   │   │   ├── api/
 │   │   │   │   ├── compose.yaml        # Full Docker Compose document
-│   │   │   │   ├── configuration.toml  # File-based volume mount by the service
+│   │   │   │   ├── configuration.toml  # File-based volume mount
 │   │   │   │   ├── key.secret          # Secret used by the service
-│   │   │   :   :
+│   │   │   │   └── ...
 │   │   │   └── .env                    # Environment variables
 │   │   └── production/
 │   │       ├── api/
-│   │       │   ├── compose.yaml        # Yaml deep-merge override
+│   │       │   ├── compose.yaml        # YAML deep-merge override
 │   │       │   ├── configuration.toml  # File-based override
-│   │       :   :
+│   │       │   └── ...
 │   │       └── .env                    # Key-based override
 │   └── dargstack.yaml                  # Project configuration
-:
+└── ...
 ```
 
 ### Service Files
 
 Each service file is a full Docker Compose document — files are deep-merged by [spruce](https://github.com/geofffranks/spruce).
-See [github.com: What are all the Spruce operators?](https://github.com/geofffranks/spruce/blob/main/doc/operators.md) for special keywords controlling the merge behavior.
+See [github.com: What are all the Spruce operators?](https://github.com/geofffranks/spruce/blob/main/doc/operators.md) for special keywords controlling merge behavior.
 
 ```yaml
 # src/development/api/compose.yaml
@@ -246,8 +246,6 @@ Template tokens:
 
 ## Commands
 
-Go to [docs: dargstack](docs/dargstack.md) for detailed command documentation.
-
 | Command                                              | Description                            |
 | ---------------------------------------------------- | -------------------------------------- |
 | [dargstack build](docs/dargstack_build.md)           | Build development Dockerfiles          |
@@ -260,3 +258,17 @@ Go to [docs: dargstack](docs/dargstack.md) for detailed command documentation.
 | [dargstack secret](docs/dargstack_secret.md)         | Inspect stack secrets and public keys  |
 | [dargstack update](docs/dargstack_update.md)         | Update dargstack to the latest version |
 | [dargstack validate](docs/dargstack_validate.md)     | Validate stack resources               |
+
+See [docs/dargstack.md](docs/dargstack.md) for global flags and detailed command documentation.
+
+## Migration from v3
+
+If you're migrating from dargstack v3 (Bash), see [MIGRATION.md](MIGRATION.md).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+GNU General Public License v3.0 — see [LICENSE](LICENSE) for details.

@@ -185,3 +185,8 @@ Releases are automated via goreleaser on tag push:
 git tag v1.0.0
 git push origin v1.0.0
 ```
+
+## Getting Help
+
+- [README.md](README.md) — usage documentation and examples
+- [GitHub Issues](https://github.com/dargstack/dargstack/issues) — bug reports and feature requests
