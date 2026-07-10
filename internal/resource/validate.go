@@ -81,6 +81,15 @@ func validateSecrets(doc map[string]interface{}, stackDir string, production boo
 					Resource:    fmt.Sprintf("secret:%s", name),
 					Description: desc,
 				})
+			} else if tmpl, ok := templates[name]; ok && (tmpl.ThirdParty || tmpl.Type == secret.TypeThirdParty) {
+				data, readErr := os.ReadFile(filePath)
+				if readErr == nil && secret.IsPlaceholderValue(strings.TrimSpace(string(data))) {
+					issues = append(issues, Issue{
+						Severity:    "warning",
+						Resource:    fmt.Sprintf("secret:%s", name),
+						Description: "file contains placeholder value (not yet set)",
+					})
+				}
 			}
 		}
 	}
