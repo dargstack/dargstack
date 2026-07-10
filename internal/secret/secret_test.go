@@ -45,6 +45,25 @@ x-dargstack:
 	}
 }
 
+func TestExtractTemplatesParseError(t *testing.T) {
+	// A scalar value under x-dargstack.secrets is not a valid secret definition.
+	// The marshal step succeeds, but unmarshaling into Template fails because
+	// the data is a scalar, not a mapping.
+	composeYAML := `x-dargstack:
+  secrets:
+    good-secret:
+      length: 16
+    bad-secret: just-a-string
+`
+	_, err := ExtractTemplates([]byte(composeYAML))
+	if err == nil {
+		t.Fatal("expected error for unparseable secret")
+	}
+	if !strings.Contains(err.Error(), "bad-secret") {
+		t.Errorf("expected error to contain secret name 'bad-secret', got: %s", err)
+	}
+}
+
 func TestExtractTemplatesNoExtension(t *testing.T) {
 	composeYAML := `services:
   api:

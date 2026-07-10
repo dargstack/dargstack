@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
@@ -48,7 +49,11 @@ var rootCmd = &cobra.Command{
 
 		var err error
 		if cfgPath != "" {
-			stackDir = cfgPath
+			abs, absErr := filepath.Abs(cfgPath)
+			if absErr != nil {
+				return fmt.Errorf("resolve config path: %w", absErr)
+			}
+			stackDir = abs
 		} else {
 			stackDir, err = config.DetectStackDir()
 			if err != nil {

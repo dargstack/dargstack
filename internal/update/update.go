@@ -270,8 +270,9 @@ func writeCache(result *CheckResult) {
 		_ = tmp.Close()
 		return
 	}
-	if err := tmp.Close(); err != nil {
-		return
+	if err := os.Rename(tmpPath, path); err != nil {
+		// Windows can't rename over an existing file; remove and retry.
+		_ = os.Remove(path)
+		_ = os.Rename(tmpPath, path)
 	}
-	_ = os.Rename(tmpPath, path)
 }

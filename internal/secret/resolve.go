@@ -220,9 +220,15 @@ func evaluateTemplateToken(token string, values map[string]string) (string, erro
 		return parseRandomToken(token)
 	case strings.HasPrefix(token, "secret:"):
 		name := strings.TrimSpace(strings.TrimPrefix(token, "secret:"))
-		return values[name], nil
+		if v, ok := values[name]; ok && v != "" && !isPlaceholderValue(v) {
+			return v, nil
+		}
+		return "", fmt.Errorf("referenced secret %q is not set", name)
 	default:
-		return values[token], nil
+		if v, ok := values[token]; ok && v != "" && !isPlaceholderValue(v) {
+			return v, nil
+		}
+		return "", fmt.Errorf("referenced secret %q is not set", token)
 	}
 }
 

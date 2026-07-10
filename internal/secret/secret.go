@@ -75,11 +75,11 @@ func ExtractTemplates(composeData []byte) (map[string]Template, error) {
 		// Re-marshal and unmarshal through yaml for clean parsing
 		data, err := yaml.Marshal(def)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("secret %q: marshal definition: %w", name, err)
 		}
 		var tmpl Template
 		if err := yaml.Unmarshal(data, &tmpl); err != nil {
-			continue
+			return nil, fmt.Errorf("secret %q: parse definition: %w", name, err)
 		}
 		normalizeTemplate(&tmpl)
 		result[name] = tmpl

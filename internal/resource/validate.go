@@ -31,7 +31,14 @@ func Validate(composeData []byte, stackDir string, production bool) ([]Issue, er
 	}
 
 	var issues []Issue
-	templates, _ := secret.ExtractTemplates(composeData)
+	templates, tmplErr := secret.ExtractTemplates(composeData)
+	if tmplErr != nil {
+		issues = append(issues, Issue{
+			Severity:    "error",
+			Resource:    "x-dargstack.secrets",
+			Description: tmplErr.Error(),
+		})
+	}
 	issues = append(issues, validateSecrets(doc, stackDir, production, templates)...)
 	issues = append(issues, validateConfigs(doc, stackDir, production)...)
 	issues = append(issues, validateServices(doc, stackDir, production)...)

@@ -33,7 +33,7 @@ jobs:
         @semantic-release/exec
   check-docs:
     needs: ci-optimization
-    if: needs.ci-optimization.outputs.continue == 'true'
+    if: needs.ci-optimization.outputs.continue == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
     name: Update generated docs
     runs-on: ubuntu-latest
     permissions:
