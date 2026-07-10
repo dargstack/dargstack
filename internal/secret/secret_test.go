@@ -388,7 +388,7 @@ func TestResolveThirdPartySkipped(t *testing.T) {
 	}
 }
 
-func TestResolveWord(t *testing.T) {
+func TestResolveWordlistWord(t *testing.T) {
 	templates := map[string]Template{
 		"passphrase": {Type: TypeWordlistWord},
 	}
