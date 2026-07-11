@@ -1,3 +1,5 @@
+## [4.0.0-beta.12](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.11...v4.0.0-beta.12) (2026-07-11)
+
 ## [4.0.0-beta.11](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.10...v4.0.0-beta.11) (2026-07-10)
 
 ## [4.0.0-beta.10](https://github.com/dargstack/dargstack/compare/v4.0.0-beta.9...v4.0.0-beta.10) (2026-07-10)
