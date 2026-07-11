@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -128,6 +131,22 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 			certDir := config.CertificatesDir(stackDir)
 			if err := tls.EnsureCertificates(certDir, domains); err != nil {
 				printWarning(fmt.Sprintf("TLS certificate setup failed: %v", err))
+			}
+		}
+	}
+
+	// 7a. Clone git repos (development only)
+	if !production {
+		if dryRun {
+			gitServices := extractGitServices(composeData)
+			if len(gitServices) > 0 {
+				printInfo(fmt.Sprintf("[dry-run] Would clone repositories for: %s", strings.Join(gitServices, ", ")))
+			}
+		} else {
+			var cloneErr error
+			composeData, cloneErr = cloneGitRepos(stackDir, composeData)
+			if cloneErr != nil {
+				return fmt.Errorf("clone git repos: %w", cloneErr)
 			}
 		}
 	}
@@ -349,6 +368,33 @@ func extractBuildServices(composeData []byte) []string {
 	return names
 }
 
+// extractGitServices returns the sorted list of service names that have a
+// dargstack.development.git label, meaning their repos would be cloned.
+func extractGitServices(composeData []byte) []string {
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(composeData, &doc); err != nil {
+		return nil
+	}
+
+	svcMap, ok := doc["services"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	var names []string
+	for name, def := range svcMap {
+		svc, ok := def.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if extractDargstackGitLabel(svc) != "" {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
 // countComposeServices returns the number of services defined in the compose data.
 func countComposeServices(composeData []byte) int {
 	var doc map[string]interface{}
@@ -360,6 +406,108 @@ func countComposeServices(composeData []byte) int {
 		return 0
 	}
 	return len(svcMap)
+}
+
+// injectBuildContext adds a dargstack.development.build label to the specified
+// service if one does not already exist. Returns the re-marshaled compose YAML.
+func injectBuildContext(composeData []byte, serviceName string, buildPath string) ([]byte, error) {
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(composeData, &doc); err != nil {
+		return nil, fmt.Errorf("parse compose: %w", err)
+	}
+
+	svcMap, ok := doc["services"].(map[string]interface{})
+	if !ok {
+		return composeData, nil
+	}
+
+	svcDef, ok := svcMap[serviceName].(map[string]interface{})
+	if !ok {
+		return composeData, nil
+	}
+
+	// If the service already has a .build label, don't override it.
+	if extractDargstackBuildContext(svcDef) != "" {
+		return composeData, nil
+	}
+
+	deploy, ok := svcDef["deploy"].(map[string]interface{})
+	if !ok {
+		deploy = map[string]interface{}{}
+		svcDef["deploy"] = deploy
+	}
+
+	labels, ok := deploy["labels"]
+	if !ok {
+		labels = map[string]interface{}{}
+		deploy["labels"] = labels
+	}
+
+	switch v := labels.(type) {
+	case map[string]interface{}:
+		v["dargstack.development.build"] = buildPath
+	case []interface{}:
+		v = append(v, "dargstack.development.build="+buildPath)
+		deploy["labels"] = v
+	}
+
+	return yaml.Marshal(doc)
+}
+
+// cloneGitRepos clones git repositories for services with a
+// dargstack.development.git label. It returns mutated compose data with
+// .build labels injected where .git is set but .build is not.
+func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(composeData, &doc); err != nil {
+		return nil, fmt.Errorf("parse compose: %w", err)
+	}
+
+	svcMap, ok := doc["services"].(map[string]interface{})
+	if !ok {
+		return composeData, nil
+	}
+
+	// Sibling directory of the stack directory
+	parentDir := filepath.Dir(stackDir)
+
+	for name, def := range svcMap {
+		svc, ok := def.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		gitURL := extractDargstackGitLabel(svc)
+		if gitURL == "" {
+			continue
+		}
+
+		repoName := repoNameFromURL(gitURL)
+		targetDir := filepath.Join(parentDir, repoName)
+
+		if _, err := os.Stat(targetDir); err == nil {
+			// Directory already exists — inject .build if missing, skip clone.
+			composeData, err = injectBuildContext(composeData, name, targetDir)
+			if err != nil {
+				return nil, fmt.Errorf("service %q inject build context: %w", name, err)
+			}
+			continue
+		}
+
+		printInfo(fmt.Sprintf("Cloning %s for service %q", gitURL, name))
+		cmd := exec.Command("git", "clone", "--depth", "1", gitURL, targetDir)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return nil, fmt.Errorf("clone %s for service %q: %s: %w", gitURL, name, strings.TrimSpace(string(out)), err)
+		}
+
+		composeData, err = injectBuildContext(composeData, name, targetDir)
+		if err != nil {
+			return nil, fmt.Errorf("service %q inject build context: %w", name, err)
+		}
+	}
+
+	return composeData, nil
 }
 
 // uniqueSortedDomains merges two domain slices, removes duplicates, and returns

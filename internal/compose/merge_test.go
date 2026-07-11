@@ -301,7 +301,7 @@ func TestStripProductionDevelopmentLabelsMapLabels(t *testing.T) {
   api:
     deploy:
       labels:
-        dargstack.development.build: ../../../../vibetype
+        dargstack.development.build: ../../../../repository
         dargstack.development.debug: true
         dargstack.profiles: default
 `)
@@ -328,7 +328,7 @@ func TestStripProductionDevelopmentLabelsListLabels(t *testing.T) {
   api:
     deploy:
       labels:
-        - dargstack.development.build=../../../../vibetype
+        - dargstack.development.build=../../../../repository
         - dargstack.development.debug=true
         - dargstack.profiles=default
 `)

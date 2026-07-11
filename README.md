@@ -162,6 +162,33 @@ services:
         order: start-first # Zero-downtime (use stop-first for stateful services)
 ```
 
+### Git Cloning
+
+The `dargstack.development.git` label instructs dargstack to clone a git repository before building a service's Docker image. The repository is cloned to a sibling directory of the stack, named after the repository:
+
+```yaml
+services:
+  webapp:
+    deploy:
+      labels:
+        dargstack.development.git: "git@github.com:mystack/webapp.git"
+    image: mystack/webapp:development
+```
+
+This clones `webapp.git` to a `webapp/` directory next to the stack directory, and automatically sets the build context to that directory. You can override the build context with `dargstack.development.build` to point to a subdirectory:
+
+```yaml
+services:
+  webapp:
+    deploy:
+      labels:
+        dargstack.development.git: "git@github.com:mystack/webapp.git"
+        dargstack.development.build: "../../../../repository/packages/frontend"
+    image: mystack/webapp:development
+```
+
+The repository is cloned once (on first deploy) and left untouched on subsequent deploys.
+
 ### Configuration: dargstack.yaml
 
 ```yaml

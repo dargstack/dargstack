@@ -197,6 +197,150 @@ func TestGitFetchTagsNoRemote(t *testing.T) {
 	}
 }
 
+func TestRepoNameFromURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		url      string
+		expected string
+	}{
+		{
+			name:     "ssh format",
+			url:      "git@github.com:organization/repository.git",
+			expected: "repository",
+		},
+		{
+			name:     "ssh format no .git",
+			url:      "git@github.com:organization/repository",
+			expected: "repository",
+		},
+		{
+			name:     "https format",
+			url:      "https://github.com/organization/repository.git",
+			expected: "repository",
+		},
+		{
+			name:     "https format no .git",
+			url:      "https://github.com/organization/repository",
+			expected: "repository",
+		},
+		{
+			name:     "git protocol",
+			url:      "git://github.com/organization/repository.git",
+			expected: "repository",
+		},
+		{
+			name:     "bitbucket ssh",
+			url:      "git@bitbucket.org:team/project-repo.git",
+			expected: "project-repo",
+		},
+		{
+			name:     "self-hosted with port",
+			url:      "git@192.168.1.1:22/path/to/repo.git",
+			expected: "repo",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := repoNameFromURL(tt.url)
+			if result != tt.expected {
+				t.Errorf("repoNameFromURL(%q) = %q, want %q", tt.url, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestExtractDargstackGitLabel(t *testing.T) {
+	tests := []struct {
+		name     string
+		svc      map[string]interface{}
+		expected string
+	}{
+		{
+			name: "labels as map",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"dargstack.development.git": "git@github.com:organization/repository.git",
+					},
+				},
+			},
+			expected: "git@github.com:organization/repository.git",
+		},
+		{
+			name: "labels as list with key=value",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"labels": []interface{}{
+						"dargstack.development.git=git@github.com:organization/repository.git",
+						"other.label=value",
+					},
+				},
+			},
+			expected: "git@github.com:organization/repository.git",
+		},
+		{
+			name: "no deploy key",
+			svc: map[string]interface{}{
+				"image": "nginx",
+			},
+			expected: "",
+		},
+		{
+			name: "no labels key",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"replicas": "3",
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "labels map without git key",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"dargstack.development.build": "./build",
+					},
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "labels list without git entry",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"labels": []interface{}{
+						"dargstack.development.build=./app",
+					},
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "both git and build labels",
+			svc: map[string]interface{}{
+				"deploy": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"dargstack.development.git":   "git@github.com:organization/repository.git",
+						"dargstack.development.build": "./subdir",
+					},
+				},
+			},
+			expected: "git@github.com:organization/repository.git",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractDargstackGitLabel(tt.svc)
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
 func TestExtractDargstackBuildContext(t *testing.T) {
 	tests := []struct {
 		name     string

@@ -3,6 +3,7 @@ package resource
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -428,6 +429,86 @@ func TestValidateServicesWithDockerfile(t *testing.T) {
 	for _, iss := range issues {
 		if iss.Resource == "service:myapp" && iss.Severity == "error" {
 			t.Errorf("unexpected error for service with Dockerfile: %s", iss.Description)
+		}
+	}
+}
+
+func TestValidateGitLabelUnclonedWarning(t *testing.T) {
+	stackDir := t.TempDir()
+
+	composeYAML := `services:
+  webapp:
+    image: webapp:latest
+    deploy:
+      labels:
+        dargstack.development.git: "git@github.com:organization/repository.git"
+`
+	issues, err := Validate([]byte(composeYAML), stackDir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	foundWarning := false
+	for _, iss := range issues {
+		if iss.Resource == "service:webapp" && iss.Severity == "warning" {
+			foundWarning = true
+			if !strings.Contains(iss.Description, "will be cloned") {
+				t.Errorf("expected warning about cloning, got: %s", iss.Description)
+			}
+		}
+	}
+	if !foundWarning {
+		t.Error("expected warning for uncloned git repo")
+	}
+}
+
+func TestValidateGitLabelNoWarningWhenCloned(t *testing.T) {
+	stackDir := t.TempDir()
+
+	// Create the cloned directory to simulate already cloned
+	// Implementation uses filepath.Dir(stackDir) as parent for clones
+	clonedDir := filepath.Join(filepath.Dir(stackDir), "repository")
+	if err := os.MkdirAll(clonedDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	composeYAML := `services:
+  webapp:
+    image: webapp:latest
+    deploy:
+      labels:
+        dargstack.development.git: "git@github.com:organization/repository.git"
+`
+	issues, err := Validate([]byte(composeYAML), stackDir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, iss := range issues {
+		if iss.Resource == "service:webapp" && iss.Severity == "warning" && strings.Contains(iss.Description, "cloned") {
+			t.Errorf("expected no clone warning when repo exists, got: %s", iss.Description)
+		}
+	}
+}
+
+func TestValidateGitLabelSkippedInProduction(t *testing.T) {
+	stackDir := t.TempDir()
+
+	composeYAML := `services:
+  webapp:
+    image: webapp:latest
+    deploy:
+      labels:
+        dargstack.development.git: "git@github.com:organization/repository.git"
+`
+	issues, err := Validate([]byte(composeYAML), stackDir, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, iss := range issues {
+		if iss.Resource == "service:webapp" && strings.Contains(iss.Description, "cloned") {
+			t.Error("expected no git warning in production mode")
 		}
 	}
 }

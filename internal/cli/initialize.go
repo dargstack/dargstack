@@ -376,6 +376,8 @@ services:
       labels:
         # Build context relative to stack/src/development/hello/ — points to <project>/hello/
         dargstack.development.build: "../../../../hello"
+        # Alternatively, clone from a git repo (clones to sibling of stack directory):
+        # dargstack.development.git: "git@github.com:yourorg/hello.git"
     image: %s/hello:development
     ports:
       - "8080:8080"

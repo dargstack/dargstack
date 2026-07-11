@@ -115,6 +115,54 @@ func imageExists(executor *docker.Executor, tag string) bool {
 	return err == nil
 }
 
+// repoNameFromURL extracts the repository directory name from a git URL.
+// It handles SSH (git@host:user/repo.git), HTTPS (https://host/user/repo.git),
+// and git:// formats. The .git suffix is stripped if present.
+func repoNameFromURL(url string) string {
+	name := url
+	// For SSH URLs like git@github.com:user/repo.git, take after the colon
+	if idx := strings.LastIndex(name, ":"); idx >= 0 {
+		name = name[idx+1:]
+	}
+	// Take the last path segment
+	if idx := strings.LastIndex(name, "/"); idx >= 0 {
+		name = name[idx+1:]
+	}
+	// Strip .git suffix
+	name = strings.TrimSuffix(name, ".git")
+	return name
+}
+
+// extractDargstackGitLabel returns the git URL from a
+// deploy.labels.dargstack.development.git label, or "" if not present.
+func extractDargstackGitLabel(svc map[string]interface{}) string {
+	deploy, ok := svc["deploy"].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	labels, ok := deploy["labels"]
+	if !ok {
+		return ""
+	}
+	switch v := labels.(type) {
+	case map[string]interface{}:
+		if git, ok := v["dargstack.development.git"].(string); ok {
+			return git
+		}
+	case []interface{}:
+		for _, item := range v {
+			s, ok := item.(string)
+			if !ok {
+				continue
+			}
+			if strings.HasPrefix(s, "dargstack.development.git=") {
+				return strings.TrimPrefix(s, "dargstack.development.git=")
+			}
+		}
+	}
+	return ""
+}
+
 // extractDargstackBuildContext returns the build context from a
 // deploy.labels.dargstack.development.build label, or "" if not present.
 func extractDargstackBuildContext(svc map[string]interface{}) string {
