@@ -312,10 +312,11 @@ This directory contains generated outputs and runtime artifacts produced by darg
 - ` + "`audit-log/`" + `: deployment snapshots for audit/history.
 - ` + "`certificates/`" + `: local development TLS certificates.
 - ` + "`docs/`" + `: generated stack documentation (` + "`README.md`" + `).
+- ` + "`secrets/`" + `: Docker secrets managed by dargstack. Secret files are created here during ` + "`dargstack deploy`" + ` and referenced by compose definitions. Secrets can be auto-generated from ` + "`x-dargstack.secrets`" + ` metadata or set interactively.
 
 ## Version Control
 
-` + "`audit-log/`" + ` and ` + "`certificates/`" + ` are ignored via ` + "`artifacts/.gitignore`" + `.
+` + "`audit-log/`" + `, ` + "`certificates/`" + `, and ` + "`secrets/`" + ` are ignored via ` + "`artifacts/.gitignore`" + `.
 ` + "`docs/`" + ` is tracked so generated documentation can be shared.
 `
 

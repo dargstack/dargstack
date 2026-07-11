@@ -176,7 +176,7 @@ func secretSetupFlow(composeData []byte, prod bool) error {
 	}
 	if autoResolvedCount > 0 {
 		printInfo(fmt.Sprintf("Auto-generated %d secret(s) from x-dargstack.secrets", autoResolvedCount))
-		printInfo("Review generated values with `dargstack deploy --list-secrets`.")
+		printInfo("Review generated values with `dargstack secret show`.")
 	}
 
 	// Write UNSET THIRD PARTY SECRET placeholder for third-party secrets that still have no file.

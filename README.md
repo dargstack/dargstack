@@ -282,7 +282,7 @@ Template tokens:
 | [dargstack initialize](docs/dargstack_initialize.md) | Initialize a new dargstack project     |
 | [dargstack inspect](docs/dargstack_inspect.md)       | Inspect deployed compose snapshots     |
 | [dargstack remove](docs/dargstack_remove.md)         | Remove the deployed stack              |
-| [dargstack secret](docs/dargstack_secret.md)         | Inspect stack secrets and public keys  |
+| [dargstack secret](docs/dargstack_secret.md)         | Manage stack secrets                   |
 | [dargstack update](docs/dargstack_update.md)         | Update dargstack to the latest version |
 | [dargstack validate](docs/dargstack_validate.md)     | Validate stack resources               |
 

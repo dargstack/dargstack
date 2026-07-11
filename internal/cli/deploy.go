@@ -23,7 +23,6 @@ var (
 	production   bool
 	profiles     []string
 	remove       bool
-	secretsOnly  bool
 	services     []string
 )
 
@@ -52,7 +51,6 @@ func init() {
 	deployCmd.Flags().BoolVar(&listProfiles, "profiles-list", false, "list discovered deploy profiles and exit")
 	deployCmd.Flags().BoolVarP(&production, "production", "p", false, "deploy in production mode")
 	deployCmd.Flags().BoolVarP(&remove, "remove", "r", false, "remove the running stack before deploying")
-	deployCmd.Flags().BoolVar(&secretsOnly, "secrets-only", false, "run secret setup only without deploying")
 	deployCmd.Flags().StringSliceVarP(&services, "services", "s", nil, "deploy only these services (comma-separated)")
 	deployCmd.Flags().BoolVar(&offline, "offline", false, "skip fetching remote git tags")
 	deployCmd.Flags().StringVarP(&deployTag, "tag", "t", "", "deploy a specific git tag (production only)")
@@ -71,10 +69,6 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 
 	if listProfiles {
 		return runProfileList()
-	}
-
-	if secretsOnly {
-		return runSecretsOnly()
 	}
 
 	if remove && !dryRun {
@@ -172,31 +166,6 @@ func runProfileList() error {
 		}
 	}
 
-	return nil
-}
-
-func runSecretsOnly() error {
-	var composeData []byte
-	var err error
-	if production {
-		composeData, err = buildProductionCompose()
-	} else {
-		composeData, err = buildDevelopmentCompose()
-	}
-	if err != nil {
-		return wrapWithBugHint(err)
-	}
-
-	composeData, err = applyProfileFilter(composeData)
-	if err != nil {
-		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
-	}
-
-	if err := secretSetupFlow(composeData, production); err != nil {
-		return err
-	}
-
-	printSuccess("Secret setup complete. Run `dargstack deploy` to deploy.")
 	return nil
 }
 

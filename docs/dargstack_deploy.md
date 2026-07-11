@@ -32,7 +32,6 @@ dargstack deploy [flags]
       --profiles strings   activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
       --profiles-list      list discovered deploy profiles and exit
   -r, --remove             remove the running stack before deploying
-      --secrets-only       run secret setup only without deploying
   -s, --services strings   deploy only these services (comma-separated)
   -t, --tag string         deploy a specific git tag (production only)
 ```

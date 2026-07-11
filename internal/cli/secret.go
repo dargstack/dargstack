@@ -14,41 +14,94 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 	"github.com/dargstack/dargstack/v4/internal/secret"
 )
 
-var (
-	secretPublicKey bool
-	secretShow      bool
-)
-
 var secretCmd = &cobra.Command{
 	Use:   "secret",
-	Short: "Inspect stack secrets",
-	Long: `Inspect stack secrets.
+	Short: "Manage stack secrets",
+	Long: `Manage stack secrets.
 
-Without flags, lists all secret names and their file paths.
-Use ` + "`--public-key`" + ` to derive and display the public key for private_key type secrets.
-Use ` + "`--show`" + ` to include values (with clipboard support if available).`,
-	RunE: runSecret,
+List, inspect, generate, and check the status of secrets defined in your stack.
+
+Use 'dargstack secret generate' to create secrets from x-dargstack.secrets templates.
+Use 'dargstack secret show' to view secret values (with clipboard support if available).
+Use 'dargstack secret show --type key' to derive public keys from private_key type secrets.
+Use 'dargstack secret status' to check which secrets are set, missing, or hold placeholders.`,
+}
+
+var secretListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List secret names and file paths",
+	Long: `List all secret names and their file paths.
+
+Without flags, lists all secret names and their file paths in the current stack.`,
+	RunE: runSecretList,
+}
+
+var secretShowType string
+
+var secretShowCmd = &cobra.Command{
+	Use:   "show",
+	Short: "Show secret values",
+	Long: `Show secret values.
+
+Displays the current values of all secrets. If a clipboard tool is available
+(wl-copy, xclip, xsel, pbcopy, clip), offers an interactive picker to copy
+individual keys and values.
+
+Use --type key to derive and display public keys for private_key type secrets
+instead of showing stored values.`,
+	RunE: runSecretShow,
+}
+
+var secretGenerateCmd = &cobra.Command{
+	Use:   "generate",
+	Short: "Generate secrets from x-dargstack.secrets templates",
+	Long: `Generate secrets from x-dargstack.secrets templates.
+
+Reads secret templates from the compose file and generates values for any
+missing secrets. Auto-generatable types (random_string, wordlist_word,
+private_key, insecure_default, template) are created automatically.
+Third-party secrets require manual values.
+
+In production mode (--production), validates that third-party secrets do not
+hold placeholder values and blocks if they do.
+
+In non-interactive mode (--no-interaction), auto-generates what it can and
+warns about secrets that still need values.`,
+	RunE: runSecretGenerate,
+}
+
+var secretStatusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Show secret status",
+	Long: `Show which secrets are set, missing, or hold placeholder values.
+
+Displays the status of each secret:
+  set        - has a real value on disk
+  placeholder - holds a third-party placeholder value
+  missing    - no file exists on disk`,
+	RunE: runSecretStatus,
 }
 
 func init() {
-	secretCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
-	secretCmd.Flags().BoolVarP(&secretPublicKey, "public-key", "k", false, "show public keys for private_key type secrets")
-	secretCmd.Flags().BoolVarP(&secretShow, "show", "s", false, "show secret values")
+	secretCmd.AddCommand(secretListCmd)
+	secretCmd.AddCommand(secretShowCmd)
+	secretCmd.AddCommand(secretGenerateCmd)
+	secretCmd.AddCommand(secretStatusCmd)
+
+	secretListCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
+	secretShowCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
+	secretShowCmd.Flags().StringVar(&secretShowType, "type", "value", "output type: value (secret values) or key (derived public keys)")
+	secretGenerateCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
+	secretGenerateCmd.Flags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
+	secretStatusCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
 }
 
-func runSecret(_ *cobra.Command, _ []string) error {
-	var composeData []byte
-	var err error
-	if production {
-		composeData, err = buildProductionCompose()
-	} else {
-		composeData, err = buildDevelopmentCompose()
-	}
+func runSecretList(_ *cobra.Command, _ []string) error {
+	composeData, err := buildComposeData(production)
 	if err != nil {
 		return wrapWithBugHint(err)
 	}
@@ -65,15 +118,6 @@ func runSecret(_ *cobra.Command, _ []string) error {
 	}
 	sort.Strings(names)
 
-	if secretPublicKey {
-		return runSecretPublicKeys(composeData, names, paths)
-	}
-
-	if secretShow {
-		return runSecretShow(names, paths)
-	}
-
-	// Default: names and paths only.
 	jsonOutput := noInteraction || strings.EqualFold(outputFormat, "json")
 	if jsonOutput {
 		entries := make([]map[string]string, 0, len(names))
@@ -102,8 +146,31 @@ func runSecret(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-// Values with clipboard support when available, falling back to a table.
-func runSecretShow(names []string, paths map[string]string) error {
+func runSecretShow(_ *cobra.Command, _ []string) error {
+	if secretShowType == "key" {
+		return runSecretShowKeys()
+	}
+	return runSecretShowValues()
+}
+
+func runSecretShowValues() error {
+	composeData, err := buildComposeData(production)
+	if err != nil {
+		return wrapWithBugHint(err)
+	}
+
+	paths := secret.ExtractSecretPaths(composeData)
+	if len(paths) == 0 {
+		printInfo("No secrets found")
+		return nil
+	}
+
+	names := make([]string, 0, len(paths))
+	for name := range paths {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
 	values := secret.ReadSecretValues(paths)
 
 	jsonOutput := noInteraction || strings.EqualFold(outputFormat, "json")
@@ -173,13 +240,28 @@ func runSecretShow(names []string, paths map[string]string) error {
 	return nil
 }
 
-// runSecretPublicKeys extracts and prints the public key for every private_key
-// type secret that has a value on disk.
-func runSecretPublicKeys(composeData []byte, names []string, paths map[string]string) error {
+func runSecretShowKeys() error {
+	composeData, err := buildComposeData(production)
+	if err != nil {
+		return wrapWithBugHint(err)
+	}
+
 	templates, err := secret.ExtractTemplates(composeData)
 	if err != nil {
 		return fmt.Errorf("extract secret templates: %w", err)
 	}
+
+	paths := secret.ExtractSecretPaths(composeData)
+	if len(paths) == 0 {
+		printInfo("No secrets found")
+		return nil
+	}
+
+	names := make([]string, 0, len(paths))
+	for name := range paths {
+		names = append(names, name)
+	}
+	sort.Strings(names)
 
 	type pubEntry struct {
 		KeyType   string `json:"key_type"`
@@ -196,7 +278,7 @@ func runSecretPublicKeys(composeData []byte, names []string, paths map[string]st
 
 		filePath := paths[name]
 		if filePath == "" {
-			filePath = config.SecretsDir(stackDir) + "/" + name
+			filePath = paths[name]
 		}
 
 		data, readErr := os.ReadFile(filePath)
@@ -229,6 +311,111 @@ func runSecretPublicKeys(composeData []byte, names []string, paths map[string]st
 	for _, e := range entries {
 		fmt.Printf("=== %s (%s) ===\n%s\n", e.Name, e.KeyType, e.PublicKey)
 	}
+	return nil
+}
+
+func runSecretGenerate(_ *cobra.Command, _ []string) error {
+	composeData, err := buildComposeData(production)
+	if err != nil {
+		return wrapWithBugHint(err)
+	}
+
+	composeData, err = applyProfileFilter(composeData)
+	if err != nil {
+		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
+	}
+
+	if err := secretSetupFlow(composeData, production); err != nil {
+		return err
+	}
+
+	printSuccess("Secret generation complete. Run `dargstack deploy` to deploy.")
+	return nil
+}
+
+func runSecretStatus(_ *cobra.Command, _ []string) error {
+	composeData, err := buildComposeData(production)
+	if err != nil {
+		return wrapWithBugHint(err)
+	}
+
+	paths := secret.ExtractSecretPaths(composeData)
+	if len(paths) == 0 {
+		printInfo("No secrets found")
+		return nil
+	}
+
+	names := make([]string, 0, len(paths))
+	for name := range paths {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	values := secret.ReadSecretValues(paths)
+
+	type statusEntry struct {
+		Name   string `json:"name"`
+		Status string `json:"status"`
+		File   string `json:"file"`
+	}
+
+	var entries []statusEntry
+	for _, name := range names {
+		status := "missing"
+		if secret.SecretFileExists(paths, name) {
+			status = "set"
+			if secret.IsPlaceholderValue(strings.TrimSpace(values[name])) {
+				status = "placeholder"
+			}
+		}
+		entries = append(entries, statusEntry{Name: name, Status: status, File: paths[name]})
+	}
+
+	jsonOutput := noInteraction || strings.EqualFold(outputFormat, "json")
+	if jsonOutput {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(entries)
+	}
+
+	nameWidth := len("NAME")
+	for _, e := range entries {
+		if len(e.Name) > nameWidth {
+			nameWidth = len(e.Name)
+		}
+	}
+	fmt.Printf("%-*s  %-11s  %s\n", nameWidth, "NAME", "STATUS", "FILE")
+	fmt.Printf("%-*s  %-11s  %s\n", nameWidth, strings.Repeat("-", nameWidth), "-------", "----")
+	for _, e := range entries {
+		fmt.Printf("%-*s  %-11s  %s\n", nameWidth, e.Name, e.Status, e.File)
+	}
+
+	// Summary counts
+	var missing, placeholder, set int
+	for _, e := range entries {
+		switch e.Status {
+		case "missing":
+			missing++
+		case "placeholder":
+			placeholder++
+		case "set":
+			set++
+		}
+	}
+
+	if missing > 0 || placeholder > 0 {
+		fmt.Fprintln(os.Stderr, "")
+		if missing > 0 {
+			printWarning(fmt.Sprintf("%d secret(s) missing", missing))
+		}
+		if placeholder > 0 {
+			printWarning(fmt.Sprintf("%d secret(s) hold placeholder values", placeholder))
+		}
+		printInfo("Run `dargstack secret generate` to create missing secrets.")
+		return fmt.Errorf("not all secrets are set")
+	}
+
+	printSuccess(fmt.Sprintf("All %d secret(s) are set", set))
 	return nil
 }
 

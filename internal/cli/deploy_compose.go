@@ -107,6 +107,13 @@ func buildProductionCompose() ([]byte, error) {
 	return merged, nil
 }
 
+func buildComposeData(prod bool) ([]byte, error) {
+	if prod {
+		return buildProductionCompose()
+	}
+	return buildDevelopmentCompose()
+}
+
 func composeHasProfile(composeData []byte, profile string) bool {
 	profiles, err := compose.DiscoverProfiles(composeData)
 	if err != nil {
