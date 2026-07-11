@@ -193,6 +193,28 @@ func extractDargstackBuildContext(svc map[string]interface{}) string {
 	return ""
 }
 
+// resolveBuildContext returns the build context for a service.
+// It checks for a `dargstack.development.build` label first.
+// If not present, falls back to `dargstack.development.git` and derives
+// the context from the cloned repo directory (sibling of the stack directory).
+// Returns "" if neither label is set.
+func resolveBuildContext(svc map[string]interface{}, stackDir string) string {
+	// .build label takes precedence
+	if ctx := extractDargstackBuildContext(svc); ctx != "" {
+		return ctx
+	}
+
+	// Fall back to .git label: derive context from cloned repo directory
+	gitURL := extractDargstackGitLabel(svc)
+	if gitURL == "" {
+		return ""
+	}
+
+	repoName := repoNameFromURL(gitURL)
+	parentDir := filepath.Dir(stackDir)
+	return filepath.Join(parentDir, repoName)
+}
+
 // offerRuntimeCleanup prompts to remove stopped containers and then unused images.
 func offerRuntimeCleanup(executor *docker.Executor) {
 	ok, err := prompt.Confirm("Remove stopped containers and unused images now?", false)

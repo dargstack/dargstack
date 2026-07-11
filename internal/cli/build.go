@@ -20,7 +20,8 @@ var buildCmd = &cobra.Command{
 	Short: "Build development Dockerfiles",
 	Long: `Build service Docker images.
 
-Builds Dockerfiles for services with a ` + "`dargstack.development.build`" + ` label in their compose definition.
+Builds Dockerfiles for services with a ` + "`dargstack.development.build`" + ` or ` + "`dargstack.development.git`" + ` label in their compose definition.
+The ` + "`dargstack.development.build`" + ` label takes precedence over ` + "`dargstack.development.git`" + `.
 Each service must have a Dockerfile in the build context directory.
 
 Without arguments, lists available services and prompts you to select which to build.
@@ -67,9 +68,9 @@ func runBuild(cmd *cobra.Command, args []string) error {
 			if !ok {
 				return fmt.Errorf("service %q not found in compose — have you cloned its repository?", name)
 			}
-			contextPath := extractDargstackBuildContext(svcDef)
+			contextPath := resolveBuildContext(svcDef, stackDir)
 			if contextPath == "" {
-				return fmt.Errorf("service %q has no dargstack.development.build label — it uses a pre-built image", name)
+				return fmt.Errorf("service %q has no dargstack.development.build or dargstack.development.git label — it uses a pre-built image", name)
 			}
 			if !filepath.IsAbs(contextPath) {
 				// Context is relative to the service directory.
@@ -89,7 +90,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 
 	for _, svcName := range toBuild {
 		svcDef := svcMap[svcName].(map[string]interface{})
-		contextPath := extractDargstackBuildContext(svcDef)
+		contextPath := resolveBuildContext(svcDef, stackDir)
 		if !filepath.IsAbs(contextPath) {
 			// Context is relative to the service directory.
 			svcDir := filepath.Join(config.DevDir(stackDir), svcName)
@@ -107,8 +108,9 @@ func runBuild(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// selectBuildableServices discovers services with a `dargstack.development.build` label,
-// classifies them as available (context exists) or unavailable, and prompts the user.
+// selectBuildableServices discovers services with a `dargstack.development.build` or
+// `dargstack.development.git` label, classifies them as available (context exists)
+// or unavailable, and prompts the user.
 func selectBuildableServices(svcMap map[string]interface{}) ([]string, error) {
 	var available, unavailable []string
 
@@ -117,9 +119,9 @@ func selectBuildableServices(svcMap map[string]interface{}) ([]string, error) {
 		if !ok {
 			continue
 		}
-		contextPath := extractDargstackBuildContext(svc)
+		contextPath := resolveBuildContext(svc, stackDir)
 		if contextPath == "" {
-			continue // no `dargstack.development.build` label
+			continue // no build or git label
 		}
 		if !filepath.IsAbs(contextPath) {
 			// Context is relative to the service directory.
@@ -137,7 +139,7 @@ func selectBuildableServices(svcMap map[string]interface{}) ([]string, error) {
 	sort.Strings(unavailable)
 
 	if len(available) == 0 && len(unavailable) == 0 {
-		printInfo("No services have a `dargstack.development.build` label")
+		printInfo("No services have a `dargstack.development.build` or `dargstack.development.git` label")
 		return nil, nil
 	}
 
