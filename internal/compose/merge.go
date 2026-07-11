@@ -1,6 +1,7 @@
 package compose
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,24 +12,63 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// StackRootPrefix is the "~~" prefix that expands to the stack project root directory.
+const StackRootPrefix = "~~"
+
+// PreprocessStackRoot returns a pre-process function that replaces the "~~" stack
+// root prefix with the absolute stack directory path in the raw YAML bytes before
+// parsing. This is necessary because YAML interprets "~" as null, so "~~" becomes
+// the string "~" after parsing. By expanding on raw bytes, we avoid this issue.
+func PreprocessStackRoot(stackDir string) func([]byte) []byte {
+	return func(data []byte) []byte {
+		var result []string
+		scanner := bufio.NewScanner(strings.NewReader(string(data)))
+		scanner.Buffer(make([]byte, 64*1024), 10*1024*1024)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.Contains(line, StackRootPrefix) {
+				line = strings.ReplaceAll(line, StackRootPrefix, stackDir)
+			}
+			result = append(result, line)
+		}
+		if scanner.Err() != nil {
+			return data
+		}
+		return []byte(strings.Join(result, "\n") + "\n")
+	}
+}
+
 // MergeFiles merges multiple compose YAML files using spruce.
 // Later files override earlier ones. Spruce operators like (( prune )) are evaluated.
-func MergeFiles(paths ...string) ([]byte, error) {
-	return mergeFiles(nil, paths...)
+// stackDir is the stack project root directory containing dargstack.yaml, used for
+// expanding the "~~" prefix in path values.
+func MergeFiles(stackDir string, paths ...string) ([]byte, error) {
+	return mergeFiles(nil, stackDir, paths...)
 }
 
 // MergeFilesProduction merges compose YAML files like MergeFiles but strips
 // # dargstack:dev-only markers from each file's raw bytes before YAML parsing.
 // This must be called before the YAML roundtrip, since YAML parsers discard comments.
-func MergeFilesProduction(paths ...string) ([]byte, error) {
-	return mergeFiles(StripDevOnlyMarkers, paths...)
+func MergeFilesProduction(stackDir string, paths ...string) ([]byte, error) {
+	return mergeFiles(StripDevOnlyMarkers, stackDir, paths...)
 }
 
 // mergeFiles is the shared implementation for MergeFiles and MergeFilesProduction.
 // preProcess, when non-nil, is applied to each file's raw bytes before YAML parsing.
-func mergeFiles(preProcess func([]byte) []byte, paths ...string) ([]byte, error) {
+// stackDir is the stack project root directory used for expanding the "~~" prefix.
+func mergeFiles(preProcess func([]byte) []byte, stackDir string, paths ...string) ([]byte, error) {
 	if len(paths) == 0 {
 		return nil, fmt.Errorf("no compose files provided")
+	}
+
+	// Chain preprocessors: stack root expansion runs first, then any additional pre-processor.
+	if stackDir != "" && preProcess != nil {
+		stackRootPP := PreprocessStackRoot(stackDir)
+		preProcess = func(data []byte) []byte {
+			return preProcess(stackRootPP(data))
+		}
+	} else if stackDir != "" {
+		preProcess = PreprocessStackRoot(stackDir)
 	}
 
 	docs := make([]map[interface{}]interface{}, 0, len(paths))
@@ -89,10 +129,15 @@ func mergeFiles(preProcess func([]byte) []byte, paths ...string) ([]byte, error)
 }
 
 // LoadSingle loads a single compose file without merging, resolving relative paths.
-func LoadSingle(path string) ([]byte, error) {
+// stackDir is the stack project root directory used for expanding the "~~" prefix.
+func LoadSingle(stackDir, path string) ([]byte, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", path, err)
+	}
+
+	if stackDir != "" {
+		data = PreprocessStackRoot(stackDir)(data)
 	}
 
 	// Parse with v2 to resolve paths, then re-marshal

@@ -30,9 +30,9 @@ func buildDevelopmentCompose() ([]byte, error) {
 
 	var data []byte
 	if len(paths) == 1 {
-		data, err = compose.LoadSingle(paths[0])
+		data, err = compose.LoadSingle(stackDir, paths[0])
 	} else {
-		data, err = compose.MergeFiles(paths...)
+		data, err = compose.MergeFiles(stackDir, paths...)
 	}
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func buildProductionCompose() ([]byte, error) {
 
 	// MergeFilesProduction strips # dargstack:dev-only markers from each source
 	// file's raw bytes before YAML parsing, since YAML roundtrips discard comments.
-	merged, err := compose.MergeFilesProduction(paths...)
+	merged, err := compose.MergeFilesProduction(stackDir, paths...)
 	if err != nil {
 		return nil, err
 	}

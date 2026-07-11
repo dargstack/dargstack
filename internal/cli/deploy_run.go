@@ -410,7 +410,7 @@ func countComposeServices(composeData []byte) int {
 
 // injectBuildContext adds a dargstack.development.build label to the specified
 // service if one does not already exist. Returns the re-marshaled compose YAML.
-func injectBuildContext(composeData []byte, serviceName string, buildPath string) ([]byte, error) {
+func injectBuildContext(composeData []byte, serviceName, buildPath string) ([]byte, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
 		return nil, fmt.Errorf("parse compose: %w", err)

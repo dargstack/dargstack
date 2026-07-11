@@ -11,7 +11,7 @@ import (
 )
 
 func TestMergeFilesNoFiles(t *testing.T) {
-	_, err := MergeFiles()
+	_, err := MergeFiles("")
 	if err == nil {
 		t.Fatal("expected error for zero files")
 	}
@@ -29,7 +29,7 @@ func TestMergeFilesSingleFile(t *testing.T) {
 	f := filepath.Join(dir, "base.yaml")
 	writeTestFile(t, f, "services:\n  web:\n    image: nginx\n")
 
-	out, err := MergeFiles(f)
+	out, err := MergeFiles("", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestMergeFilesOverride(t *testing.T) {
 	writeTestFile(t, base, "services:\n  web:\n    image: nginx:1.0\n    environment:\n      DEBUG: \"true\"\n")
 	writeTestFile(t, overlay, "services:\n  web:\n    image: nginx:2.0\n")
 
-	out, err := MergeFiles(base, overlay)
+	out, err := MergeFiles("", base, overlay)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestMergeFilesPruneOperator(t *testing.T) {
 	writeTestFile(t, base, "services:\n  web:\n    image: nginx\n    environment:\n      DEBUG: \"true\"\n")
 	writeTestFile(t, overlay, "services:\n  web:\n    environment:\n      DEBUG: (( prune ))\n")
 
-	out, err := MergeFiles(base, overlay)
+	out, err := MergeFiles("", base, overlay)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestMergeFilesPruneOperator(t *testing.T) {
 }
 
 func TestMergeFileMissing(t *testing.T) {
-	_, err := MergeFiles("/nonexistent/file.yaml")
+	_, err := MergeFiles("", "/nonexistent/file.yaml")
 	if err == nil {
 		t.Fatal("expected error for missing file")
 	}
@@ -95,7 +95,7 @@ func TestMergeFileInvalidYAML(t *testing.T) {
 	f := filepath.Join(dir, "bad.yaml")
 	writeTestFile(t, f, "{{not valid yaml")
 
-	_, err := MergeFiles(f)
+	_, err := MergeFiles("", f)
 	if err == nil {
 		t.Fatal("expected error for invalid YAML")
 	}
@@ -107,7 +107,7 @@ func TestLoadSingle(t *testing.T) {
 	content := "services:\n  web:\n    image: nginx\n"
 	writeTestFile(t, f, content)
 
-	out, err := LoadSingle(f)
+	out, err := LoadSingle("", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +130,7 @@ func TestLoadSingle(t *testing.T) {
 }
 
 func TestLoadSingleMissing(t *testing.T) {
-	_, err := LoadSingle("/nonexistent/compose.yaml")
+	_, err := LoadSingle("", "/nonexistent/compose.yaml")
 	if err == nil {
 		t.Fatal("expected error for missing file")
 	}
@@ -141,7 +141,7 @@ func TestLoadSingleInvalidYAML(t *testing.T) {
 	f := filepath.Join(dir, "bad.yaml")
 	writeTestFile(t, f, "{{not valid")
 
-	_, err := LoadSingle(f)
+	_, err := LoadSingle("", f)
 	if err == nil {
 		t.Fatal("expected error for invalid YAML")
 	}
@@ -522,5 +522,125 @@ func TestSplitVolumeSpec(t *testing.T) {
 			t.Errorf("splitVolumeSpec(%q) = (%q, %q), want (%q, %q)",
 				tt.input, host, rest, tt.host, tt.rest)
 		}
+	}
+}
+
+func TestExpandStackRootInSecrets(t *testing.T) {
+	stackDir := "/project/stack"
+	dir := t.TempDir()
+	f := filepath.Join(dir, "compose.yaml")
+
+	content := "secrets:\n  my-secret:\n    file: " + StackRootPrefix + "/artifacts/secrets/my.secret\n"
+	writeTestFile(t, f, content)
+
+	out, err := LoadSingle(stackDir, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := filepath.Join(stackDir, "artifacts", "secrets", "my.secret")
+	if !strings.Contains(string(out), want) {
+		t.Errorf("expected secret file path %q in output, got:\n%s", want, string(out))
+	}
+}
+
+func TestExpandStackRootInBuildLabel(t *testing.T) {
+	stackDir := "/project/stack"
+	dir := t.TempDir()
+	f := filepath.Join(dir, "compose.yaml")
+
+	content := "services:\n  api:\n    image: api\n    deploy:\n      labels:\n        - dargstack.development.build=" + StackRootPrefix + "/../api\n"
+	writeTestFile(t, f, content)
+
+	out, err := LoadSingle(stackDir, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(string(out), stackDir) {
+		t.Errorf("expected build label to contain stack dir %q, got:\n%s", stackDir, string(out))
+	}
+}
+
+func TestExpandStackRootInVolume(t *testing.T) {
+	stackDir := "/project/stack"
+	dir := t.TempDir()
+	f := filepath.Join(dir, "compose.yaml")
+
+	content := "services:\n  api:\n    image: api\n    volumes:\n      - " + StackRootPrefix + "/../api:/srv/app\n"
+	writeTestFile(t, f, content)
+
+	out, err := LoadSingle(stackDir, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The ~~ prefix is expanded to absolute stack dir path.
+	if !strings.Contains(string(out), stackDir) {
+		t.Errorf("expected volume path to contain stack dir %q, got:\n%s", stackDir, string(out))
+	}
+	if !strings.Contains(string(out), ":/srv/app") {
+		t.Errorf("expected volume target :/srv/app, got:\n%s", string(out))
+	}
+}
+
+func TestExpandStackRootEmptySuffix(t *testing.T) {
+	stackDir := "/project/stack"
+	dir := t.TempDir()
+	f := filepath.Join(dir, "compose.yaml")
+
+	content := "services:\n  api:\n    image: api\n    environment:\n      STACK_DIR: \"" + StackRootPrefix + "\"\n"
+	writeTestFile(t, f, content)
+
+	out, err := LoadSingle(stackDir, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(string(out), stackDir) {
+		t.Errorf("expected STACK_DIR to be expanded to %q, got:\n%s", stackDir, string(out))
+	}
+}
+
+func TestExpandStackRootNoExpansion(t *testing.T) {
+	stackDir := "/project/stack"
+	dir := t.TempDir()
+	f := filepath.Join(dir, "compose.yaml")
+
+	writeTestFile(t, f, "services:\n  api:\n    image: nginx\n")
+
+	out, err := LoadSingle(stackDir, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(string(out), "nginx") {
+		t.Error("expected unchanged output when no stack root prefix present")
+	}
+}
+
+func TestExpandStackRootWithMerge(t *testing.T) {
+	stackDir := "/project/stack"
+	dir := t.TempDir()
+	base := filepath.Join(dir, "base.yaml")
+	overlay := filepath.Join(dir, "overlay.yaml")
+
+	baseContent := "secrets:\n  base-secret:\n    file: " + StackRootPrefix + "/artifacts/base.secret\n"
+	overlayContent := "secrets:\n  overlay-secret:\n    file: " + StackRootPrefix + "/artifacts/overlay.secret\n"
+	writeTestFile(t, base, baseContent)
+	writeTestFile(t, overlay, overlayContent)
+
+	out, err := MergeFiles(stackDir, base, overlay)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	baseWant := filepath.Join(stackDir, "artifacts", "base.secret")
+	overlayWant := filepath.Join(stackDir, "artifacts", "overlay.secret")
+	if !strings.Contains(string(out), baseWant) {
+		t.Errorf("expected base secret path %q in output", baseWant)
+	}
+	if !strings.Contains(string(out), overlayWant) {
+		t.Errorf("expected overlay secret path %q in output", overlayWant)
 	}
 }
