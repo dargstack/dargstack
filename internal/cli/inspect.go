@@ -49,10 +49,8 @@ func runInspect(cmd *cobra.Command, args []string) error {
 	// Show latest deployment
 	dep, err := audit.LatestDeployment(auditDir, inspectEnv)
 	if err != nil {
-		return hintErr(
-			fmt.Errorf("no previous deployments found"),
-			"Run `dargstack deploy` first to create a deployment snapshot.",
-		)
+		printInfo("No previous deployments found — run `dargstack deploy` first to create a deployment snapshot.")
+		return nil
 	}
 
 	data, err := audit.LoadDeployment(dep.Path)
