@@ -9,6 +9,7 @@ import (
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/config"
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/secret"
 )
 
@@ -79,7 +80,7 @@ func buildProductionCompose() ([]byte, error) {
 	if externalized, extErr := compose.RewriteProductionSecrets(merged); extErr == nil {
 		merged = externalized
 	} else {
-		printWarning(fmt.Sprintf("Failed to rewrite production secrets: %v", extErr))
+		logger.L.Warn(fmt.Sprintf("Failed to rewrite production secrets: %v", extErr))
 	}
 
 	// Remap bind mounts from development paths to mirrored production paths
@@ -91,7 +92,7 @@ func buildProductionCompose() ([]byte, error) {
 	); remapErr == nil {
 		merged = remapped
 	} else {
-		printWarning(fmt.Sprintf("Failed to rewrite production bind mounts: %v", remapErr))
+		logger.L.Warn(fmt.Sprintf("Failed to rewrite production bind mounts: %v", remapErr))
 	}
 
 	// Merge env files for production
@@ -99,7 +100,7 @@ func buildProductionCompose() ([]byte, error) {
 	prodEnv := config.ProdEnvFile(stackDir)
 	mergedEnv, mergeErr := compose.MergeEnvFiles(devEnv, prodEnv)
 	if mergeErr != nil {
-		printWarning(fmt.Sprintf("Failed to merge env files: %v", mergeErr))
+		logger.L.Warn(fmt.Sprintf("Failed to merge env files: %v", mergeErr))
 	} else if len(mergedEnv) > 0 {
 		envPath := filepath.Join(config.ArtifactsDir(stackDir), ".env.merged")
 		if mkErr := os.MkdirAll(filepath.Dir(envPath), 0o755); mkErr == nil {

@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/dargstack/dargstack/v4/internal/config"
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/tls"
 )
 
@@ -37,6 +38,6 @@ func runGenerateCerts(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("TLS certificate generation failed: %w", err)
 	}
 
-	printSuccess(fmt.Sprintf("TLS certificates generated in %s for: %s", certDir, strings.Join(domains, ", ")))
+	logger.Success(fmt.Sprintf("TLS certificates generated in %s for: %s", certDir, strings.Join(domains, ", ")))
 	return nil
 }

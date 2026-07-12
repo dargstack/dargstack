@@ -2,75 +2,48 @@ package cli
 
 import (
 	"bytes"
+	"log/slog"
 	"os"
 	"testing"
+
+	"github.com/dargstack/dargstack/v4/internal/logger"
 )
 
-func TestResolveLogLevel(t *testing.T) {
-	tests := []struct {
-		name    string
-		level   string
-		want    int
-		wantErr bool
-	}{
-		{"error level", "error", levelError, false},
-		{"warn level", "warn", levelWarn, false},
-		{"info level", "info", levelInfo, false},
-		{"debug level", "debug", levelDebug, false},
-		{"invalid level", "trace", 0, true},
-		{"empty level", "", 0, true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := resolveLogLevel(tt.level)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("resolveLogLevel(%q) error = %v, wantErr %v", tt.level, err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr && got != tt.want {
-				t.Errorf("resolveLogLevel(%q) = %d, want %d", tt.level, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestPrintHelpersRespectLogLevel(t *testing.T) {
+func TestLoggerRespectsLogLevel(t *testing.T) {
 	tests := []struct {
 		name         string
-		logLevel     string
+		logLevel     slog.Level
 		call         func()
 		expectStdout bool
 		expectStderr bool
 	}{
-		{"error at error level prints", "error", func() { printError("test") }, false, true},
-		{"error at info level prints", "info", func() { printError("test") }, false, true},
-		{"warn at warn level prints", "warn", func() { printWarning("test") }, false, true},
-		{"warn at error level suppressed", "error", func() { printWarning("test") }, false, false},
-		{"info at info level prints", "info", func() { printInfo("test") }, true, false},
-		{"info at warn level suppressed", "warn", func() { printInfo("test") }, false, false},
-		{"success at info level prints", "info", func() { printSuccess("test") }, true, false},
-		{"success at warn level suppressed", "warn", func() { printSuccess("test") }, false, false},
+		{"error at error level prints", slog.LevelError, func() { logger.L.Error("test") }, false, true},
+		{"error at info level prints", slog.LevelInfo, func() { logger.L.Error("test") }, false, true},
+		{"warn at warn level prints", slog.LevelWarn, func() { logger.L.Warn("test") }, false, true},
+		{"warn at error level suppressed", slog.LevelError, func() { logger.L.Warn("test") }, false, false},
+		{"info at info level prints", slog.LevelInfo, func() { logger.L.Info("test") }, true, false},
+		{"info at warn level suppressed", slog.LevelWarn, func() { logger.L.Info("test") }, false, false},
+		{"success at info level prints", slog.LevelInfo, func() { logger.Success("test") }, true, false},
+		{"success at warn level suppressed", slog.LevelWarn, func() { logger.Success("test") }, false, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			oldStdout := os.Stdout
 			oldStderr := os.Stderr
-			oldLogLevel := logLevelValue
+			oldLevel := logger.Level.Level()
 
 			rOut, wOut, _ := os.Pipe()
 			rErr, wErr, _ := os.Pipe()
 			os.Stdout = wOut
 			os.Stderr = wErr
 
-			level, _ := resolveLogLevel(tt.logLevel)
-			logLevelValue = level
+			logger.Level.Set(tt.logLevel)
 
 			defer func() {
 				os.Stdout = oldStdout
 				os.Stderr = oldStderr
-				logLevelValue = oldLogLevel
+				logger.Level.Set(oldLevel)
 			}()
 
 			tt.call()

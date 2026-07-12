@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
@@ -95,14 +96,14 @@ func isGitURL(s string) bool {
 }
 
 func cloneProject(url string) error {
-	printInfo(fmt.Sprintf("Cloning %s ...", url))
+	logger.L.Info(fmt.Sprintf("Cloning %s ...", url))
 	gitCmd := exec.Command("git", "clone", url) // #nosec G204 — URL is user-supplied intentionally
 	gitCmd.Stdout = os.Stdout
 	gitCmd.Stderr = os.Stderr
 	if err := gitCmd.Run(); err != nil {
 		return fmt.Errorf("git clone: %w", err)
 	}
-	printSuccess("Project cloned. Navigate into the directory and run `dargstack deploy`.")
+	logger.Success("Project cloned. Navigate into the directory and run `dargstack deploy`.")
 	return nil
 }
 
@@ -195,8 +196,8 @@ func bootstrapProject(name string) error {
 		return fmt.Errorf("write project README.md: %w", err)
 	}
 
-	printSuccess(fmt.Sprintf("Project %q bootstrapped at ./%s", name, stackDir))
-	printInfo(fmt.Sprintf("Next steps:\n  cd %s\n  dargstack deploy", stackDir))
+	logger.Success(fmt.Sprintf("Project %q bootstrapped at ./%s", name, stackDir))
+	logger.L.Info(fmt.Sprintf("Next steps:\n  cd %s\n  dargstack deploy", stackDir))
 	return nil
 }
 

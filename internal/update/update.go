@@ -15,6 +15,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/creativeprojects/go-selfupdate"
 
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/version"
 )
 
@@ -94,8 +95,8 @@ func PrintUpdateNotice(result *CheckResult) {
 	if result == nil || !result.Available {
 		return
 	}
-	fmt.Fprintf(os.Stderr, "\n  A new version of dargstack is available: %s -> %s\n", currentVersion(), result.NewVersion)
-	fmt.Fprintf(os.Stderr, "  Run `dargstack update --self` to update.\n\n")
+	logger.L.Warn(fmt.Sprintf("A new version of dargstack is available: %s -> %s", currentVersion(), result.NewVersion))
+	logger.L.Warn("Run `dargstack update --self` to update.")
 }
 
 // SelfUpdate downloads and replaces the current binary with the latest release.

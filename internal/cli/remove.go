@@ -12,6 +12,7 @@ import (
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/docker"
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
@@ -56,7 +57,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 
 	running := isStackRunning(ctx, dockerClient, executor)
 	if !running {
-		printInfo(fmt.Sprintf("Stack %q is not running", cfg.Name))
+		logger.L.Info(fmt.Sprintf("Stack %q is not running", cfg.Name))
 		return nil
 	}
 
@@ -69,7 +70,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	printInfo(fmt.Sprintf("Waiting for stack %q services to stop...", cfg.Name))
+	logger.L.Info(fmt.Sprintf("Waiting for stack %q services to stop...", cfg.Name))
 
 	spinDone := make(chan struct{})
 	var wg sync.WaitGroup
@@ -96,9 +97,9 @@ func runRemove(cmd *cobra.Command, args []string) error {
 	wg.Wait()
 
 	if waitErr != nil {
-		printWarning(waitErr.Error())
+		logger.L.Warn(waitErr.Error())
 	} else {
-		printSuccess(fmt.Sprintf("Stack %q removed", cfg.Name))
+		logger.Success(fmt.Sprintf("Stack %q removed", cfg.Name))
 	}
 
 	if removeVolumes {
@@ -117,7 +118,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 			if err := docker.VolumeRemove(executor, volumes); err != nil {
 				return fmt.Errorf("remove volumes: %w", err)
 			}
-			printSuccess(fmt.Sprintf(MsgRemovedVolumes, len(volumes)))
+			logger.Success(fmt.Sprintf(MsgRemovedVolumes, len(volumes)))
 		}
 	}
 
@@ -142,7 +143,7 @@ func runRemoveTargeted(executor *docker.Executor) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
 	}
-	printInfo(filterMsg)
+	logger.L.Info(filterMsg)
 
 	// Extract service names from the filtered compose.
 	targetServices, err := compose.ServiceNames(composeData)
@@ -166,7 +167,7 @@ func runRemoveTargeted(executor *docker.Executor) error {
 	}
 
 	if len(targetServices) == 0 {
-		printInfo("No matching services to remove")
+		logger.L.Info("No matching services to remove")
 		return nil
 	}
 
@@ -178,10 +179,10 @@ func runRemoveTargeted(executor *docker.Executor) error {
 		fullNames[i] = cfg.Name + "_" + s
 	}
 
-	printInfo(fmt.Sprintf("Removing services: %s", strings.Join(targetServices, ", ")))
+	logger.L.Info(fmt.Sprintf("Removing services: %s", strings.Join(targetServices, ", ")))
 	if err := docker.ServiceRemove(executor, fullNames); err != nil {
 		return err
 	}
-	printSuccess(fmt.Sprintf("Removed %d service(s)", len(fullNames)))
+	logger.Success(fmt.Sprintf("Removed %d service(s)", len(fullNames)))
 	return nil
 }

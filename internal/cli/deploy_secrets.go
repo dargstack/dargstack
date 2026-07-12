@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 	"github.com/dargstack/dargstack/v4/internal/secret"
 )
@@ -92,10 +93,10 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 			}
 			if len(noFile) > 0 {
 				sort.Strings(noFile)
-				printInfo("Skipping local generation for third-party secrets")
+				logger.L.Info("Skipping local generation for third-party secrets")
 				for _, name := range noFile {
 					if tmpl, ok := templates[name]; ok && tmpl.Hint != "" {
-						printInfo(fmt.Sprintf("  %s: expected value — %s", name, tmpl.Hint))
+						logger.L.Info(fmt.Sprintf("  %s: expected value — %s", name, tmpl.Hint))
 					}
 					values[name] = secret.ThirdPartyPlaceholder
 				}
@@ -103,9 +104,9 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 			noFile = append(noFile, placeholder...)
 			if len(noFile) > 0 {
 				sort.Strings(noFile)
-				printWarning(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(noFile, ", ")))
+				logger.L.Warn(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(noFile, ", ")))
 				if !deployMode {
-					printInfo(MsgReplaceSecretFiles)
+					logger.L.Info(MsgReplaceSecretFiles)
 				}
 			}
 		}
@@ -130,7 +131,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 		}
 		sort.Strings(templatesWithPlaceholders)
 		if len(templatesWithPlaceholders) > 0 {
-			printWarning(fmt.Sprintf("Templates contain unresolved third-party secrets: %s", strings.Join(templatesWithPlaceholders, ", ")))
+			logger.L.Warn(fmt.Sprintf("Templates contain unresolved third-party secrets: %s", strings.Join(templatesWithPlaceholders, ", ")))
 		}
 
 		if err := secret.WriteSecrets(secretPaths, values); err != nil {
@@ -170,8 +171,8 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 			}
 		}
 		if autoResolvedCount > 0 {
-			printInfo(fmt.Sprintf("Auto-generated %d secret(s) from x-dargstack.secrets", autoResolvedCount))
-			printInfo("Review generated values with `dargstack secret show`.")
+			logger.L.Info(fmt.Sprintf("Auto-generated %d secret(s) from x-dargstack.secrets", autoResolvedCount))
+			logger.L.Info("Review generated values with `dargstack secret show`.")
 		}
 
 		// Determine what's still missing (no value and not third-party).
@@ -193,9 +194,9 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 		sort.Strings(unsetThirdParty)
 
 		if len(unsetThirdParty) > 0 {
-			printWarning(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(unsetThirdParty, ", ")))
+			logger.L.Warn(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(unsetThirdParty, ", ")))
 			if !deployMode {
-				printInfo(MsgReplaceSecretFiles)
+				logger.L.Info(MsgReplaceSecretFiles)
 			}
 		}
 
@@ -211,11 +212,11 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 		}
 		sort.Strings(templatesWithPlaceholders)
 		if len(templatesWithPlaceholders) > 0 {
-			printWarning(fmt.Sprintf("Templates contain unresolved third-party secrets: %s", strings.Join(templatesWithPlaceholders, ", ")))
+			logger.L.Warn(fmt.Sprintf("Templates contain unresolved third-party secrets: %s", strings.Join(templatesWithPlaceholders, ", ")))
 		}
 
 		if len(stillMissing) > 0 {
-			printWarning(fmt.Sprintf("Unset secrets: %s — run interactively to set them", strings.Join(stillMissing, ", ")))
+			logger.L.Warn(fmt.Sprintf("Unset secrets: %s — run interactively to set them", strings.Join(stillMissing, ", ")))
 			// Only show tip if any missing secret lacks an x-dargstack.secrets definition.
 			hasNoTemplate := false
 			for _, name := range stillMissing {
@@ -225,7 +226,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 				}
 			}
 			if hasNoTemplate && !deployMode {
-				printInfo(TipAddSecretMetadata)
+				logger.L.Info(TipAddSecretMetadata)
 			}
 		}
 
@@ -313,8 +314,8 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 		}
 	}
 	if autoResolvedCount > 0 {
-		printInfo(fmt.Sprintf("Auto-generated %d secret(s) from x-dargstack.secrets", autoResolvedCount))
-		printInfo("Review generated values with `dargstack secret show`.")
+		logger.L.Info(fmt.Sprintf("Auto-generated %d secret(s) from x-dargstack.secrets", autoResolvedCount))
+		logger.L.Info("Review generated values with `dargstack secret show`.")
 	}
 
 	// Warn about templates that resolved with placeholder content.
@@ -329,7 +330,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 	}
 	sort.Strings(templatesWithPlaceholders)
 	if len(templatesWithPlaceholders) > 0 {
-		printWarning(fmt.Sprintf("Templates contain unresolved third-party secrets: %s", strings.Join(templatesWithPlaceholders, ", ")))
+		logger.L.Warn(fmt.Sprintf("Templates contain unresolved third-party secrets: %s", strings.Join(templatesWithPlaceholders, ", ")))
 	}
 
 	stillMissing := make([]string, 0, len(secretPaths))
@@ -349,14 +350,14 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 	}
 	sort.Strings(unsetThirdParty)
 	if len(unsetThirdParty) > 0 {
-		printWarning(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(unsetThirdParty, ", ")))
+		logger.L.Warn(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(unsetThirdParty, ", ")))
 		if !deployMode {
-			printInfo(MsgReplaceSecretFiles)
+			logger.L.Info(MsgReplaceSecretFiles)
 		}
 	}
 
 	if len(stillMissing) > 0 {
-		printWarning(fmt.Sprintf("Unset secrets remain: %s", strings.Join(stillMissing, ", ")))
+		logger.L.Warn(fmt.Sprintf("Unset secrets remain: %s", strings.Join(stillMissing, ", ")))
 		// Only show tip if any missing secret lacks an x-dargstack.secrets definition.
 		hasNoTemplate := false
 		for _, name := range stillMissing {
@@ -366,7 +367,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 			}
 		}
 		if hasNoTemplate && !deployMode {
-			printInfo(TipAddSecretMetadata)
+			logger.L.Info(TipAddSecretMetadata)
 		}
 	}
 

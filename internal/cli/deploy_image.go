@@ -14,6 +14,7 @@ import (
 
 	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/docker"
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
@@ -81,7 +82,7 @@ func resolveDeployTag() (string, error) {
 	}
 	if !offline {
 		if err := gitFetchTags(); err != nil {
-			printWarning(fmt.Sprintf("Failed to fetch remote tags: %v", err))
+			logger.L.Warn(fmt.Sprintf("Failed to fetch remote tags: %v", err))
 		}
 	}
 	tag, err := latestGitTag(cfg.Production.Branch)
@@ -151,7 +152,7 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 		if !filepath.IsAbs(contextPath) {
 			svcDir := filepath.Join(baseDir, name)
 			if _, err := os.Stat(svcDir); os.IsNotExist(err) {
-				printWarning(fmt.Sprintf("Service %q: directory not found at %s", name, svcDir))
+				logger.L.Warn(fmt.Sprintf("Service %q: directory not found at %s", name, svcDir))
 				continue
 			}
 			contextPath = filepath.Join(svcDir, contextPath)
@@ -175,7 +176,7 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 	sort.Slice(tasks, func(i, j int) bool { return tasks[i].name < tasks[j].name })
 
 	if verbose {
-		printInfo(fmt.Sprintf("Building %d image(s) in parallel: %s", len(tasks), joinNames(extractNames(tasks))))
+		logger.L.Info(fmt.Sprintf("Building %d image(s) in parallel: %s", len(tasks), joinNames(extractNames(tasks))))
 	}
 
 	var bs *buildStatus
@@ -223,10 +224,10 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 
 	if verbose {
 		for _, task := range tasks {
-			printSuccess(fmt.Sprintf(MsgBuiltImage, task.tag))
+			logger.Success(fmt.Sprintf(MsgBuiltImage, task.tag))
 		}
 	} else {
-		printSuccess(fmt.Sprintf("Built %d image(s)", successCount))
+		logger.Success(fmt.Sprintf("Built %d image(s)", successCount))
 	}
 
 	return nil
@@ -286,7 +287,7 @@ func fetchAndWarnBehind(composeData []byte) []gitBehindInfo {
 	}
 
 	// Fetch and check behind in parallel.
-	printInfo(fmt.Sprintf("Checking %d repo%s for remote changes...", len(dirs), pluralS(len(dirs))))
+	logger.L.Info(fmt.Sprintf("Checking %d repo%s for remote changes...", len(dirs), pluralS(len(dirs))))
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	var behind []gitBehindInfo
@@ -327,7 +328,7 @@ func printBehindWarning(behind []gitBehindInfo) {
 	for i, b := range behind {
 		parts[i] = fmt.Sprintf("%s (%s) — %d commit%s behind", b.serviceName, b.branch, b.behind, pluralS(b.behind))
 	}
-	printWarning(fmt.Sprintf("Local repos behind remote: %s", strings.Join(parts, ", ")))
+	logger.L.Warn(fmt.Sprintf("Local repos behind remote: %s", strings.Join(parts, ", ")))
 }
 
 // fetchAndCheckBehind runs `git fetch` in dir and returns how many commits
@@ -505,17 +506,17 @@ func offerRuntimeCleanup(executor *docker.Executor) {
 
 	containerOut, err := executor.Run("container", "prune", "-f")
 	if err != nil {
-		printWarning(fmt.Sprintf("Container cleanup failed: %v", err))
+		logger.L.Warn(fmt.Sprintf("Container cleanup failed: %v", err))
 		return
 	}
 
 	imageOut, err := executor.Run("image", "prune", "-af")
 	if err != nil {
-		printWarning(fmt.Sprintf("Image cleanup failed: %v", err))
+		logger.L.Warn(fmt.Sprintf("Image cleanup failed: %v", err))
 		return
 	}
 
-	printSuccess(fmt.Sprintf(
+	logger.Success(fmt.Sprintf(
 		"Cleanup complete. Containers: %s | Images: %s",
 		strings.TrimSpace(containerOut),
 		strings.TrimSpace(imageOut),

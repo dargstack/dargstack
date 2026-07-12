@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/dargstack/dargstack/v4/internal/docker"
+	"github.com/dargstack/dargstack/v4/internal/logger"
 )
 
 var (
@@ -46,7 +47,7 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 	ctx := context.Background()
 
 	if dryRun {
-		printInfo(fmt.Sprintf("[dry-run] Tracing %s deployment for stack %q", env, cfg.Name))
+		logger.L.Info(fmt.Sprintf("[dry-run] Tracing %s deployment for stack %q", env, cfg.Name))
 	}
 
 	if forceDeploy && !dryRun {

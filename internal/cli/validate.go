@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/resource"
 )
 
@@ -40,7 +41,7 @@ func runValidate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
 	}
-	printInfo(filterMsg)
+	logger.L.Info(filterMsg)
 
 	issues, err := resource.Validate(composeData, stackDir, isProduction())
 	if err != nil {
@@ -48,7 +49,7 @@ func runValidate(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(issues) == 0 {
-		printSuccess("All resources are valid")
+		logger.Success("All resources are valid")
 		return nil
 	}
 

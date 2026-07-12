@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/dargstack/dargstack/v4/internal/config"
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/resource"
 )
 
@@ -41,6 +42,6 @@ func runDocs(_ *cobra.Command, _ []string) error {
 		fmt.Print(content)
 	}
 
-	printSuccess(fmt.Sprintf("Documentation generated at %s/README.md", docsDir))
+	logger.Success(fmt.Sprintf("Documentation generated at %s/README.md", docsDir))
 	return nil
 }

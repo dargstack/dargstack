@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dargstack/dargstack/v4/internal/docker"
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
@@ -26,7 +27,7 @@ func ensureSwarm(executor *docker.Executor) error {
 	if err := initSwarmWithAddrSelection(executor); err != nil {
 		return wrapWithBugHint(err)
 	}
-	printSuccess("Swarm initialized")
+	logger.Success("Swarm initialized")
 	return nil
 }
 

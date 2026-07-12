@@ -13,6 +13,7 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/docker"
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
@@ -52,13 +53,13 @@ func runBuild(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				return fmt.Errorf("filter profiles %v: %w", profiles, err)
 			}
-			printInfo(fmt.Sprintf("Building with profiles %v active", profiles))
+			logger.L.Info(fmt.Sprintf("Building with profiles %v active", profiles))
 		case len(services) > 0:
 			composeData, err = compose.FilterServices(composeData, services)
 			if err != nil {
 				return fmt.Errorf("filter services: %w", err)
 			}
-			printInfo(fmt.Sprintf("Building services: %s", joinNames(services)))
+			logger.L.Info(fmt.Sprintf("Building services: %s", joinNames(services)))
 		default:
 			hasDefault := composeHasProfile(composeData, "default")
 			composeData, err = compose.FilterByProfile(composeData, nil)
@@ -66,7 +67,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("apply default profile semantics: %w", err)
 			}
 			if hasDefault {
-				printInfo("Default profile active: only services in profile \"default\" are available for building")
+				logger.L.Info("Default profile active: only services in profile \"default\" are available for building")
 			}
 		}
 	}
@@ -112,7 +113,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(toBuild) == 0 {
-		printInfo("No services selected for building")
+		logger.L.Info("No services selected for building")
 		return nil
 	}
 
@@ -136,7 +137,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 
 	if verbose {
 		for _, b := range builds {
-			printInfo(fmt.Sprintf("Building %s from %s", b.tag, b.contextPath))
+			logger.L.Info(fmt.Sprintf("Building %s from %s", b.tag, b.contextPath))
 		}
 	}
 
@@ -226,10 +227,10 @@ func runBuild(cmd *cobra.Command, args []string) error {
 
 	if verbose {
 		for _, b := range builds {
-			printSuccess(fmt.Sprintf(MsgBuiltImage, b.tag))
+			logger.Success(fmt.Sprintf(MsgBuiltImage, b.tag))
 		}
 	} else {
-		printSuccess(fmt.Sprintf("Built %d image(s)", len(builds)))
+		logger.Success(fmt.Sprintf("Built %d image(s)", len(builds)))
 	}
 
 	return nil
@@ -266,17 +267,17 @@ func selectBuildableServices(svcMap map[string]interface{}) ([]string, error) {
 	sort.Strings(unavailable)
 
 	if len(available) == 0 && len(unavailable) == 0 {
-		printInfo("No services have a `dargstack.development.build` or `dargstack.development.git` label")
+		logger.L.Info("No services have a `dargstack.development.build` or `dargstack.development.git` label")
 		return nil, nil
 	}
 
 	if len(unavailable) > 0 {
-		printWarning(fmt.Sprintf("Unavailable for build (context directory not found — clone their repositories): %s",
+		logger.L.Warn(fmt.Sprintf("Unavailable for build (context directory not found — clone their repositories): %s",
 			joinNames(unavailable)))
 	}
 
 	if len(available) == 0 {
-		printInfo("No buildable services have their context directory present")
+		logger.L.Info("No buildable services have their context directory present")
 		return nil, nil
 	}
 

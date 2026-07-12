@@ -14,6 +14,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 	"github.com/dargstack/dargstack/v4/internal/secret"
 )
@@ -108,11 +109,11 @@ func runSecretShowValues(targetName string) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
 	}
-	printInfo(filterMsg)
+	logger.L.Info(filterMsg)
 
 	paths := secret.ExtractSecretPaths(composeData)
 	if len(paths) == 0 {
-		printInfo("No secrets found")
+		logger.L.Info("No secrets found")
 		return nil
 	}
 
@@ -169,15 +170,15 @@ func runSecretShowValues(targetName string) error {
 				switch choice {
 				case ChoiceCopyKey:
 					if copyErr := copyToClipboard(name); copyErr != nil {
-						printWarning(fmt.Sprintf(MsgClipboardCopyFailed, copyErr))
+						logger.L.Warn(fmt.Sprintf(MsgClipboardCopyFailed, copyErr))
 					} else {
-						printSuccess(fmt.Sprintf("Copied key %q", name))
+						logger.Success(fmt.Sprintf("Copied key %q", name))
 					}
 				case ChoiceCopyValue:
 					if copyErr := copyToClipboard(values[name]); copyErr != nil {
-						printWarning(fmt.Sprintf(MsgClipboardCopyFailed, copyErr))
+						logger.L.Warn(fmt.Sprintf(MsgClipboardCopyFailed, copyErr))
 					} else {
-						printSuccess(fmt.Sprintf("Copied value for %q", name))
+						logger.Success(fmt.Sprintf("Copied value for %q", name))
 					}
 				case "Done":
 					return nil
@@ -189,7 +190,7 @@ func runSecretShowValues(targetName string) error {
 		}
 
 	default:
-		printWarning("No clipboard tool found. Falling back to table output.")
+		logger.L.Warn("No clipboard tool found. Falling back to table output.")
 		nameWidth := len("NAME")
 		for _, name := range names {
 			if len(name) > nameWidth {
@@ -215,7 +216,7 @@ func runSecretShowKeys(targetName string) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
 	}
-	printInfo(filterMsg)
+	logger.L.Info(filterMsg)
 
 	templates, err := secret.ExtractTemplates(composeData)
 	if err != nil {
@@ -224,7 +225,7 @@ func runSecretShowKeys(targetName string) error {
 
 	paths := secret.ExtractSecretPaths(composeData)
 	if len(paths) == 0 {
-		printInfo("No secrets found")
+		logger.L.Info("No secrets found")
 		return nil
 	}
 
@@ -265,13 +266,13 @@ func runSecretShowKeys(targetName string) error {
 
 		data, readErr := os.ReadFile(filePath)
 		if readErr != nil {
-			printWarning(fmt.Sprintf("Cannot read %s: %v", name, readErr))
+			logger.L.Warn(fmt.Sprintf("Cannot read %s: %v", name, readErr))
 			continue
 		}
 
 		pub, keyType, deriveErr := derivePublicKeyPEM(data)
 		if deriveErr != nil {
-			printWarning(fmt.Sprintf("Cannot derive public key for %s: %v", name, deriveErr))
+			logger.L.Warn(fmt.Sprintf("Cannot derive public key for %s: %v", name, deriveErr))
 			continue
 		}
 
@@ -279,7 +280,7 @@ func runSecretShowKeys(targetName string) error {
 	}
 
 	if len(entries) == 0 {
-		printInfo("No private_key type secrets with values found")
+		logger.L.Info("No private_key type secrets with values found")
 		return nil
 	}
 
@@ -306,12 +307,12 @@ func runSecretGenerate(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
 	}
-	printInfo(filterMsg)
+	logger.L.Info(filterMsg)
 
 	if err, allSet := secretSetupFlow(composeData, isProduction(), false); err != nil {
 		return err
 	} else if allSet {
-		printSuccess("Secret generation complete. Run `dargstack deploy` to deploy.")
+		logger.Success("Secret generation complete. Run `dargstack deploy` to deploy.")
 	}
 	return nil
 }
@@ -326,11 +327,11 @@ func runSecretStatus(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
 	}
-	printInfo(filterMsg)
+	logger.L.Info(filterMsg)
 
 	paths := secret.ExtractSecretPaths(composeData)
 	if len(paths) == 0 {
-		printInfo("No secrets found")
+		logger.L.Info("No secrets found")
 		return nil
 	}
 
@@ -395,16 +396,16 @@ func runSecretStatus(_ *cobra.Command, _ []string) error {
 	if missing > 0 || placeholder > 0 {
 		fmt.Fprintln(os.Stderr, "")
 		if missing > 0 {
-			printWarning(fmt.Sprintf("%d secret(s) missing", missing))
+			logger.L.Warn(fmt.Sprintf("%d secret(s) missing", missing))
 		}
 		if placeholder > 0 {
-			printWarning(fmt.Sprintf("%d secret(s) hold placeholder values", placeholder))
+			logger.L.Warn(fmt.Sprintf("%d secret(s) hold placeholder values", placeholder))
 		}
-		printInfo("Run `dargstack secret generate` to create missing secrets.")
+		logger.L.Info("Run `dargstack secret generate` to create missing secrets.")
 		return fmt.Errorf("not all secrets are set")
 	}
 
-	printSuccess(fmt.Sprintf("All %d secret(s) are set", set))
+	logger.Success(fmt.Sprintf("All %d secret(s) are set", set))
 	return nil
 }
 

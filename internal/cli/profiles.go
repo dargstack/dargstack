@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
+	"github.com/dargstack/dargstack/v4/internal/logger"
 )
 
 var profilesCmd = &cobra.Command{
@@ -38,9 +39,9 @@ func runProfiles(_ *cobra.Command, _ []string) error {
 	}
 	sort.Strings(discovered)
 	if len(discovered) == 0 {
-		printInfo("No profiles found")
+		logger.L.Info("No profiles found")
 	} else {
-		printInfo("Discovered profiles:")
+		logger.L.Info("Discovered profiles:")
 		for _, p := range discovered {
 			fmt.Printf("- %s\n", p)
 		}

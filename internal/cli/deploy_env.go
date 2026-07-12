@@ -7,6 +7,7 @@ import (
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/config"
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
@@ -76,11 +77,11 @@ func promptForEnvValues(prod bool) error {
 	}
 
 	if noInteraction {
-		printWarning(fmt.Sprintf("Missing environment variable values: %s", strings.Join(missing, ", ")))
+		logger.L.Warn(fmt.Sprintf("Missing environment variable values: %s", strings.Join(missing, ", ")))
 		return nil
 	}
 
-	printInfo(fmt.Sprintf("Found %d environment variable(s) without values", len(missing)))
+	logger.L.Info(fmt.Sprintf("Found %d environment variable(s) without values", len(missing)))
 	ok, promptErr := prompt.Confirm("Fill in missing environment variable values now?", true)
 	if promptErr != nil || !ok {
 		return nil

@@ -2,13 +2,14 @@ package cli
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
 	"github.com/dargstack/dargstack/v4/internal/config"
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 	"github.com/dargstack/dargstack/v4/internal/update"
 	"github.com/dargstack/dargstack/v4/internal/version"
@@ -27,24 +28,14 @@ var (
 
 	cfg      *config.Config
 	stackDir string
-
-	styleErr  = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
-	styleInfo = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
-	styleOK   = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
-	styleWarn = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
 )
 
 const (
-	levelError = iota
-	levelWarn
-	levelInfo
-	levelDebug
+	bugReportURL   = "https://github.com/dargstack/dargstack/issues/new?template=bug_report.yaml"
+	discussionsURL = "https://github.com/dargstack/dargstack/discussions"
 )
 
-var (
-	logLevel      string
-	logLevelValue = levelInfo
-)
+var logLevel string
 
 var rootCmd = &cobra.Command{
 	Use:          "dargstack",
@@ -56,13 +47,20 @@ var rootCmd = &cobra.Command{
 		// Propagate --no-interaction to the prompt package.
 		prompt.NonInteractive = noInteraction
 
-		level, logErr := resolveLogLevel(logLevel)
-		if logErr != nil {
-			return logErr
-		}
-		logLevelValue = level
+		// Set log level from flag. --verbose overrides to debug.
 		if verbose {
-			logLevelValue = levelDebug
+			logger.Level.Set(slog.LevelDebug)
+		} else {
+			switch logLevel {
+			case "error":
+				logger.Level.Set(slog.LevelError)
+			case "warn":
+				logger.Level.Set(slog.LevelWarn)
+			case "debug":
+				logger.Level.Set(slog.LevelDebug)
+			default:
+				logger.Level.Set(slog.LevelInfo)
+			}
 		}
 
 		// Skip config loading for commands that don't need a stack project.
@@ -167,53 +165,6 @@ func isSkippedCommand(cmd *cobra.Command) bool {
 // isProduction returns true if the active --environment is "production".
 func isProduction() bool { return env == "production" }
 
-func resolveLogLevel(level string) (int, error) {
-	switch level {
-	case "error":
-		return levelError, nil
-	case "warn":
-		return levelWarn, nil
-	case "info":
-		return levelInfo, nil
-	case "debug":
-		return levelDebug, nil
-	default:
-		return 0, fmt.Errorf("invalid log level %q: must be one of error, warn, info, debug", level)
-	}
-}
-
-// Execute runs the root command.
-func Execute() error {
-	return rootCmd.Execute()
-}
-
-func printError(msg string) {
-	if levelError <= logLevelValue {
-		fmt.Fprintln(os.Stderr, styleErr.Render("Error: "+msg))
-	}
-}
-
-func printWarning(msg string) {
-	if levelWarn <= logLevelValue {
-		fmt.Fprintln(os.Stderr, styleWarn.Render("Warning: "+msg))
-	}
-}
-
-func printSuccess(msg string) {
-	if levelInfo <= logLevelValue {
-		fmt.Println(styleOK.Render(msg))
-	}
-}
-
-func printInfo(msg string) {
-	if levelInfo <= logLevelValue {
-		fmt.Println(styleInfo.Render(msg))
-	}
-}
-
-const bugReportURL = "https://github.com/dargstack/dargstack/issues/new?template=bug_report.yaml"
-const discussionsURL = "https://github.com/dargstack/dargstack/discussions"
-
 // wrapWithBugHint wraps an error with a hint to report bugs or ask for help.
 func wrapWithBugHint(err error) error {
 	return fmt.Errorf("%w\n\n  If this is unexpected, please report a bug: %s\n  Or start a discussion: %s", err, bugReportURL, discussionsURL)
@@ -221,7 +172,13 @@ func wrapWithBugHint(err error) error {
 
 // hintErr prints a fix suggestion, then returns the error.
 // This keeps error strings Go-conventional while still giving the user guidance.
+// Unlike regular log messages, hints always print regardless of log level.
 func hintErr(err error, suggestion string) error {
-	fmt.Fprintln(os.Stderr, styleInfo.Render(suggestion))
+	fmt.Fprintln(os.Stderr, logger.StyleInfo.Render(suggestion))
 	return err
+}
+
+// Execute runs the root command.
+func Execute() error {
+	return rootCmd.Execute()
 }

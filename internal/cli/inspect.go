@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/dargstack/dargstack/v4/internal/audit"
+	"github.com/dargstack/dargstack/v4/internal/logger"
 )
 
 var (
@@ -49,7 +50,7 @@ func runInspect(cmd *cobra.Command, args []string) error {
 	// Show latest deployment
 	dep, err := audit.LatestDeployment(auditDir, inspectEnv)
 	if err != nil {
-		printInfo("No previous deployments found — run `dargstack deploy` first to create a deployment snapshot.")
+		logger.L.Info("No previous deployments found — run `dargstack deploy` first to create a deployment snapshot.")
 		return nil
 	}
 
@@ -74,7 +75,7 @@ func listDeployments(auditDir string) error {
 	}
 
 	if len(deployments) == 0 {
-		printInfo("No deployments found. Deploy first, then inspect.")
+		logger.L.Info("No deployments found. Deploy first, then inspect.")
 		return nil
 	}
 
@@ -163,16 +164,16 @@ func showDiff(auditDir string, latest *audit.Deployment, latestData []byte) erro
 		deployedLines := strings.Split(string(latestData), "\n")
 		currentLines := strings.Split(string(currentData), "\n")
 		if strings.Join(deployedLines, "\n") == strings.Join(currentLines, "\n") {
-			printSuccess("No changes — current compose matches last deployed version")
+			logger.Success("No changes — current compose matches last deployed version")
 			return nil
 		}
-		printWarning("diff not available; showing full current compose:")
+		logger.L.Warn("diff not available; showing full current compose:")
 		fmt.Print(string(currentData))
 		return nil
 	}
 
 	if len(out) == 0 {
-		printSuccess("No changes — current compose matches last deployed version")
+		logger.Success("No changes — current compose matches last deployed version")
 		return nil
 	}
 

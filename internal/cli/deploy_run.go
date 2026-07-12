@@ -17,6 +17,7 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/docker"
+	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 	"github.com/dargstack/dargstack/v4/internal/resource"
 	"github.com/dargstack/dargstack/v4/internal/secret"
@@ -32,10 +33,10 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	composeVars := applyEnvToProcess(isProduction())
 
 	if dryRun {
-		printInfo("[dry-run] Would check for missing environment variable values")
+		logger.L.Info("[dry-run] Would check for missing environment variable values")
 	} else {
 		if err := promptForEnvValues(isProduction()); err != nil {
-			printWarning(fmt.Sprintf("Environment variable check: %v", err))
+			logger.L.Warn(fmt.Sprintf("Environment variable check: %v", err))
 		}
 		executor.SetComposeEnv(composeVars)
 	}
@@ -51,7 +52,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	if filterErr != nil {
 		return fmt.Errorf("filter compose by profile: %w", filterErr)
 	}
-	printInfo(filterMsg)
+	logger.L.Info(filterMsg)
 
 	if !isProduction() {
 		composeData, err = deployPrepareDevelopment(ctx, dockerClient, executor, composeData, dryRun)
@@ -87,7 +88,7 @@ func deployFilterForSecrets(composeData []byte, dryRun bool) error {
 	if dryRun {
 		templates, templateErr := secret.ExtractTemplates(secretComposeData)
 		if templateErr == nil && len(templates) > 0 {
-			printInfo(fmt.Sprintf("[dry-run] Would set up %d secret(s):", len(templates)))
+			logger.L.Info(fmt.Sprintf("[dry-run] Would set up %d secret(s):", len(templates)))
 			for name, tmpl := range templates {
 				switch {
 				case tmpl.Type == secret.TypeThirdParty || tmpl.ThirdParty:
@@ -95,27 +96,27 @@ func deployFilterForSecrets(composeData []byte, dryRun bool) error {
 					if tmpl.Hint != "" {
 						msg += fmt.Sprintf(" — %s", tmpl.Hint)
 					}
-					printInfo(msg)
+					logger.L.Info(msg)
 				case tmpl.Type == secret.TypeTemplate || tmpl.Template != "":
-					printInfo(fmt.Sprintf("  %s: template", name))
+					logger.L.Info(fmt.Sprintf("  %s: template", name))
 				case tmpl.Type == secret.TypeWordlistWord:
-					printInfo(fmt.Sprintf("  %s: generated word", name))
+					logger.L.Info(fmt.Sprintf("  %s: generated word", name))
 				case tmpl.Type == secret.TypePrivateKey:
-					printInfo(fmt.Sprintf("  %s: generated private key", name))
+					logger.L.Info(fmt.Sprintf("  %s: generated private key", name))
 				case tmpl.Type == secret.TypeInsecureDefault:
-					printInfo(fmt.Sprintf("  %s: insecure default value", name))
+					logger.L.Info(fmt.Sprintf("  %s: insecure default value", name))
 				case secret.IsAutoGeneratable(&tmpl):
 					length := tmpl.Length
 					if length <= 0 {
 						length = 32
 					}
-					printInfo(fmt.Sprintf("  %s: generated (%d chars)", name, length))
+					logger.L.Info(fmt.Sprintf("  %s: generated (%d chars)", name, length))
 				default:
-					printInfo(fmt.Sprintf("  %s: interactive prompt required", name))
+					logger.L.Info(fmt.Sprintf("  %s: interactive prompt required", name))
 				}
 			}
 		} else {
-			printInfo("[dry-run] No secrets to set up")
+			logger.L.Info("[dry-run] No secrets to set up")
 		}
 	} else {
 		if err, _ := secretSetupFlow(secretComposeData, isProduction(), true); err != nil {
@@ -124,7 +125,7 @@ func deployFilterForSecrets(composeData []byte, dryRun bool) error {
 	}
 
 	if dryRun {
-		printInfo("[dry-run] Would validate all stack resources")
+		logger.L.Info("[dry-run] Would validate all stack resources")
 	} else {
 		issues, err := resource.Validate(secretComposeData, stackDir, isProduction())
 		if err != nil {
@@ -147,11 +148,11 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 	// TLS certificates
 	domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Development.Domain), cfg.Development.Certificate.Domains)
 	if dryRun {
-		printInfo(fmt.Sprintf("[dry-run] Would ensure TLS certificates for: %s", strings.Join(domains, ", ")))
+		logger.L.Info(fmt.Sprintf("[dry-run] Would ensure TLS certificates for: %s", strings.Join(domains, ", ")))
 	} else {
 		certDir := config.CertificatesDir(stackDir)
 		if err := tls.EnsureCertificates(certDir, domains); err != nil {
-			printWarning(fmt.Sprintf("TLS certificate setup failed: %v", err))
+			logger.L.Warn(fmt.Sprintf("TLS certificate setup failed: %v", err))
 		}
 	}
 
@@ -159,7 +160,7 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 	if dryRun {
 		gitServices := extractGitServices(composeData)
 		if len(gitServices) > 0 {
-			printInfo(fmt.Sprintf("[dry-run] Would clone and initialize repositories for: %s", strings.Join(gitServices, ", ")))
+			logger.L.Info(fmt.Sprintf("[dry-run] Would clone and initialize repositories for: %s", strings.Join(gitServices, ", ")))
 		}
 	} else {
 		var err error
@@ -179,9 +180,9 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 	buildServices := extractBuildServices(composeData)
 	if dryRun {
 		if len(buildServices) > 0 {
-			printInfo(fmt.Sprintf("[dry-run] Would auto-build images for: %s", strings.Join(buildServices, ", ")))
+			logger.L.Info(fmt.Sprintf("[dry-run] Would auto-build images for: %s", strings.Join(buildServices, ", ")))
 		} else {
-			printInfo("[dry-run] No services require auto-build")
+			logger.L.Info("[dry-run] No services require auto-build")
 		}
 	} else {
 		if err := autoBuildServices(executor, composeData); err != nil {
@@ -191,7 +192,7 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 
 	// Volume cleanup prompt
 	if dryRun {
-		printInfo("[dry-run] Would prompt for volume cleanup (first-time deploy)")
+		logger.L.Info("[dry-run] Would prompt for volume cleanup (first-time deploy)")
 	} else if !noInteraction {
 		promptVolumes := true
 		if cfg.Behavior.Volume != nil && cfg.Behavior.Volume.Remove != nil {
@@ -205,12 +206,12 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 					volumes, volErr := docker.VolumeList(executor, cfg.Name)
 					if volErr == nil && len(volumes) > 0 {
 						if err := docker.VolumeRemove(executor, volumes); err != nil {
-							printWarning(fmt.Sprintf("Failed to remove volumes: %v", err))
+							logger.L.Warn(fmt.Sprintf("Failed to remove volumes: %v", err))
 						} else {
 							for _, v := range volumes {
-								printInfo(fmt.Sprintf("  Removed volume: %s", v))
+								logger.L.Info(fmt.Sprintf("  Removed volume: %s", v))
 							}
-							printSuccess(fmt.Sprintf(MsgRemovedVolumes, len(volumes)))
+							logger.Success(fmt.Sprintf(MsgRemovedVolumes, len(volumes)))
 						}
 					}
 				}
@@ -227,14 +228,14 @@ func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun
 	images := compose.ExtractServiceImages(composeData)
 	if dryRun {
 		if len(images) > 0 {
-			printInfo(fmt.Sprintf("[dry-run] Would check image accessibility for: %s", strings.Join(images, ", ")))
+			logger.L.Info(fmt.Sprintf("[dry-run] Would check image accessibility for: %s", strings.Join(images, ", ")))
 		}
 	} else {
 		if len(images) > 0 {
 			unreachable := docker.CheckImagesAccessible(executor, images)
 			if len(unreachable) > 0 {
 				for img := range unreachable {
-					printError(fmt.Sprintf("image not accessible: %s", img))
+					logger.L.Error(fmt.Sprintf("image not accessible: %s", img))
 				}
 				return nil, fmt.Errorf("one or more images are not accessible — fix registry credentials or image references before deploying")
 			}
@@ -258,50 +259,50 @@ func deployExecute(executor *docker.Executor, composeData []byte, env string, dr
 			if dryRun {
 				prefix = "[dry-run] "
 			}
-			printWarning(prefix + "STACK_DOMAIN is still set to default \"app.localhost\" — set domain in dargstack.yaml for production")
+			logger.L.Warn(prefix + "STACK_DOMAIN is still set to default \"app.localhost\" — set domain in dargstack.yaml for production")
 		}
 		tag := "unknown"
 		if !dryRun {
 			resolvedTag, tagErr := resolveDeployTag()
 			if tagErr != nil {
-				printWarning(fmt.Sprintf("Deploy tag resolution failed: %v", tagErr))
+				logger.L.Warn(fmt.Sprintf("Deploy tag resolution failed: %v", tagErr))
 			} else {
 				tag = resolvedTag
 			}
 		}
 		if dryRun {
-			printInfo(fmt.Sprintf("[dry-run] Would deploy production stack %q (tag: %s)", cfg.Name, tag))
+			logger.L.Info(fmt.Sprintf("[dry-run] Would deploy production stack %q (tag: %s)", cfg.Name, tag))
 		} else {
-			printInfo(fmt.Sprintf("Deploying production stack %q (tag: %s)", cfg.Name, tag))
+			logger.L.Info(fmt.Sprintf("Deploying production stack %q (tag: %s)", cfg.Name, tag))
 		}
 	} else {
 		if dryRun {
-			printInfo(fmt.Sprintf("[dry-run] Would deploy development stack %q", cfg.Name))
+			logger.L.Info(fmt.Sprintf("[dry-run] Would deploy development stack %q", cfg.Name))
 		} else {
-			printInfo(fmt.Sprintf("Deploying development stack %q", cfg.Name))
+			logger.L.Info(fmt.Sprintf("Deploying development stack %q", cfg.Name))
 		}
 	}
 
 	// Save audit trail
 	if dryRun {
-		printInfo("[dry-run] Would save deployment snapshot to audit log")
+		logger.L.Info("[dry-run] Would save deployment snapshot to audit log")
 	} else {
 		auditDir := audit.AuditLogDir(stackDir)
 		var auditPath string
 		if snapPath, saveErr := audit.SaveDeployment(auditDir, env, composeData); saveErr == nil {
 			auditPath = snapPath
 			if verbose {
-				printInfo(fmt.Sprintf("Deployment snapshot: %s", auditPath))
+				logger.L.Info(fmt.Sprintf("Deployment snapshot: %s", auditPath))
 			}
 		} else if verbose {
-			printWarning(fmt.Sprintf("Failed to save audit snapshot: %v", saveErr))
+			logger.L.Warn(fmt.Sprintf("Failed to save audit snapshot: %v", saveErr))
 		}
 	}
 
 	// Execute deployment
 	if dryRun {
-		printInfo("[dry-run] Would execute `docker stack deploy`")
-		printInfo("[dry-run] Final compose output:")
+		logger.L.Info("[dry-run] Would execute `docker stack deploy`")
+		logger.L.Info("[dry-run] Final compose output:")
 		fmt.Println()
 		fmt.Print(string(composeData))
 	} else {
@@ -317,16 +318,16 @@ func deployExecute(executor *docker.Executor, composeData []byte, env string, dr
 func deployPostDeploy(ctx context.Context, dockerClient *docker.Client, executor *docker.Executor, composeData []byte, dryRun bool) {
 	if dryRun {
 		svcCount := countComposeServices(composeData)
-		printInfo(fmt.Sprintf("[dry-run] Would have %d service(s) running", svcCount))
+		logger.L.Info(fmt.Sprintf("[dry-run] Would have %d service(s) running", svcCount))
 	} else {
 		if count, err := countStackServices(ctx, dockerClient, executor); err == nil {
-			printSuccess(fmt.Sprintf("Stack %q deployed with %d service(s)", cfg.Name, count))
+			logger.Success(fmt.Sprintf("Stack %q deployed with %d service(s)", cfg.Name, count))
 		}
 	}
 
 	if isProduction() {
 		if dryRun {
-			printInfo("[dry-run] Would offer runtime cleanup of stopped containers and unused images")
+			logger.L.Info("[dry-run] Would offer runtime cleanup of stopped containers and unused images")
 		} else if !noInteraction {
 			offerRuntimeCleanup(executor)
 		}
@@ -486,7 +487,7 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 			continue
 		}
 
-		printInfo(fmt.Sprintf("Cloning %s for service %q", gitURL, name))
+		logger.L.Info(fmt.Sprintf("Cloning %s for service %q", gitURL, name))
 		cmd := exec.Command("git", "clone", "--depth", "1", gitURL, targetDir)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
@@ -496,12 +497,12 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 		// Run make init if a Makefile exists.
 		makefile := filepath.Join(targetDir, "Makefile")
 		if _, err := os.Stat(makefile); err == nil {
-			printInfo(fmt.Sprintf("Initializing %s for service %q", repoName, name))
+			logger.L.Info(fmt.Sprintf("Initializing %s for service %q", repoName, name))
 			initCmd := exec.Command("make", "init")
 			initCmd.Dir = targetDir
 			initOut, initErr := initCmd.CombinedOutput()
 			if initErr != nil {
-				printWarning(fmt.Sprintf("Init for service %q failed: %s", name, strings.TrimSpace(string(initOut))))
+				logger.L.Warn(fmt.Sprintf("Init for service %q failed: %s", name, strings.TrimSpace(string(initOut))))
 			}
 		}
 
