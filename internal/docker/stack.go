@@ -114,7 +114,8 @@ func VolumeRemove(exec *Executor, volumes []string) error {
 }
 
 // StackBuild builds a service image from a Dockerfile.
-func StackBuild(exec *Executor, contextPath, target, tag string) error {
+// Output is captured silently; only returned on error.
+func StackBuild(exec *Executor, label, contextPath, target, tag string) error {
 	args := []string{"build", "--target", target, "-t", tag, contextPath}
-	return exec.RunPassthrough(args...)
+	return exec.Build(label, args...)
 }

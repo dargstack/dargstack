@@ -5,7 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
+	"sync"
 
 	"gopkg.in/yaml.v3"
 
@@ -53,9 +55,17 @@ func latestGitTag(branch string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
+// buildTask holds the parameters for a single image build.
+type buildTask struct {
+	name        string
+	contextPath string
+	tag         string
+}
+
 // autoBuildServices builds images for services that have a dargstack.development.build label.
 // When behavior.build.mode is "missing", images are only built if they don't already exist locally.
 // When behavior.build.mode is "always" (default), images are always rebuilt.
+// Builds run in parallel; output is suppressed unless verbose or a build fails.
 func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
@@ -69,6 +79,8 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 
 	baseDir := config.DevDir(stackDir)
 
+	// Collect build tasks in deterministic order.
+	var tasks []buildTask
 	for name, def := range svcMap {
 		svc, ok := def.(map[string]interface{})
 		if !ok {
@@ -81,12 +93,8 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 		}
 
 		if !filepath.IsAbs(contextPath) {
-			// Context paths are relative to the service directory, not the development root.
-			// Match the service name to its directory.
 			svcDir := filepath.Join(baseDir, name)
 			if _, err := os.Stat(svcDir); os.IsNotExist(err) {
-				// Service directory doesn't match name — try to find it.
-				// For now, assume service name matches directory name.
 				printWarning(fmt.Sprintf("Service %q: directory not found at %s", name, svcDir))
 				continue
 			}
@@ -100,14 +108,69 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 			continue
 		}
 
-		printInfo(fmt.Sprintf("Auto-building %s", tag))
-		if err := docker.StackBuild(executor, contextPath, "development", tag); err != nil {
-			return fmt.Errorf("build %s: %w", name, err)
+		tasks = append(tasks, buildTask{name: name, contextPath: contextPath, tag: tag})
+	}
+
+	if len(tasks) == 0 {
+		return nil
+	}
+
+	// Sort for deterministic output.
+	sort.Slice(tasks, func(i, j int) bool { return tasks[i].name < tasks[j].name })
+
+	if verbose {
+		printInfo(fmt.Sprintf("Building %d image(s) in parallel: %s", len(tasks), joinNames(extractNames(tasks))))
+	}
+
+	// Run builds in parallel.
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var firstErr error
+	successCount := 0
+
+	for _, task := range tasks {
+		wg.Add(1)
+		go func(t buildTask) {
+			defer wg.Done()
+
+			if err := docker.StackBuild(executor, t.name, t.contextPath, "development", t.tag); err != nil {
+				mu.Lock()
+				if firstErr == nil {
+					firstErr = err
+				}
+				mu.Unlock()
+				return
+			}
+
+			mu.Lock()
+			successCount++
+			mu.Unlock()
+		}(task)
+	}
+
+	wg.Wait()
+
+	if firstErr != nil {
+		return firstErr
+	}
+
+	if verbose {
+		for _, task := range tasks {
+			printSuccess(fmt.Sprintf(MsgBuiltImage, task.tag))
 		}
-		printSuccess(fmt.Sprintf(MsgBuiltImage, tag))
+	} else {
+		printSuccess(fmt.Sprintf("Built %d image(s)", successCount))
 	}
 
 	return nil
+}
+
+func extractNames(tasks []buildTask) []string {
+	names := make([]string, len(tasks))
+	for i, t := range tasks {
+		names[i] = t.name
+	}
+	return names
 }
 
 func imageExists(executor *docker.Executor, tag string) bool {

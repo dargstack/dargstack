@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -88,21 +89,60 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	// Resolve build contexts for all services.
+	type resolvedBuild struct {
+		name        string
+		contextPath string
+		tag         string
+	}
+	var builds []resolvedBuild
 	for _, svcName := range toBuild {
 		svcDef := svcMap[svcName].(map[string]interface{})
 		contextPath := resolveBuildContext(svcDef, stackDir)
 		if !filepath.IsAbs(contextPath) {
-			// Context is relative to the service directory.
 			svcDir := filepath.Join(config.DevDir(stackDir), svcName)
 			contextPath = filepath.Join(svcDir, contextPath)
 		}
 		tag := fmt.Sprintf("%s/%s:development", cfg.Name, svcName)
+		builds = append(builds, resolvedBuild{name: svcName, contextPath: contextPath, tag: tag})
+	}
 
-		printInfo(fmt.Sprintf("Building %s from %s", tag, contextPath))
-		if err := docker.StackBuild(executor, contextPath, "development", tag); err != nil {
-			return fmt.Errorf("build %s: %w", svcName, err)
+	if verbose {
+		for _, b := range builds {
+			printInfo(fmt.Sprintf("Building %s from %s", b.tag, b.contextPath))
 		}
-		printSuccess(fmt.Sprintf(MsgBuiltImage, tag))
+	}
+
+	// Run builds in parallel.
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var buildErrs []string
+
+	for _, b := range builds {
+		wg.Add(1)
+		go func(rb resolvedBuild) {
+			defer wg.Done()
+			if err := docker.StackBuild(executor, rb.name, rb.contextPath, "development", rb.tag); err != nil {
+				mu.Lock()
+				buildErrs = append(buildErrs, fmt.Sprintf("build %s: %v", rb.name, err))
+				mu.Unlock()
+				return
+			}
+		}(b)
+	}
+
+	wg.Wait()
+
+	if len(buildErrs) > 0 {
+		return fmt.Errorf("build errors:\n  %s", joinNamesWithNewline(buildErrs))
+	}
+
+	if verbose {
+		for _, b := range builds {
+			printSuccess(fmt.Sprintf(MsgBuiltImage, b.tag))
+		}
+	} else {
+		printSuccess(fmt.Sprintf("Built %d image(s)", len(builds)))
 	}
 
 	return nil
@@ -171,6 +211,17 @@ func joinNames(names []string) string {
 			result += ", "
 		}
 		result += n
+	}
+	return result
+}
+
+func joinNamesWithNewline(items []string) string {
+	result := ""
+	for i, item := range items {
+		if i > 0 {
+			result += "\n  "
+		}
+		result += item
 	}
 	return result
 }

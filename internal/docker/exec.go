@@ -146,6 +146,38 @@ func (e *Executor) RunPassthrough(args ...string) error {
 	return nil
 }
 
+// Build executes a docker build command, capturing stdout/stderr.
+// Returns the captured output (prefixed with label) only on error.
+func (e *Executor) Build(label string, args ...string) error {
+	var cmd *exec.Cmd
+	if e.useSudo {
+		fullArgs := append([]string{e.binary}, args...)
+		cmd = exec.Command("sudo", fullArgs...)
+	} else {
+		cmd = exec.Command(e.binary, args...)
+	}
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Stdin = os.Stdin
+
+	if err := cmd.Run(); err != nil {
+		output := ""
+		if s := strings.TrimSpace(stdout.String()); s != "" {
+			output = s
+		}
+		if s := strings.TrimSpace(stderr.String()); s != "" {
+			if output != "" {
+				output += "\n"
+			}
+			output += s
+		}
+		return fmt.Errorf("docker %s [%s]: %w\n%s", strings.Join(args, " "), label, err, output)
+	}
+	return nil
+}
+
 // RunWithStdin executes a docker command passing data via stdin.
 // When sudo is required, any compose environment variables registered via
 // SetComposeEnv are forwarded explicitly using `sudo env KEY=VAL…` so that
