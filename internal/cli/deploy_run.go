@@ -159,7 +159,7 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 	if dryRun {
 		gitServices := extractGitServices(composeData)
 		if len(gitServices) > 0 {
-			printInfo(fmt.Sprintf("[dry-run] Would clone repositories for: %s", strings.Join(gitServices, ", ")))
+			printInfo(fmt.Sprintf("[dry-run] Would clone and initialize repositories for: %s", strings.Join(gitServices, ", ")))
 		}
 	} else {
 		var err error
@@ -487,6 +487,18 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			return nil, fmt.Errorf("clone %s for service %q: %s: %w", gitURL, name, strings.TrimSpace(string(out)), err)
+		}
+
+		// Run make init if a Makefile exists.
+		makefile := filepath.Join(targetDir, "Makefile")
+		if _, err := os.Stat(makefile); err == nil {
+			printInfo(fmt.Sprintf("Initializing %s for service %q", repoName, name))
+			initCmd := exec.Command("make", "init")
+			initCmd.Dir = targetDir
+			initOut, initErr := initCmd.CombinedOutput()
+			if initErr != nil {
+				printWarning(fmt.Sprintf("Init for service %q failed: %s", name, strings.TrimSpace(string(initOut))))
+			}
 		}
 
 		composeData, err = injectBuildContext(composeData, name, targetDir)
