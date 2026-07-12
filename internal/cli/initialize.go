@@ -413,9 +413,8 @@ configs:
     file: ./config.yaml      # overwrite: use the production config file
 
 secrets:
-  hello-api-key:
-    file: (( purge ))        # purge: remove file: so Docker loads the secret from Swarm
-    external: true
+  # Secrets with file: in development are automatically converted to external: true
+  # in production. No manual override needed.
 
 services:
   hello:

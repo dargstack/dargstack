@@ -75,6 +75,13 @@ func buildProductionCompose() ([]byte, error) {
 		return nil, err
 	}
 
+	// Convert file: secrets to external: true for production.
+	if externalized, extErr := compose.RewriteProductionSecrets(merged); extErr == nil {
+		merged = externalized
+	} else {
+		printWarning(fmt.Sprintf("Failed to rewrite production secrets: %v", extErr))
+	}
+
 	// Remap bind mounts from development paths to mirrored production paths
 	// when production files/directories exist.
 	if remapped, remapErr := compose.RewriteProductionBindMounts(

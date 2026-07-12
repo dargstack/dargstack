@@ -151,3 +151,38 @@ func RewriteProductionBindMounts(data []byte, devRoot, prodRoot string) ([]byte,
 
 	return yaml.Marshal(doc)
 }
+
+// RewriteProductionSecrets converts all secrets that have a file: key to
+// external: true, removing the file: key. This is used for production
+// deployments where Docker Swarm manages secrets externally and local
+// file paths are meaningless.
+func RewriteProductionSecrets(data []byte) ([]byte, error) {
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		return data, err
+	}
+
+	secretsRaw, ok := doc["secrets"]
+	if !ok {
+		return data, nil
+	}
+
+	secrets, ok := secretsRaw.(map[string]interface{})
+	if !ok {
+		return data, nil
+	}
+
+	for name, def := range secrets {
+		defMap, ok := def.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if _, hasFile := defMap["file"]; hasFile {
+			delete(defMap, "file")
+			defMap["external"] = true
+			secrets[name] = defMap
+		}
+	}
+
+	return yaml.Marshal(doc)
+}
