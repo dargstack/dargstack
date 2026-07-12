@@ -248,19 +248,17 @@ type gitBehindInfo struct {
 }
 
 // fetchAndWarnBehind fetches all git repos used as build contexts in parallel
-// and prints an aggregate warning for any that are behind their remote.
-func fetchAndWarnBehind(composeData []byte) {
+// and returns info for any that are behind their remote (caller prints the warning).
+func fetchAndWarnBehind(composeData []byte) []gitBehindInfo {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
-		return
+		return nil
 	}
 
 	svcMap, ok := doc["services"].(map[string]interface{})
 	if !ok {
-		return
+		return nil
 	}
-
-	baseDir := config.DevDir(stackDir)
 
 	// Collect build context directories.
 	type contextDir struct {
@@ -275,27 +273,20 @@ func fetchAndWarnBehind(composeData []byte) {
 			continue
 		}
 
-		contextPath := extractDargstackBuildContext(svc)
+		contextPath := resolveBuildContext(svc, stackDir)
 		if contextPath == "" {
 			continue
-		}
-
-		if !filepath.IsAbs(contextPath) {
-			svcDir := filepath.Join(baseDir, name)
-			if _, err := os.Stat(svcDir); os.IsNotExist(err) {
-				continue
-			}
-			contextPath = filepath.Join(svcDir, contextPath)
 		}
 
 		dirs = append(dirs, contextDir{name: name, path: contextPath})
 	}
 
 	if len(dirs) == 0 {
-		return
+		return nil
 	}
 
 	// Fetch and check behind in parallel.
+	printInfo(fmt.Sprintf("Checking %d repo%s for remote changes...", len(dirs), pluralS(len(dirs))))
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	var behind []gitBehindInfo
@@ -319,12 +310,19 @@ func fetchAndWarnBehind(composeData []byte) {
 	wg.Wait()
 
 	if len(behind) == 0 {
-		return
+		return nil
 	}
 
 	// Sort for deterministic output.
 	sort.Slice(behind, func(i, j int) bool { return behind[i].serviceName < behind[j].serviceName })
+	return behind
+}
 
+// printBehindWarning prints the aggregate behind-remote warning.
+func printBehindWarning(behind []gitBehindInfo) {
+	if len(behind) == 0 {
+		return
+	}
 	parts := make([]string, len(behind))
 	for i, b := range behind {
 		parts[i] = fmt.Sprintf("%s (%s) — %d commit%s behind", b.serviceName, b.branch, b.behind, pluralS(b.behind))
@@ -334,7 +332,7 @@ func fetchAndWarnBehind(composeData []byte) {
 
 // fetchAndCheckBehind runs `git fetch` in dir and returns how many commits
 // the current branch is behind its upstream. Returns (0, "", err) on failure.
-func fetchAndCheckBehind(dir string) (int, string, error) {
+func fetchAndCheckBehind(dir string) (behind int, branch string, err error) {
 	// Check if it's a git repo.
 	if _, err := os.Stat(filepath.Join(dir, ".git")); os.IsNotExist(err) {
 		return 0, "", nil
@@ -348,18 +346,22 @@ func fetchAndCheckBehind(dir string) (int, string, error) {
 	}
 
 	// Get current branch.
-	branchOut, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
+	branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	branchCmd.Dir = dir
+	branchOut, err := branchCmd.Output()
 	if err != nil {
 		return 0, "", nil
 	}
-	branch := strings.TrimSpace(string(branchOut))
+	branch = strings.TrimSpace(string(branchOut))
 	if branch == "HEAD" {
 		// Detached HEAD — nothing to compare.
 		return 0, "", nil
 	}
 
 	// Get upstream branch.
-	upstreamOut, err := exec.Command("git", "rev-parse", "--abbrev-ref", branch+"@{upstream}").Output()
+	upstreamCmd := exec.Command("git", "rev-parse", "--abbrev-ref", branch+"@{upstream}")
+	upstreamCmd.Dir = dir
+	upstreamOut, err := upstreamCmd.Output()
 	if err != nil {
 		// No upstream configured.
 		return 0, "", nil
@@ -367,13 +369,15 @@ func fetchAndCheckBehind(dir string) (int, string, error) {
 	upstream := strings.TrimSpace(string(upstreamOut))
 
 	// Count commits behind: `git rev-list COUNT..upstream --count`
-	countOut, err := exec.Command("git", "rev-list", fmt.Sprintf("%s..%s", branch, upstream), "--count").Output()
+	countCmd := exec.Command("git", "rev-list", fmt.Sprintf("%s..%s", branch, upstream), "--count")
+	countCmd.Dir = dir
+	countOut, err := countCmd.Output()
 	if err != nil {
 		return 0, branch, nil
 	}
 	count := strings.TrimSpace(string(countOut))
 
-	behind, err := strconv.Atoi(count)
+	behind, err = strconv.Atoi(count)
 	if err != nil {
 		return 0, branch, nil
 	}

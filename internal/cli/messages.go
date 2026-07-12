@@ -14,10 +14,10 @@ const (
 	MsgRemovedVolumes = "Removed %d volume(s)"
 
 	// Info / hint messages
-	HintStartDocker         = "Start Docker Desktop or the docker daemon, then try again."
-	MsgReplaceSecretFiles   = "Replace those secret files with real values before deploying to production."
-	MsgClipboardCopyFailed  = "Clipboard copy failed: %v"
-	TipAddSecretMetadata    = "Tip: Add x-dargstack.secrets entries with typed secret metadata to auto-generate missing secrets."
+	HintStartDocker        = "Start Docker Desktop or the docker daemon, then try again."
+	MsgReplaceSecretFiles  = "Replace those secret files with real values before deploying to production."
+	MsgClipboardCopyFailed = "Clipboard copy failed: %v"
+	TipAddSecretMetadata   = "Tip: Add x-dargstack.secrets entries with typed secret metadata to auto-generate missing secrets."
 
 	// Flag descriptions
 	FlagDescProfiles = "activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined"

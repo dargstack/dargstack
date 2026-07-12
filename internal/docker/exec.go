@@ -21,6 +21,7 @@ var buildColors = []string{
 	"\033[38;5;72m",  // teal
 	"\033[38;5;203m", // orange
 }
+
 const resetColor = "\033[0m"
 
 // labelWriter wraps an io.Writer, prepending a color-coded "[label] " prefix

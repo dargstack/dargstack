@@ -142,10 +142,9 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	}
 
 	// 8. Fetch build-context repos and warn if behind (development only)
-	if !isProduction() {
-		if !dryRun {
-			fetchAndWarnBehind(composeData)
-		}
+	if !isProduction() && !dryRun {
+		behindRepos := fetchAndWarnBehind(composeData)
+		printBehindWarning(behindRepos)
 	}
 
 	// 9. Auto-build images (development only)

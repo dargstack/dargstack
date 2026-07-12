@@ -14,7 +14,7 @@ import (
 // and a bool indicating whether all secrets are set (no missing, no placeholders).
 // When deployMode is true, tip messages are suppressed because the resource
 // validator will report them in its structured output.
-func secretSetupFlow(composeData []byte, prod bool, deployMode bool) (error, bool) {
+func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 	templates, err := secret.ExtractTemplates(composeData)
 	if err != nil || len(templates) == 0 {
 		return nil, true
