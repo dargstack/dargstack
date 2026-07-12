@@ -260,10 +260,14 @@ func deployExecute(executor *docker.Executor, composeData []byte, env string, dr
 			}
 			printWarning(prefix + "STACK_DOMAIN is still set to default \"app.localhost\" — set domain in dargstack.yaml for production")
 		}
-		tag, tagErr := resolveDeployTag()
-		if tagErr != nil {
-			printWarning(fmt.Sprintf("Deploy tag resolution failed: %v", tagErr))
-			tag = "unknown"
+		tag := "unknown"
+		if !dryRun {
+			resolvedTag, tagErr := resolveDeployTag()
+			if tagErr != nil {
+				printWarning(fmt.Sprintf("Deploy tag resolution failed: %v", tagErr))
+			} else {
+				tag = resolvedTag
+			}
 		}
 		if dryRun {
 			printInfo(fmt.Sprintf("[dry-run] Would deploy production stack %q (tag: %s)", cfg.Name, tag))
