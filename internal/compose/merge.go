@@ -64,8 +64,9 @@ func mergeFiles(preProcess func([]byte) []byte, stackDir string, paths ...string
 	// Chain preprocessors: stack root expansion runs first, then any additional pre-processor.
 	if stackDir != "" && preProcess != nil {
 		stackRootPP := PreprocessStackRoot(stackDir)
+		inner := preProcess
 		preProcess = func(data []byte) []byte {
-			return preProcess(stackRootPP(data))
+			return inner(stackRootPP(data))
 		}
 	} else if stackDir != "" {
 		preProcess = PreprocessStackRoot(stackDir)
