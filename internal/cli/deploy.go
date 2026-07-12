@@ -29,7 +29,7 @@ By default, deploys to the development environment. This includes:
 - Setting up secrets interactively or with defaults
 - Validating all stack resources
 
-Use ` + "`--env production`" + ` to deploy to production, which:
+Use ` + "`--environment production`" + ` to deploy to production, which:
 - Requires all environment variables and secrets to be set
 - Blocks deployment if default insecure secrets are present
 - Includes production-only services`,

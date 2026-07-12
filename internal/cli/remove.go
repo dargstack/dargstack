@@ -25,7 +25,7 @@ var rmCmd = &cobra.Command{
 
 Removes all services, networks, and secrets from the Docker Swarm stack.
 Use ` + "`--profiles`" + ` or ` + "`--services`" + ` to remove only a subset of services. Without
-those flags the full stack is removed. Use ` + "`--env production`" + ` to build the compose
+those flags the full stack is removed. Use ` + "`--environment production`" + ` to build the compose
 from production sources when resolving which services belong to a profile.
 Optionally (with ` + "`--volumes`" + `) removes all stack volumes, clearing persistent data.`,
 	RunE: runRemove,

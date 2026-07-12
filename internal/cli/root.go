@@ -79,7 +79,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Set STACK_DOMAIN if not already set — use the domain matching the
-		// active --env. Production commands use the production domain;
+		// active --environment. Production commands use the production domain;
 		// development commands use the development domain.
 		if os.Getenv("STACK_DOMAIN") == "" {
 			domain := cfg.Development.Domain
@@ -142,7 +142,7 @@ func isSkippedCommand(cmd *cobra.Command) bool {
 	return false
 }
 
-// isProduction returns true if the active --env is "production".
+// isProduction returns true if the active --environment is "production".
 func isProduction() bool { return env == "production" }
 
 // Execute runs the root command.

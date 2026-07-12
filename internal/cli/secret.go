@@ -59,7 +59,7 @@ missing secrets. Auto-generatable types (random_string, wordlist_word,
 private_key, insecure_default, template) are created automatically.
 Third-party secrets require manual values.
 
-In production mode (--env production), validates that third-party secrets do not
+In production mode (--environment production), validates that third-party secrets do not
 hold placeholder values and blocks if they do.
 
 In non-interactive mode (--no-interaction), auto-generates what it can and

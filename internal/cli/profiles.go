@@ -15,7 +15,7 @@ var profilesCmd = &cobra.Command{
 	Long: `List profiles discovered from compose service definitions.
 
 Profiles are defined via the dargstack.profiles label on services.
-Use --env production to list profiles from the production compose stack.`,
+Use --environment production to list profiles from the production compose stack.`,
 	RunE: runProfiles,
 }
 

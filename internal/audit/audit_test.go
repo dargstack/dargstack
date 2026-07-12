@@ -111,7 +111,7 @@ func TestLatestDeployment(t *testing.T) {
 	}
 
 	if dep.Environment != "development" {
-		t.Errorf("expected env=development, got %s", dep.Environment)
+		t.Errorf("expected environment=development, got %s", dep.Environment)
 	}
 }
 
