@@ -463,6 +463,6 @@ environment:
   production:
     domain: app.localhost # optional, defaults to "app.localhost"
     branch: main # optional, defaults to "main"
-    tag: latest # optional, defaults to "latest"
+    # tag: 1.0.0 # optional, defaults to auto-detection
 `, name, name, name)
 }
