@@ -309,6 +309,74 @@ func TestSortedKeys(t *testing.T) {
 	}
 }
 
+func TestFilterDomains(t *testing.T) {
+	tests := []struct {
+		name    string
+		extract []string
+		include []string
+		exclude []string
+		want    []string
+	}{
+		{
+			name:    "include only",
+			extract: []string{"localhost", "app.localhost"},
+			include: []string{"foo.example.com"},
+			exclude: nil,
+			want:    []string{"app.localhost", "foo.example.com", "localhost"},
+		},
+		{
+			name:    "exclude only",
+			extract: []string{"localhost", "admin.app.localhost", "api.app.localhost"},
+			include: nil,
+			exclude: []string{"admin.app.localhost"},
+			want:    []string{"api.app.localhost", "localhost"},
+		},
+		{
+			name:    "include and exclude",
+			extract: []string{"localhost", "admin.app.localhost"},
+			include: []string{"foo.example.com"},
+			exclude: []string{"admin.app.localhost"},
+			want:    []string{"foo.example.com", "localhost"},
+		},
+		{
+			name:    "exclude takes precedence over include",
+			extract: []string{"localhost"},
+			include: []string{"foo.example.com"},
+			exclude: []string{"foo.example.com"},
+			want:    []string{"localhost"},
+		},
+		{
+			name:    "empty inputs",
+			extract: nil,
+			include: nil,
+			exclude: nil,
+			want:    nil,
+		},
+		{
+			name:    "deduplicate included domains",
+			extract: []string{"localhost"},
+			include: []string{"localhost", "foo.example.com"},
+			exclude: nil,
+			want:    []string{"foo.example.com", "localhost"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FilterDomains(tt.extract, tt.include, tt.exclude)
+			if len(got) != len(tt.want) {
+				t.Fatalf("expected %d domains, got %d: %v", len(tt.want), len(got), got)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("got %v, want %v", got, tt.want)
+					break
+				}
+			}
+		})
+	}
+}
+
 func TestGenerateSelfSignedMultipleDomains(t *testing.T) {
 	dir := t.TempDir()
 	certFile := filepath.Join(dir, "cert.pem")

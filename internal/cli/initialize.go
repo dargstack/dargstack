@@ -435,49 +435,34 @@ greeting: Hello from production!
 func generateConfigTemplate(name string) string {
 	return fmt.Sprintf(`# Dargstack configuration file
 
-# # Stack name — used as Docker stack name and image tag prefix
-# name: %q
+metadata:
+  name: %q # optional, defaults to parent directory name
+  compatibility: ">=4.0.0 <5.0.0" # required, CLI version constraint
 
-# # Source code metadata (for documentation generation)
-# source:
-#   name: %q
-#   url: "https://github.com/example/%s"
+  # source:
+  #   name: %q
+  #   url: "https://github.com/example/%s"
 
-#####
-
-# Version: This CLI is compatible with config versions < 5.0.0
-compatibility: ">=4.0.0 <5.0.0"
-
-# Sudo mode — if Docker requires sudo on this machine, set to "always"
-# Options: "always", "never", "auto" (default)
-sudo: "auto"
-
-# Behavior configuration
-behavior:
+runtime:
+  sudo: auto # optional, "auto" | "always" | "never"
   build:
-    # Build mode: "always" rebuilds every time, "missing" only builds if image doesn't exist
-    mode: "always"
-  volume:
-    remove:
-      # Prompt to remove volumes before deploying (development only)
-      prompt: true
+    mode: always # optional, "always" | "missing"
+  deploy:
+    volumes:
+      prompt: true # optional, defaults to true
 
-# Development environment settings
-development:
-  # Domain used for development deployments (defaults to "app.localhost").
-  domain: "app.localhost"
-  certificate:
-    # Additional domains for development TLS certificates (beyond the auto-discovered ones).
-    domains: []
-      # - "*.app.localhost"
-      # - "custom.localhost"
+environment:
+  development:
+    domain: app.localhost # optional, defaults to "app.localhost"
+    certificate:
+      include: [] # optional, domains added to TLS cert
+        # - "*.app.localhost"
+      exclude: [] # optional, domains removed from TLS cert
+        # - "admin.app.localhost"
 
-# Production environment settings
-production:
-  # Stack domain — used by the public to reach the services
-  domain: "app.localhost"
-  # Git branch for production deployments
-  branch: "main"
-  # Tag for production deployments — leave unset to auto-detect from git tags
+  production:
+    domain: app.localhost # optional, defaults to "app.localhost"
+    branch: main # optional, defaults to "main"
+    tag: latest # optional, defaults to "latest"
 `, name, name, name)
 }

@@ -77,17 +77,17 @@ func resolveDeployTag() (string, error) {
 	if deployTag != "" {
 		return deployTag, nil
 	}
-	if cfg.Production.Tag != "" {
-		return cfg.Production.Tag, nil
+	if cfg.Environment.Production.Tag != "" {
+		return cfg.Environment.Production.Tag, nil
 	}
 	if !offline {
 		if err := gitFetchTags(); err != nil {
 			logger.L.Warn(fmt.Sprintf("Failed to fetch remote tags: %v", err))
 		}
 	}
-	tag, err := latestGitTag(cfg.Production.Branch)
+	tag, err := latestGitTag(cfg.Environment.Production.Branch)
 	if err != nil {
-		return "", fmt.Errorf("resolve deploy tag from branch %q: %w — use --tag to set explicitly", cfg.Production.Branch, err)
+		return "", fmt.Errorf("resolve deploy tag from branch %q: %w — use --tag to set explicitly", cfg.Environment.Production.Branch, err)
 	}
 	return tag, nil
 }
@@ -134,7 +134,7 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 		return nil
 	}
 
-	baseDir := config.DevDir(stackDir)
+	baseDir := cfg.DevDir()
 
 	// Collect build tasks in deterministic order.
 	var tasks []buildTask
@@ -158,10 +158,10 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 			contextPath = filepath.Join(svcDir, contextPath)
 		}
 
-		tag := fmt.Sprintf("%s/%s:development", cfg.Name, name)
+		tag := fmt.Sprintf("%s/%s:development", cfg.Metadata.Name, name)
 
 		// Skip building if behavior.build.mode is "missing" and image already exists.
-		if cfg.Behavior.Build != nil && cfg.Behavior.Build.Mode == "missing" && imageExists(executor, tag) {
+		if cfg.Runtime.Build.Mode == config.BuildMissing && imageExists(executor, tag) {
 			continue
 		}
 

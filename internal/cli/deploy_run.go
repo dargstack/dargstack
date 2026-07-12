@@ -15,7 +15,6 @@ import (
 
 	"github.com/dargstack/dargstack/v4/internal/audit"
 	"github.com/dargstack/dargstack/v4/internal/compose"
-	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/docker"
 	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
@@ -146,11 +145,12 @@ func deployFilterForSecrets(composeData []byte, dryRun bool) error {
 // auto-builds, and volume cleanup for development deployments.
 func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, executor *docker.Executor, composeData []byte, dryRun bool) ([]byte, error) {
 	// TLS certificates
-	domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Development.Domain), cfg.Development.Certificate.Domains)
+	cert := cfg.Environment.Development.Certificate
+	domains := tls.FilterDomains(tls.ExtractDomains(composeData, cfg.Environment.Development.Domain), cert.Include, cert.Exclude)
 	if dryRun {
 		logger.L.Info(fmt.Sprintf("[dry-run] Would ensure TLS certificates for: %s", strings.Join(domains, ", ")))
 	} else {
-		certDir := config.CertificatesDir(stackDir)
+		certDir := cfg.CertificatesDir()
 		if err := tls.EnsureCertificates(certDir, domains); err != nil {
 			logger.L.Warn(fmt.Sprintf("TLS certificate setup failed: %v", err))
 		}
@@ -194,16 +194,13 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 	if dryRun {
 		logger.L.Info("[dry-run] Would prompt for volume cleanup (first-time deploy)")
 	} else if !noInteraction {
-		promptVolumes := true
-		if cfg.Behavior.Volume != nil && cfg.Behavior.Volume.Remove != nil {
-			promptVolumes = cfg.Behavior.Volume.Remove.Prompt
-		}
+		promptVolumes := *cfg.Runtime.Deploy.Volumes.Prompt
 		if promptVolumes {
 			running := isStackRunning(ctx, dockerClient, executor)
 			if !running {
 				ok, _ := prompt.Confirm("Remove all stack volumes for a clean start?", false)
 				if ok {
-					volumes, volErr := docker.VolumeList(executor, cfg.Name)
+					volumes, volErr := docker.VolumeList(executor, cfg.Metadata.Name)
 					if volErr == nil && len(volumes) > 0 {
 						if err := docker.VolumeRemove(executor, volumes); err != nil {
 							logger.L.Warn(fmt.Sprintf("Failed to remove volumes: %v", err))
@@ -254,7 +251,7 @@ func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun
 // runs docker stack deploy.
 func deployExecute(executor *docker.Executor, composeData []byte, env string, dryRun bool) error {
 	if isProduction() {
-		if cfg.Production.Domain == "app.localhost" {
+		if cfg.Environment.Production.Domain == "app.localhost" {
 			prefix := ""
 			if dryRun {
 				prefix = "[dry-run] "
@@ -271,15 +268,15 @@ func deployExecute(executor *docker.Executor, composeData []byte, env string, dr
 			}
 		}
 		if dryRun {
-			logger.L.Info(fmt.Sprintf("[dry-run] Would deploy production stack %q (tag: %s)", cfg.Name, tag))
+			logger.L.Info(fmt.Sprintf("[dry-run] Would deploy production stack %q (tag: %s)", cfg.Metadata.Name, tag))
 		} else {
-			logger.L.Info(fmt.Sprintf("Deploying production stack %q (tag: %s)", cfg.Name, tag))
+			logger.L.Info(fmt.Sprintf("Deploying production stack %q (tag: %s)", cfg.Metadata.Name, tag))
 		}
 	} else {
 		if dryRun {
-			logger.L.Info(fmt.Sprintf("[dry-run] Would deploy development stack %q", cfg.Name))
+			logger.L.Info(fmt.Sprintf("[dry-run] Would deploy development stack %q", cfg.Metadata.Name))
 		} else {
-			logger.L.Info(fmt.Sprintf("Deploying development stack %q", cfg.Name))
+			logger.L.Info(fmt.Sprintf("Deploying development stack %q", cfg.Metadata.Name))
 		}
 	}
 
@@ -306,7 +303,7 @@ func deployExecute(executor *docker.Executor, composeData []byte, env string, dr
 		fmt.Println()
 		fmt.Print(string(composeData))
 	} else {
-		if err := docker.StackDeploy(executor, cfg.Name, composeData); err != nil {
+		if err := docker.StackDeploy(executor, cfg.Metadata.Name, composeData); err != nil {
 			return wrapWithBugHint(err)
 		}
 	}
@@ -321,7 +318,7 @@ func deployPostDeploy(ctx context.Context, dockerClient *docker.Client, executor
 		logger.L.Info(fmt.Sprintf("[dry-run] Would have %d service(s) running", svcCount))
 	} else {
 		if count, err := countStackServices(ctx, dockerClient, executor); err == nil {
-			logger.Success(fmt.Sprintf("Stack %q deployed with %d service(s)", cfg.Name, count))
+			logger.Success(fmt.Sprintf("Stack %q deployed with %d service(s)", cfg.Metadata.Name, count))
 		}
 	}
 
@@ -513,27 +510,4 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 	}
 
 	return composeData, nil
-}
-
-// uniqueSortedDomains merges two domain slices, removes duplicates, and returns
-// the result sorted. This stabilises regeneration checks and avoids feeding
-// duplicate entries to certificate generators.
-func uniqueSortedDomains(a, b []string) []string {
-	seen := make(map[string]bool, len(a)+len(b))
-	for _, d := range a {
-		if d != "" {
-			seen[d] = true
-		}
-	}
-	for _, d := range b {
-		if d != "" {
-			seen[d] = true
-		}
-	}
-	out := make([]string, 0, len(seen))
-	for d := range seen {
-		out = append(out, d)
-	}
-	sort.Strings(out)
-	return out
 }

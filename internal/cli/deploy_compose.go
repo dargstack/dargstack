@@ -17,7 +17,7 @@ func buildDevelopmentCompose() ([]byte, error) {
 	var paths []string
 
 	// Service files (services-only architecture)
-	svcFiles, err := config.CollectServiceFiles(config.DevDir(stackDir))
+	svcFiles, err := config.CollectServiceFiles(cfg.DevDir())
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func buildDevelopmentCompose() ([]byte, error) {
 	if len(paths) == 0 {
 		return nil, hintErr(
 			errors.New(ErrNoComposeSources),
-			fmt.Sprintf("Create service directories in %s, each containing a compose.yaml.", config.DevDir(stackDir)),
+			fmt.Sprintf("Create service directories in %s, each containing a compose.yaml.", cfg.DevDir()),
 		)
 	}
 
@@ -40,7 +40,7 @@ func buildDevelopmentCompose() ([]byte, error) {
 		return nil, err
 	}
 
-	data, err = secret.RewriteSecretFilePaths(data, config.SecretsDir(stackDir))
+	data, err = secret.RewriteSecretFilePaths(data, cfg.SecretsDir())
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrRewriteSecretFilePaths, err)
 	}
@@ -52,14 +52,14 @@ func buildProductionCompose() ([]byte, error) {
 	var paths []string
 
 	// Dev sources (base layer)
-	devSvcFiles, err := config.CollectServiceFiles(config.DevDir(stackDir))
+	devSvcFiles, err := config.CollectServiceFiles(cfg.DevDir())
 	if err != nil {
 		return nil, err
 	}
 	paths = append(paths, devSvcFiles...)
 
 	// Production overlays
-	prodSvcFiles, err := config.CollectServiceFiles(config.ProdDir(stackDir))
+	prodSvcFiles, err := config.CollectServiceFiles(cfg.ProdDir())
 	if err != nil {
 		return nil, err
 	}
@@ -87,8 +87,8 @@ func buildProductionCompose() ([]byte, error) {
 	// when production files/directories exist.
 	if remapped, remapErr := compose.RewriteProductionBindMounts(
 		merged,
-		config.DevDir(stackDir),
-		config.ProdDir(stackDir),
+		cfg.DevDir(),
+		cfg.ProdDir(),
 	); remapErr == nil {
 		merged = remapped
 	} else {
@@ -96,19 +96,19 @@ func buildProductionCompose() ([]byte, error) {
 	}
 
 	// Merge env files for production
-	devEnv := config.DevEnvFile(stackDir)
-	prodEnv := config.ProdEnvFile(stackDir)
+	devEnv := cfg.DevEnvFile()
+	prodEnv := cfg.ProdEnvFile()
 	mergedEnv, mergeErr := compose.MergeEnvFiles(devEnv, prodEnv)
 	if mergeErr != nil {
 		logger.L.Warn(fmt.Sprintf("Failed to merge env files: %v", mergeErr))
 	} else if len(mergedEnv) > 0 {
-		envPath := filepath.Join(config.ArtifactsDir(stackDir), ".env.merged")
+		envPath := filepath.Join(cfg.ArtifactsDir(), ".env.merged")
 		if mkErr := os.MkdirAll(filepath.Dir(envPath), 0o755); mkErr == nil {
 			_ = os.WriteFile(envPath, mergedEnv, 0o644)
 		}
 	}
 
-	merged, err = secret.RewriteSecretFilePaths(merged, config.SecretsDir(stackDir))
+	merged, err = secret.RewriteSecretFilePaths(merged, cfg.SecretsDir())
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrRewriteSecretFilePaths, err)
 	}

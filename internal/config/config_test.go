@@ -8,12 +8,15 @@ import (
 
 func TestLoadConfig(t *testing.T) {
 	dir := t.TempDir()
-	content := `compatibility: ">=1.0.0 <2.0.0"
-name: "teststack"
-sudo: "never"
-production:
-  branch: "main"
-  tag: "latest"
+	content := `metadata:
+  compatibility: ">=1.0.0 <2.0.0"
+  name: teststack
+runtime:
+  sudo: never
+environment:
+  production:
+    branch: main
+    tag: latest
 `
 	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
@@ -24,21 +27,20 @@ production:
 		t.Fatal(err)
 	}
 
-	if cfg.Name != "teststack" {
-		t.Errorf("expected name=teststack, got %s", cfg.Name)
+	if cfg.Metadata.Name != "teststack" {
+		t.Errorf("expected name=teststack, got %s", cfg.Metadata.Name)
 	}
-	if cfg.Sudo != "never" {
-		t.Errorf("expected sudo=never, got %s", cfg.Sudo)
+	if cfg.Runtime.Sudo != SudoNever {
+		t.Errorf("expected sudo=never, got %s", cfg.Runtime.Sudo)
 	}
-	if cfg.Production.Branch != "main" {
-		t.Errorf("expected branch=main, got %s", cfg.Production.Branch)
+	if cfg.Environment.Production.Branch != "main" {
+		t.Errorf("expected branch=main, got %s", cfg.Environment.Production.Branch)
 	}
 }
 
 func TestLoadConfigDefaults(t *testing.T) {
 	dir := t.TempDir()
-	content := ""
-	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -47,14 +49,118 @@ func TestLoadConfigDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if cfg.Sudo != "auto" {
-		t.Errorf("expected default sudo=auto, got %s", cfg.Sudo)
+	if cfg.Runtime.Sudo != SudoAuto {
+		t.Errorf("expected default sudo=auto, got %s", cfg.Runtime.Sudo)
 	}
-	if cfg.Production.Branch != "main" {
-		t.Errorf("expected default branch=main, got %s", cfg.Production.Branch)
+	if cfg.Runtime.Build.Mode != BuildAlways {
+		t.Errorf("expected default build mode=always, got %s", cfg.Runtime.Build.Mode)
 	}
-	if cfg.Production.Tag != "" {
-		t.Errorf("expected default tag to be empty (auto-detect), got %s", cfg.Production.Tag)
+	if cfg.Environment.Production.Branch != "main" {
+		t.Errorf("expected default branch=main, got %s", cfg.Environment.Production.Branch)
+	}
+	if cfg.Environment.Production.Tag != "" {
+		t.Errorf("expected default tag to be empty, got %s", cfg.Environment.Production.Tag)
+	}
+}
+
+func TestDomainDefaults(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(""), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Environment.Production.Domain != "app.localhost" {
+		t.Errorf("expected default production.domain=app.localhost, got %s", cfg.Environment.Production.Domain)
+	}
+	if cfg.Environment.Development.Domain != "app.localhost" {
+		t.Errorf("expected default development.domain=app.localhost, got %s", cfg.Environment.Development.Domain)
+	}
+}
+
+func TestBuildMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		yaml     string
+		wantMode BuildMode
+	}{
+		{"mode always", "runtime:\n  build:\n    mode: always\n", BuildAlways},
+		{"mode missing", "runtime:\n  build:\n    mode: missing\n", BuildMissing},
+		{"no build config", "", BuildAlways},
+		{"empty build config", "runtime:\n  build:\n", BuildAlways},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(tt.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := Load(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.Runtime.Build.Mode != tt.wantMode {
+				t.Errorf("expected mode=%q, got %q", tt.wantMode, cfg.Runtime.Build.Mode)
+			}
+		})
+	}
+}
+
+func TestVolumePrompt(t *testing.T) {
+	tests := []struct {
+		name       string
+		yaml       string
+		wantPrompt bool
+	}{
+		{"prompt true", "runtime:\n  deploy:\n    volumes:\n      prompt: true\n", true},
+		{"prompt false", "runtime:\n  deploy:\n    volumes:\n      prompt: false\n", false},
+		{"no deploy config", "", true},
+		{"empty deploy config", "runtime:\n  deploy:\n", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(tt.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := Load(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := *cfg.Runtime.Deploy.Volumes.Prompt
+			if got != tt.wantPrompt {
+				t.Errorf("expected prompt=%v, got %v", tt.wantPrompt, got)
+			}
+		})
+	}
+}
+
+func TestSudoModeInvalid(t *testing.T) {
+	dir := t.TempDir()
+	content := "runtime:\n  sudo: invalid\n"
+	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Load(dir)
+	if err == nil {
+		t.Fatal("expected error for invalid sudo mode")
+	}
+}
+
+func TestBuildModeInvalid(t *testing.T) {
+	dir := t.TempDir()
+	content := "runtime:\n  build:\n    mode: invalid\n"
+	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Load(dir)
+	if err == nil {
+		t.Fatal("expected error for invalid build mode")
 	}
 }
 
@@ -78,9 +184,6 @@ func TestDetectStackDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// On macOS, /var is a symlink to /private/var. os.Getwd() (used internally
-	// by DetectStackDir) returns the resolved path, while t.TempDir() may
-	// return the canonical symlink path. Resolve both sides for comparison.
 	resolvedDir, err := filepath.EvalSymlinks(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -94,10 +197,9 @@ func TestDetectStackDir(t *testing.T) {
 	}
 }
 
-func TestDomainDefault(t *testing.T) {
+func TestPathHelpers(t *testing.T) {
 	dir := t.TempDir()
-	content := ""
-	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -105,18 +207,39 @@ func TestDomainDefault(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Production.Domain != "app.localhost" {
-		t.Errorf("expected default production.domain=app.localhost, got %s", cfg.Production.Domain)
+
+	resolved, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if cfg.Development.Domain != "app.localhost" {
-		t.Errorf("expected default development.domain=app.localhost, got %s", cfg.Development.Domain)
+
+	tests := []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"StackDir", cfg.StackDir(), resolved},
+		{"DevDir", cfg.DevDir(), filepath.Join(resolved, "src", "development")},
+		{"ProdDir", cfg.ProdDir(), filepath.Join(resolved, "src", "production")},
+		{"ArtifactsDir", cfg.ArtifactsDir(), filepath.Join(resolved, "artifacts")},
+		{"CertificatesDir", cfg.CertificatesDir(), filepath.Join(resolved, "artifacts", "certificates")},
+		{"SecretsDir", cfg.SecretsDir(), filepath.Join(resolved, "artifacts", "secrets")},
+		{"DevEnvFile", cfg.DevEnvFile(), filepath.Join(resolved, "src", "development", ".env")},
+		{"ProdEnvFile", cfg.ProdEnvFile(), filepath.Join(resolved, "src", "production", ".env")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("got %s, want %s", tt.got, tt.want)
+			}
+		})
 	}
 }
 
-func TestDevDomainCustom(t *testing.T) {
+func TestStackDirResolvesRelativePath(t *testing.T) {
 	dir := t.TempDir()
-	content := "production:\n  domain: myapp.example.com\ndevelopment:\n  domain: dev.localhost\n"
-	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -124,34 +247,22 @@ func TestDevDomainCustom(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Production.Domain != "myapp.example.com" {
-		t.Errorf("expected production.domain=myapp.example.com, got %s", cfg.Production.Domain)
-	}
-	if cfg.Development.Domain != "dev.localhost" {
-		t.Errorf("expected development.domain=dev.localhost, got %s", cfg.Development.Domain)
-	}
-}
 
-func TestDomainCustom(t *testing.T) {
-	dir := t.TempDir()
-	content := "production:\n  domain: myapp.example.com\n"
-	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	cfg, err := Load(dir)
+	resolvedDir, err := filepath.EvalSymlinks(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Production.Domain != "myapp.example.com" {
-		t.Errorf("expected production.domain=myapp.example.com, got %s", cfg.Production.Domain)
+	if cfg.StackDir() != resolvedDir {
+		t.Errorf("expected %s, got %s", resolvedDir, cfg.StackDir())
+	}
+	if !filepath.IsAbs(cfg.StackDir()) {
+		t.Errorf("StackDir should be absolute, got %s", cfg.StackDir())
 	}
 }
 
 func TestCollectServiceFilesDir(t *testing.T) {
 	dir := t.TempDir()
 
-	// Create service directories with compose.yaml
 	for _, name := range []string{"api", "postgres", "web"} {
 		svcDir := filepath.Join(dir, name)
 		if err := os.MkdirAll(svcDir, 0o755); err != nil {
@@ -161,11 +272,9 @@ func TestCollectServiceFilesDir(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// A file at the top level should be ignored (not a service directory)
 	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte("KEY=VALUE"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	// A directory without compose.yaml should be ignored
 	if err := os.MkdirAll(filepath.Join(dir, "empty"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -189,144 +298,57 @@ func TestCollectServiceFilesNonexistent(t *testing.T) {
 	}
 }
 
-func TestBuildBehaviorMode(t *testing.T) {
-	tests := []struct {
-		name     string
-		yaml     string
-		wantMode string
-	}{
-		{
-			name:     "mode always",
-			yaml:     "behavior:\n  build:\n    mode: always\n",
-			wantMode: "always",
-		},
-		{
-			name:     "mode missing",
-			yaml:     "behavior:\n  build:\n    mode: missing\n",
-			wantMode: "missing",
-		},
-		{
-			name:     "no build config",
-			yaml:     "",
-			wantMode: "",
-		},
-		{
-			name:     "empty build config",
-			yaml:     "behavior:\n  build:\n",
-			wantMode: "",
-		},
+func TestCustomDomainOverride(t *testing.T) {
+	dir := t.TempDir()
+	content := `environment:
+  development:
+    domain: dev.example.com
+  production:
+    domain: prod.example.com
+`
+	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dir := t.TempDir()
-			if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(tt.yaml), 0o644); err != nil {
-				t.Fatal(err)
-			}
-
-			cfg, err := Load(dir)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if tt.wantMode == "" {
-				if cfg.Behavior.Build != nil && cfg.Behavior.Build.Mode != "" {
-					t.Errorf("expected empty mode, got %q", cfg.Behavior.Build.Mode)
-				}
-				return
-			}
-			if cfg.Behavior.Build == nil {
-				t.Fatal("expected Build to be set")
-			}
-			if cfg.Behavior.Build.Mode != tt.wantMode {
-				t.Errorf("expected mode=%q, got %q", tt.wantMode, cfg.Behavior.Build.Mode)
-			}
-		})
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Environment.Development.Domain != "dev.example.com" {
+		t.Errorf("expected dev domain=dev.example.com, got %s", cfg.Environment.Development.Domain)
+	}
+	if cfg.Environment.Production.Domain != "prod.example.com" {
+		t.Errorf("expected prod domain=prod.example.com, got %s", cfg.Environment.Production.Domain)
 	}
 }
 
-func TestVolumeRemovePromptBehavior(t *testing.T) {
-	tests := []struct {
-		name          string
-		yaml          string
-		wantPrompt    bool
-		wantPromptSet bool
-	}{
-		{
-			name:          "prompt true",
-			yaml:          "behavior:\n  volume:\n    remove:\n      prompt: true\n",
-			wantPrompt:    true,
-			wantPromptSet: true,
-		},
-		{
-			name:          "prompt false",
-			yaml:          "behavior:\n  volume:\n    remove:\n      prompt: false\n",
-			wantPrompt:    false,
-			wantPromptSet: true,
-		},
-		{
-			name:          "no volume config",
-			yaml:          "",
-			wantPromptSet: false,
-		},
-		{
-			name:          "empty volume config",
-			yaml:          "behavior:\n  volume:\n",
-			wantPromptSet: false,
-		},
+func TestCertificateIncludeExclude(t *testing.T) {
+	dir := t.TempDir()
+	content := `environment:
+  development:
+    certificate:
+      exclude:
+        - admin.app.localhost
+      include:
+        - foo.example.com
+        - bar.local
+`
+	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dir := t.TempDir()
-			if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(tt.yaml), 0o644); err != nil {
-				t.Fatal(err)
-			}
-
-			cfg, err := Load(dir)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if !tt.wantPromptSet {
-				if cfg.Behavior.Volume != nil && cfg.Behavior.Volume.Remove != nil {
-					t.Error("expected Volume.Remove to be nil")
-				}
-				return
-			}
-			if cfg.Behavior.Volume == nil || cfg.Behavior.Volume.Remove == nil {
-				t.Fatal("expected Volume.Remove to be set")
-			}
-			if cfg.Behavior.Volume.Remove.Prompt != tt.wantPrompt {
-				t.Errorf("expected prompt=%v, got %v", tt.wantPrompt, cfg.Behavior.Volume.Remove.Prompt)
-			}
-		})
-	}
-}
-
-func TestPathHelpers(t *testing.T) {
-	stackDir := "/project/stack"
-
-	tests := []struct {
-		name string
-		fn   func(string) string
-		want string
-	}{
-		{"ArtifactsDir", ArtifactsDir, "/project/stack/artifacts"},
-		{"CertificatesDir", CertificatesDir, "/project/stack/artifacts/certificates"},
-		{"DevDir", DevDir, "/project/stack/src/development"},
-		{"DevEnvFile", DevEnvFile, "/project/stack/src/development/.env"},
-		{"ProdDir", ProdDir, "/project/stack/src/production"},
-		{"ProdEnvFile", ProdEnvFile, "/project/stack/src/production/.env"},
-		{"SecretsDir", SecretsDir, "/project/stack/artifacts/secrets"},
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := tt.fn(stackDir)
-			if got != tt.want {
-				t.Errorf("%s(%s) = %s, want %s", tt.name, stackDir, got, tt.want)
-			}
-		})
+	if len(cfg.Environment.Development.Certificate.Exclude) != 1 {
+		t.Fatalf("expected 1 exclude, got %d", len(cfg.Environment.Development.Certificate.Exclude))
+	}
+	if cfg.Environment.Development.Certificate.Exclude[0] != "admin.app.localhost" {
+		t.Errorf("expected exclude=admin.app.localhost, got %s", cfg.Environment.Development.Certificate.Exclude[0])
+	}
+	if len(cfg.Environment.Development.Certificate.Include) != 2 {
+		t.Fatalf("expected 2 include, got %d", len(cfg.Environment.Development.Certificate.Include))
 	}
 }

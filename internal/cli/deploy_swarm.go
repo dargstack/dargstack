@@ -35,23 +35,23 @@ func ensureSwarm(executor *docker.Executor) error {
 // when available or falling back to the executor.
 func isStackRunning(ctx context.Context, client *docker.Client, executor *docker.Executor) bool {
 	if client != nil {
-		running, err := client.IsStackRunning(ctx, cfg.Name)
+		running, err := client.IsStackRunning(ctx, cfg.Metadata.Name)
 		return err == nil && running
 	}
-	out, err := executor.Run("stack", "services", "--quiet", cfg.Name)
+	out, err := executor.Run("stack", "services", "--quiet", cfg.Metadata.Name)
 	return err == nil && strings.TrimSpace(out) != ""
 }
 
 // countStackServices returns the number of services in the deployed stack.
 func countStackServices(ctx context.Context, client *docker.Client, executor *docker.Executor) (int, error) {
 	if client != nil {
-		svcList, err := client.ListStackServices(ctx, cfg.Name)
+		svcList, err := client.ListStackServices(ctx, cfg.Metadata.Name)
 		if err != nil {
 			return 0, err
 		}
 		return len(svcList), nil
 	}
-	out, err := executor.Run("stack", "services", "--quiet", cfg.Name)
+	out, err := executor.Run("stack", "services", "--quiet", cfg.Metadata.Name)
 	if err != nil {
 		return 0, err
 	}

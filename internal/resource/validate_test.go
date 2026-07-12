@@ -182,11 +182,12 @@ func TestGenerateDocumentation(t *testing.T) {
 	}
 
 	content, err := GenerateDocumentation(&DocsConfig{
-		StackDir:       stackDir,
-		StackName:      "example-stack",
-		StackDomain:    "example.localhost",
+		DevDir:         devDir,
+		ProdDir:        prodDir,
 		SourceCodeName: "example",
 		SourceCodeURL:  "https://github.com/example",
+		StackDomain:    "example.localhost",
+		StackName:      "example-stack",
 	})
 	if err != nil {
 		t.Fatal(err)

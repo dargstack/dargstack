@@ -139,6 +139,40 @@ func sortedKeys(m map[string]bool) []string {
 	return keys
 }
 
+// FilterDomains merges auto-discovered domains with explicit include/exclude lists.
+// It adds all include entries, removes all exclude entries, deduplicates, and
+// returns the result sorted. Exclude takes precedence over include.
+func FilterDomains(extracted, include, exclude []string) []string {
+	domains := make(map[string]bool)
+
+	for _, d := range extracted {
+		if d != "" {
+			domains[d] = true
+		}
+	}
+	for _, d := range include {
+		if d != "" {
+			domains[d] = true
+		}
+	}
+	for _, d := range exclude {
+		if d != "" {
+			delete(domains, d)
+		}
+	}
+
+	if len(domains) == 0 {
+		return nil
+	}
+
+	out := make([]string, 0, len(domains))
+	for d := range domains {
+		out = append(out, d)
+	}
+	sort.Strings(out)
+	return out
+}
+
 func hasMkcert() bool {
 	_, err := exec.LookPath("mkcert")
 	return err == nil

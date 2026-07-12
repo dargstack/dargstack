@@ -11,7 +11,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
-	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/docker"
 	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
@@ -34,7 +33,7 @@ Images are tagged as ` + "`<stack>/<service>:development`" + `.`,
 }
 
 func runBuild(cmd *cobra.Command, args []string) error {
-	executor, err := docker.NewExecutor(cfg.Sudo)
+	executor, err := docker.NewExecutor(string(cfg.Runtime.Sudo))
 	if err != nil {
 		return err
 	}
@@ -103,7 +102,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 			}
 			if !filepath.IsAbs(contextPath) {
 				// Context is relative to the service directory.
-				svcDir := filepath.Join(config.DevDir(stackDir), name)
+				svcDir := filepath.Join(cfg.DevDir(), name)
 				contextPath = filepath.Join(svcDir, contextPath)
 			}
 			if _, statErr := os.Stat(contextPath); os.IsNotExist(statErr) {
@@ -128,10 +127,10 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		svcDef := svcMap[svcName].(map[string]interface{})
 		contextPath := resolveBuildContext(svcDef, stackDir)
 		if !filepath.IsAbs(contextPath) {
-			svcDir := filepath.Join(config.DevDir(stackDir), svcName)
+			svcDir := filepath.Join(cfg.DevDir(), svcName)
 			contextPath = filepath.Join(svcDir, contextPath)
 		}
-		tag := fmt.Sprintf("%s/%s:development", cfg.Name, svcName)
+		tag := fmt.Sprintf("%s/%s:development", cfg.Metadata.Name, svcName)
 		builds = append(builds, resolvedBuild{name: svcName, contextPath: contextPath, tag: tag})
 	}
 
@@ -253,7 +252,7 @@ func selectBuildableServices(svcMap map[string]interface{}) ([]string, error) {
 		}
 		if !filepath.IsAbs(contextPath) {
 			// Context is relative to the service directory.
-			svcDir := filepath.Join(config.DevDir(stackDir), name)
+			svcDir := filepath.Join(cfg.DevDir(), name)
 			contextPath = filepath.Join(svcDir, contextPath)
 		}
 		if _, statErr := os.Stat(contextPath); os.IsNotExist(statErr) {

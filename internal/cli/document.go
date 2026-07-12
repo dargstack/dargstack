@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/resource"
 )
@@ -24,15 +23,16 @@ Includes a link to the stack domain and source code repository.`,
 }
 
 func runDocs(_ *cobra.Command, _ []string) error {
-	outputDir := config.ArtifactsDir(stackDir)
+	outputDir := cfg.ArtifactsDir()
 	docsDir := filepath.Join(outputDir, "docs")
 	content, err := resource.GenerateDocumentation(&resource.DocsConfig{
+		DevDir:         cfg.DevDir(),
 		OutputDir:      docsDir,
-		StackDir:       stackDir,
-		StackName:      cfg.Name,
-		StackDomain:    cfg.Production.Domain,
-		SourceCodeName: cfg.Source.Name,
-		SourceCodeURL:  cfg.Source.URL,
+		ProdDir:        cfg.ProdDir(),
+		SourceCodeName: cfg.Metadata.Source.Name,
+		SourceCodeURL:  cfg.Metadata.Source.URL,
+		StackDomain:    cfg.Environment.Production.Domain,
+		StackName:      cfg.Metadata.Name,
 	})
 	if err != nil {
 		return err

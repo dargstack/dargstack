@@ -192,17 +192,31 @@ The repository is cloned once (on first deploy) and left untouched on subsequent
 ### Configuration: dargstack.yaml
 
 ```yaml
-compatibility: ">=4.0.0 <5.0.0" # required, string (semver range)
-name: my-stack # optional, defaults to parent directory name
-development:
-  domain: app.localhost # optional, defaults to "app.localhost"
-  certificate:
-    domains: [] # optional, extra domains added to dev TLS cert
-production:
-  branch: main # optional, string
-  tag: latest # optional, `latest` | string
-  domain: example.com # optional, string
-sudo: auto # optional, `auto` | `always` | `never`
+metadata:
+  compatibility: ">=4.0.0 <5.0.0" # required, string (semver range)
+  name: my-stack # optional, defaults to parent directory name
+  source: # optional
+    name: my-repo
+    url: https://github.com/org/repo
+
+runtime:
+  sudo: auto # optional, `auto` | `always` | `never`
+  build:
+    mode: always # optional, `always` | `missing`
+  deploy:
+    volumes:
+      prompt: true # optional, prompt to remove volumes on first deploy
+
+environment:
+  development:
+    domain: app.localhost # optional, defaults to "app.localhost"
+    certificate:
+      include: [] # optional, domains added to TLS cert
+      exclude: [] # optional, domains removed from TLS cert
+  production:
+    branch: main # optional, defaults to "main"
+    domain: app.localhost # optional, defaults to "app.localhost"
+    tag: latest # optional, `latest` | string
 ```
 
 ### Profiles & Performance

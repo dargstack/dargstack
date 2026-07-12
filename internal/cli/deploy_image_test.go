@@ -116,9 +116,11 @@ func TestResolveDeployTagPinnedConfig(t *testing.T) {
 	deployTag = ""
 	offline = false
 	cfg = &config.Config{
-		Production: config.ProductionConfig{
-			Tag:    "v3.0.0",
-			Branch: "main",
+		Environment: config.EnvironmentConfig{
+			Production: config.ProdConfig{
+				Tag:    "v3.0.0",
+				Branch: "main",
+			},
 		},
 	}
 
@@ -150,9 +152,11 @@ func TestResolveDeployTagFromGit(t *testing.T) {
 	deployTag = ""
 	offline = true
 	cfg = &config.Config{
-		Production: config.ProductionConfig{
-			Tag:    "",
-			Branch: "main",
+		Environment: config.EnvironmentConfig{
+			Production: config.ProdConfig{
+				Tag:    "",
+				Branch: "main",
+			},
 		},
 	}
 	stackDir = dir
@@ -179,9 +183,11 @@ func TestResolveDeployTagLiteralLatest(t *testing.T) {
 	deployTag = ""
 	offline = false
 	cfg = &config.Config{
-		Production: config.ProductionConfig{
-			Tag:    "latest",
-			Branch: "main",
+		Environment: config.EnvironmentConfig{
+			Production: config.ProdConfig{
+				Tag:    "latest",
+				Branch: "main",
+			},
 		},
 	}
 

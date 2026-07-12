@@ -93,17 +93,13 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		if err := cfg.CheckCompatibility(); err != nil {
-			return err
-		}
-
 		// Set STACK_DOMAIN if not already set — use the domain matching the
 		// active --environment. Production commands use the production domain;
 		// development commands use the development domain.
 		if os.Getenv("STACK_DOMAIN") == "" {
-			domain := cfg.Development.Domain
+			domain := cfg.Environment.Development.Domain
 			if env == "production" {
-				domain = cfg.Production.Domain
+				domain = cfg.Environment.Production.Domain
 			}
 			_ = os.Setenv("STACK_DOMAIN", domain)
 		}

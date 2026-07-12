@@ -39,7 +39,7 @@ func init() {
 func runRemove(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
-	executor, err := docker.NewExecutor(cfg.Sudo)
+	executor, err := docker.NewExecutor(string(cfg.Runtime.Sudo))
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 
 	running := isStackRunning(ctx, dockerClient, executor)
 	if !running {
-		logger.L.Info(fmt.Sprintf("Stack %q is not running", cfg.Name))
+		logger.L.Info(fmt.Sprintf("Stack %q is not running", cfg.Metadata.Name))
 		return nil
 	}
 
@@ -66,11 +66,11 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		return runRemoveTargeted(executor)
 	}
 
-	if err := docker.StackRemove(executor, cfg.Name); err != nil {
+	if err := docker.StackRemove(executor, cfg.Metadata.Name); err != nil {
 		return err
 	}
 
-	logger.L.Info(fmt.Sprintf("Waiting for stack %q services to stop...", cfg.Name))
+	logger.L.Info(fmt.Sprintf("Waiting for stack %q services to stop...", cfg.Metadata.Name))
 
 	spinDone := make(chan struct{})
 	var wg sync.WaitGroup
@@ -85,21 +85,21 @@ func runRemove(cmd *cobra.Command, args []string) error {
 				fmt.Print("\r\033[K") // clear the spinner line
 				return
 			default:
-				fmt.Printf("\r  %c Waiting for stack %q to stop...", frames[i%len(frames)], cfg.Name)
+				fmt.Printf("\r  %c Waiting for stack %q to stop...", frames[i%len(frames)], cfg.Metadata.Name)
 				i++
 				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}()
 
-	waitErr := docker.WaitForStackRemoval(executor, cfg.Name, 60*time.Second, nil)
+	waitErr := docker.WaitForStackRemoval(executor, cfg.Metadata.Name, 60*time.Second, nil)
 	close(spinDone)
 	wg.Wait()
 
 	if waitErr != nil {
 		logger.L.Warn(waitErr.Error())
 	} else {
-		logger.Success(fmt.Sprintf("Stack %q removed", cfg.Name))
+		logger.Success(fmt.Sprintf("Stack %q removed", cfg.Metadata.Name))
 	}
 
 	if removeVolumes {
@@ -110,7 +110,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 			}
 		}
 
-		volumes, err := docker.VolumeList(executor, cfg.Name)
+		volumes, err := docker.VolumeList(executor, cfg.Metadata.Name)
 		if err != nil {
 			return fmt.Errorf("list volumes: %w", err)
 		}
@@ -176,7 +176,7 @@ func runRemoveTargeted(executor *docker.Executor) error {
 	// Prefix with stack name for Docker service removal.
 	fullNames := make([]string, len(targetServices))
 	for i, s := range targetServices {
-		fullNames[i] = cfg.Name + "_" + s
+		fullNames[i] = cfg.Metadata.Name + "_" + s
 	}
 
 	logger.L.Info(fmt.Sprintf("Removing services: %s", strings.Join(targetServices, ", ")))

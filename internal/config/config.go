@@ -12,46 +12,61 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/version"
 )
 
+type SudoMode string
+
+const (
+	SudoAuto   SudoMode = "auto"
+	SudoAlways SudoMode = "always"
+	SudoNever  SudoMode = "never"
+)
+
+func (s *SudoMode) UnmarshalYAML(node *yaml.Node) error {
+	var v string
+	if err := node.Decode(&v); err != nil {
+		return err
+	}
+	switch SudoMode(v) {
+	case SudoAuto, SudoAlways, SudoNever, "":
+		*s = SudoMode(v)
+	default:
+		return fmt.Errorf("invalid sudo mode %q: must be auto, always, or never", v)
+	}
+	return nil
+}
+
+type BuildMode string
+
+const (
+	BuildAlways  BuildMode = "always"
+	BuildMissing BuildMode = "missing"
+)
+
+func (b *BuildMode) UnmarshalYAML(node *yaml.Node) error {
+	var v string
+	if err := node.Decode(&v); err != nil {
+		return err
+	}
+	switch BuildMode(v) {
+	case BuildAlways, BuildMissing, "":
+		*b = BuildMode(v)
+	default:
+		return fmt.Errorf("invalid build mode %q: must be always or missing", v)
+	}
+	return nil
+}
+
 type Config struct {
-	Behavior      BehaviorConfig    `yaml:"behavior"`
-	Compatibility string            `yaml:"compatibility"`
-	Development   DevelopmentConfig `yaml:"development"`
-	Name          string            `yaml:"name"`
-	Production    ProductionConfig  `yaml:"production"`
-	Source        SourceConfig      `yaml:"source"`
-	Sudo          string            `yaml:"sudo"`
+	stackDir string
+
+	Environment EnvironmentConfig `yaml:"environment"`
+	Metadata    MetadataConfig    `yaml:"metadata"`
+	Runtime     RuntimeConfig     `yaml:"runtime"`
 }
 
-type BehaviorConfig struct {
-	Build  *BuildBehavior  `yaml:"build"`
-	Volume *VolumeBehavior `yaml:"volume"`
-}
-
-type BuildBehavior struct {
-	Mode string `yaml:"mode"`
-}
-
-type VolumeBehavior struct {
-	Remove *VolumeRemoveBehavior `yaml:"remove"`
-}
-
-type VolumeRemoveBehavior struct {
-	Prompt bool `yaml:"prompt"`
-}
-
-type ProductionConfig struct {
-	Branch string `yaml:"branch"`
-	Domain string `yaml:"domain"`
-	Tag    string `yaml:"tag"`
-}
-
-type DevelopmentConfig struct {
-	Certificate CertificateConfig `yaml:"certificate"`
-	Domain      string            `yaml:"domain"`
-}
-
-type CertificateConfig struct {
-	Domains []string `yaml:"domains"`
+type MetadataConfig struct {
+	Compatibility string       `yaml:"compatibility"`
+	Name          string       `yaml:"name"`
+	Source        SourceConfig `yaml:"source"`
 }
 
 type SourceConfig struct {
@@ -59,9 +74,47 @@ type SourceConfig struct {
 	URL  string `yaml:"url"`
 }
 
+type RuntimeConfig struct {
+	Build  BuildConfig  `yaml:"build"`
+	Deploy DeployConfig `yaml:"deploy"`
+	Sudo   SudoMode     `yaml:"sudo"`
+}
+
+type BuildConfig struct {
+	Mode BuildMode `yaml:"mode"`
+}
+
+type DeployConfig struct {
+	Volumes DeployVolumeConfig `yaml:"volumes"`
+}
+
+type DeployVolumeConfig struct {
+	Prompt *bool `yaml:"prompt"`
+}
+
+type EnvironmentConfig struct {
+	Development DevConfig  `yaml:"development"`
+	Production  ProdConfig `yaml:"production"`
+}
+
+type DevConfig struct {
+	Certificate CertificateConfig `yaml:"certificate"`
+	Domain      string            `yaml:"domain"`
+}
+
+type ProdConfig struct {
+	Branch string `yaml:"branch"`
+	Domain string `yaml:"domain"`
+	Tag    string `yaml:"tag"`
+}
+
+type CertificateConfig struct {
+	Exclude []string `yaml:"exclude"`
+	Include []string `yaml:"include"`
+}
+
 const ConfigFileName = "dargstack.yaml"
 
-// DetectStackDir walks up from the current directory to find dargstack.yaml.
 func DetectStackDir() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -82,7 +135,6 @@ func DetectStackDir() (string, error) {
 	}
 }
 
-// Load reads and parses dargstack.yaml from the given directory.
 func Load(stackDir string) (*Config, error) {
 	path := filepath.Join(stackDir, ConfigFileName)
 
@@ -96,7 +148,8 @@ func Load(stackDir string) (*Config, error) {
 		return nil, fmt.Errorf("parse %s: %w", path, err)
 	}
 
-	cfg.applyDefaults(stackDir)
+	cfg.stackDir = stackDir
+	cfg.applyDefaults()
 
 	if err := cfg.validate(); err != nil {
 		return nil, err
@@ -105,52 +158,54 @@ func Load(stackDir string) (*Config, error) {
 	return &cfg, nil
 }
 
-func (c *Config) applyDefaults(stackDir string) {
-	if c.Name == "" {
-		// Normalize to an absolute path so relative inputs like --config stack
-		// don't produce "." as the derived project name.
-		abs, err := filepath.Abs(stackDir)
-		if err == nil {
-			stackDir = abs
-		}
-		c.Name = filepath.Base(filepath.Dir(stackDir))
+func (c *Config) applyDefaults() {
+	abs, err := filepath.EvalSymlinks(c.stackDir)
+	if err != nil {
+		abs, err = filepath.Abs(c.stackDir)
 	}
-	if c.Sudo == "" {
-		c.Sudo = "auto"
+	if err == nil {
+		c.stackDir = abs
 	}
-	if c.Production.Branch == "" {
-		c.Production.Branch = "main"
+	if c.Metadata.Name == "" {
+		c.Metadata.Name = filepath.Base(filepath.Dir(c.stackDir))
 	}
-	
-	if c.Production.Domain == "" {
-		c.Production.Domain = "app.localhost"
+	if c.Runtime.Sudo == "" {
+		c.Runtime.Sudo = SudoAuto
 	}
-	if c.Development.Domain == "" {
-		c.Development.Domain = "app.localhost"
+	if c.Runtime.Build.Mode == "" {
+		c.Runtime.Build.Mode = BuildAlways
+	}
+	if c.Runtime.Deploy.Volumes.Prompt == nil {
+		p := true
+		c.Runtime.Deploy.Volumes.Prompt = &p
+	}
+	if c.Environment.Production.Branch == "" {
+		c.Environment.Production.Branch = "main"
+	}
+	if c.Environment.Production.Domain == "" {
+		c.Environment.Production.Domain = "app.localhost"
+	}
+	if c.Environment.Development.Domain == "" {
+		c.Environment.Development.Domain = "app.localhost"
 	}
 }
 
 var validStackName = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9_.-]*[a-zA-Z0-9])?$`)
 
 func (c *Config) validate() error {
-	if !validStackName.MatchString(c.Name) {
-		return fmt.Errorf("invalid stack name %q: must be alphanumeric with hyphens/underscores/dots", c.Name)
+	if !validStackName.MatchString(c.Metadata.Name) {
+		return fmt.Errorf("invalid stack name %q: must be alphanumeric with hyphens/underscores/dots", c.Metadata.Name)
 	}
-	return nil
-}
-
-// CheckCompatibility verifies the CLI version satisfies the project's compatibility range.
-func (c *Config) CheckCompatibility() error {
-	if c.Compatibility == "" {
+	if c.Metadata.Compatibility == "" {
 		return nil
 	}
 	if version.Version == "dev" {
 		return nil
 	}
 
-	constraint, err := semver.NewConstraint(c.Compatibility)
+	constraint, err := semver.NewConstraint(c.Metadata.Compatibility)
 	if err != nil {
-		return fmt.Errorf("invalid compatibility range %q: %w", c.Compatibility, err)
+		return fmt.Errorf("invalid compatibility range %q: %w", c.Metadata.Compatibility, err)
 	}
 
 	v, err := semver.NewVersion(version.Version)
@@ -160,51 +215,27 @@ func (c *Config) CheckCompatibility() error {
 
 	if !constraint.Check(v) {
 		return fmt.Errorf(
-			"CLI version %s does not satisfy project compatibility range %s — please update dargstack",
-			version.Version, c.Compatibility,
+			"cli version %s does not satisfy project compatibility range %s — please update dargstack",
+			version.Version, c.Metadata.Compatibility,
 		)
 	}
 	return nil
 }
 
-// DevDir returns the path to the development source directory.
-func DevDir(stackDir string) string {
-	return filepath.Join(stackDir, "src", "development")
+func (c *Config) ArtifactsDir() string { return filepath.Join(c.stackDir, "artifacts") }
+func (c *Config) CertificatesDir() string {
+	return filepath.Join(c.stackDir, "artifacts", "certificates")
 }
+func (c *Config) DevDir() string      { return filepath.Join(c.stackDir, "src", "development") }
+func (c *Config) DevEnvFile() string  { return filepath.Join(c.stackDir, "src", "development", ".env") }
+func (c *Config) ProdDir() string     { return filepath.Join(c.stackDir, "src", "production") }
+func (c *Config) ProdEnvFile() string { return filepath.Join(c.stackDir, "src", "production", ".env") }
+func (c *Config) SecretsDir() string  { return filepath.Join(c.stackDir, "artifacts", "secrets") }
+func (c *Config) StackDir() string    { return c.stackDir }
 
-// ProdDir returns the path to the production source directory.
-func ProdDir(stackDir string) string {
-	return filepath.Join(stackDir, "src", "production")
-}
-
-// ArtifactsDir returns the path to the artifacts directory.
-func ArtifactsDir(stackDir string) string {
-	return filepath.Join(stackDir, "artifacts")
-}
-
-// CertificatesDir returns the path to the TLS certificates directory.
-func CertificatesDir(stackDir string) string {
-	return filepath.Join(stackDir, "artifacts", "certificates")
-}
-
-// SecretsDir returns the path to the generated secrets directory.
-func SecretsDir(stackDir string) string {
-	return filepath.Join(stackDir, "artifacts", "secrets")
-}
-
-// DevEnvFile returns the path to the development .env file.
-func DevEnvFile(stackDir string) string {
-	return filepath.Join(stackDir, "src", "development", ".env")
-}
-
-// ProdEnvFile returns the path to the production .env file.
-func ProdEnvFile(stackDir string) string {
-	return filepath.Join(stackDir, "src", "production", ".env")
-}
-
-// CollectServiceFiles returns compose.yaml paths from service directories.
-// If a shared compose.yaml exists directly in dir, it is included first as the base layer.
-// Each subdirectory of dir that contains a compose.yaml is treated as a service.
+// CollectServiceFiles returns the paths to compose.yaml files in the given
+// directory. It includes the shared compose.yaml at the directory root if it
+// exists, plus compose.yaml from each subdirectory that contains one.
 func CollectServiceFiles(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -216,7 +247,6 @@ func CollectServiceFiles(dir string) ([]string, error) {
 
 	var files []string
 
-	// Shared compose.yaml at the environment root (base layer).
 	sharedPath := filepath.Join(dir, "compose.yaml")
 	if _, err := os.Stat(sharedPath); err == nil {
 		files = append(files, sharedPath)

@@ -47,7 +47,7 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 	ctx := context.Background()
 
 	if dryRun {
-		logger.L.Info(fmt.Sprintf("[dry-run] Tracing %s deployment for stack %q", env, cfg.Name))
+		logger.L.Info(fmt.Sprintf("[dry-run] Tracing %s deployment for stack %q", env, cfg.Metadata.Name))
 	}
 
 	if forceDeploy && !dryRun {
@@ -62,7 +62,7 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 
 	// Docker prerequisite check — create executor first so sudo is pre-warmed
 	// before any Docker socket access.
-	executor, err := docker.NewExecutor(cfg.Sudo)
+	executor, err := docker.NewExecutor(string(cfg.Runtime.Sudo))
 	if err != nil {
 		return wrapWithBugHint(err)
 	}

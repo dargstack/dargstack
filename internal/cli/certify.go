@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/tls"
 )
@@ -31,9 +30,10 @@ func runGenerateCerts(_ *cobra.Command, _ []string) error {
 		return err
 	}
 
-	domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Development.Domain), cfg.Development.Certificate.Domains)
+	cert := cfg.Environment.Development.Certificate
+	domains := tls.FilterDomains(tls.ExtractDomains(composeData, cfg.Environment.Development.Domain), cert.Include, cert.Exclude)
 
-	certDir := config.CertificatesDir(stackDir)
+	certDir := cfg.CertificatesDir()
 	if err := tls.EnsureCertificates(certDir, domains); err != nil {
 		return fmt.Errorf("TLS certificate generation failed: %w", err)
 	}

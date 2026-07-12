@@ -8,16 +8,15 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
-
-	"github.com/dargstack/dargstack/v4/internal/config"
 )
 
 // DocsConfig controls the output of GenerateDocumentation.
 type DocsConfig struct {
+	DevDir         string
 	OutputDir      string
+	ProdDir        string
 	SourceCodeName string
 	SourceCodeURL  string
-	StackDir       string
 	StackDomain    string
 	StackName      string
 }
@@ -26,8 +25,8 @@ type DocsConfig struct {
 // It reads YAML comments from raw service compose files for service descriptions
 // and indicates production-only services.
 func GenerateDocumentation(dc *DocsConfig) (string, error) {
-	devDir := config.DevDir(dc.StackDir)
-	prodDir := config.ProdDir(dc.StackDir)
+	devDir := dc.DevDir
+	prodDir := dc.ProdDir
 
 	devServices := listComposeServices(devDir)
 	prodServices := listComposeServices(prodDir)
