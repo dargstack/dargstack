@@ -24,22 +24,13 @@ import (
 )
 
 func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *docker.Client, executor *docker.Executor, env string, dryRun bool) error {
-	// 1. Build compose data
-	var composeData []byte
-	var err error
-	if isProduction() {
-		composeData, err = buildProductionCompose()
-	} else {
-		composeData, err = buildDevelopmentCompose()
-	}
+	composeData, err := buildComposeData(isProduction())
 	if err != nil {
 		return wrapWithBugHint(err)
 	}
 
-	// 2. Environment variables
 	composeVars := applyEnvToProcess(isProduction())
 
-	// 3. Environment variable prompt
 	if dryRun {
 		printInfo("[dry-run] Would check for missing environment variable values")
 	} else {
@@ -49,13 +40,50 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		executor.SetComposeEnv(composeVars)
 	}
 
-	// 4. Filter by profile for secret setup
+	// Filter for secrets and validation.
+	if err := deployFilterForSecrets(composeData, dryRun); err != nil {
+		return err
+	}
+
+	// Filter for all subsequent operations so TLS, git cloning, repo
+	// fetching, and auto-builds only operate on services that will be deployed.
+	composeData, filterMsg, filterErr := applyProfileFilter(composeData)
+	if filterErr != nil {
+		return fmt.Errorf("filter compose by profile: %w", filterErr)
+	}
+	printInfo(filterMsg)
+
+	if !isProduction() {
+		composeData, err = deployPrepareDevelopment(ctx, dockerClient, executor, composeData, dryRun)
+		if err != nil {
+			return err
+		}
+	}
+
+	if isProduction() {
+		composeData, err = deployPreDeployChecks(executor, composeData, dryRun)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := deployExecute(executor, composeData, env, dryRun); err != nil {
+		return err
+	}
+
+	deployPostDeploy(ctx, dockerClient, executor, composeData, dryRun)
+
+	return nil
+}
+
+// deployFilterForSecrets filters composeData by profile, runs secret setup,
+// and validates resources.
+func deployFilterForSecrets(composeData []byte, dryRun bool) error {
 	secretComposeData, _, filterErr := applyProfileFilter(composeData)
 	if filterErr != nil {
 		return fmt.Errorf("filter compose by profile for secret setup: %w", filterErr)
 	}
 
-	// 5. Secret setup
 	if dryRun {
 		templates, templateErr := secret.ExtractTemplates(secretComposeData)
 		if templateErr == nil && len(templates) > 0 {
@@ -95,7 +123,6 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 6. Validate resources
 	if dryRun {
 		printInfo("[dry-run] Would validate all stack resources")
 	} else {
@@ -103,7 +130,6 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		if err != nil {
 			return wrapWithBugHint(err)
 		}
-
 		if printIssues(issues) {
 			return hintErr(
 				errors.New(ErrValidationFailed),
@@ -112,91 +138,79 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 6a. Filter by profile/services for all subsequent operations.
-	// Applied here so TLS, git cloning, repo fetching, and auto-builds
-	// only operate on services that will actually be deployed.
-	composeData, filterMsg, filterErr := applyProfileFilter(composeData)
-	if filterErr != nil {
-		return fmt.Errorf("filter compose by profile: %w", filterErr)
-	}
-	printInfo(filterMsg)
+	return nil
+}
 
-	// 7. TLS certificates (development only) with domain-aware regeneration
-	if !isProduction() {
-		domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Development.Domain), cfg.Development.Certificate.Domains)
-		if dryRun {
-			printInfo(fmt.Sprintf("[dry-run] Would ensure TLS certificates for: %s", strings.Join(domains, ", ")))
-		} else {
-			certDir := config.CertificatesDir(stackDir)
-			if err := tls.EnsureCertificates(certDir, domains); err != nil {
-				printWarning(fmt.Sprintf("TLS certificate setup failed: %v", err))
-			}
+// deployPrepareDevelopment handles TLS certs, git clones, repo fetches,
+// auto-builds, and volume cleanup for development deployments.
+func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, executor *docker.Executor, composeData []byte, dryRun bool) ([]byte, error) {
+	// TLS certificates
+	domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Development.Domain), cfg.Development.Certificate.Domains)
+	if dryRun {
+		printInfo(fmt.Sprintf("[dry-run] Would ensure TLS certificates for: %s", strings.Join(domains, ", ")))
+	} else {
+		certDir := config.CertificatesDir(stackDir)
+		if err := tls.EnsureCertificates(certDir, domains); err != nil {
+			printWarning(fmt.Sprintf("TLS certificate setup failed: %v", err))
 		}
 	}
 
-	// 7a. Clone git repos (development only)
-	if !isProduction() {
-		if dryRun {
-			gitServices := extractGitServices(composeData)
-			if len(gitServices) > 0 {
-				printInfo(fmt.Sprintf("[dry-run] Would clone repositories for: %s", strings.Join(gitServices, ", ")))
-			}
-		} else {
-			var cloneErr error
-			composeData, cloneErr = cloneGitRepos(stackDir, composeData)
-			if cloneErr != nil {
-				return fmt.Errorf("clone git repos: %w", cloneErr)
-			}
+	// Clone git repos
+	if dryRun {
+		gitServices := extractGitServices(composeData)
+		if len(gitServices) > 0 {
+			printInfo(fmt.Sprintf("[dry-run] Would clone repositories for: %s", strings.Join(gitServices, ", ")))
+		}
+	} else {
+		var err error
+		composeData, err = cloneGitRepos(stackDir, composeData)
+		if err != nil {
+			return nil, fmt.Errorf("clone git repos: %w", err)
 		}
 	}
 
-	// 8. Fetch build-context repos and warn if behind (development only)
-	if !isProduction() && !dryRun {
+	// Fetch build-context repos and warn if behind
+	if !dryRun {
 		behindRepos := fetchAndWarnBehind(composeData)
 		printBehindWarning(behindRepos)
 	}
 
-	// 9. Auto-build images (development only)
-	if !isProduction() {
-		buildServices := extractBuildServices(composeData)
-		if dryRun {
-			if len(buildServices) > 0 {
-				printInfo(fmt.Sprintf("[dry-run] Would auto-build images for: %s", strings.Join(buildServices, ", ")))
-			} else {
-				printInfo("[dry-run] No services require auto-build")
-			}
+	// Auto-build images
+	buildServices := extractBuildServices(composeData)
+	if dryRun {
+		if len(buildServices) > 0 {
+			printInfo(fmt.Sprintf("[dry-run] Would auto-build images for: %s", strings.Join(buildServices, ", ")))
 		} else {
-			if err := autoBuildServices(executor, composeData); err != nil {
-				return fmt.Errorf("auto-build failed: %w", err)
-			}
+			printInfo("[dry-run] No services require auto-build")
+		}
+	} else {
+		if err := autoBuildServices(executor, composeData); err != nil {
+			return nil, fmt.Errorf("auto-build failed: %w", err)
 		}
 	}
 
-	// 10. Volume cleanup prompt (development, not already running)
-	if !isProduction() {
-		if dryRun {
-			printInfo("[dry-run] Would prompt for volume cleanup (first-time deploy)")
-		} else if !noInteraction {
-			// Check behavior.volume.remove.prompt (defaults to true)
-			promptVolumes := true
-			if cfg.Behavior.Volume != nil && cfg.Behavior.Volume.Remove != nil {
-				promptVolumes = cfg.Behavior.Volume.Remove.Prompt
-			}
-			if promptVolumes {
-				running := isStackRunning(ctx, dockerClient, executor)
-				if !running {
-					ok, _ := prompt.Confirm("Remove all stack volumes for a clean start?", false)
-					if ok {
-						volumes, volErr := docker.VolumeList(executor, cfg.Name)
-						if volErr == nil && len(volumes) > 0 {
-							if err := docker.VolumeRemove(executor, volumes); err != nil {
-								printWarning(fmt.Sprintf("Failed to remove volumes: %v", err))
-							} else {
-								for _, v := range volumes {
-									printInfo(fmt.Sprintf("  Removed volume: %s", v))
-								}
-								printSuccess(fmt.Sprintf(MsgRemovedVolumes, len(volumes)))
+	// Volume cleanup prompt
+	if dryRun {
+		printInfo("[dry-run] Would prompt for volume cleanup (first-time deploy)")
+	} else if !noInteraction {
+		promptVolumes := true
+		if cfg.Behavior.Volume != nil && cfg.Behavior.Volume.Remove != nil {
+			promptVolumes = cfg.Behavior.Volume.Remove.Prompt
+		}
+		if promptVolumes {
+			running := isStackRunning(ctx, dockerClient, executor)
+			if !running {
+				ok, _ := prompt.Confirm("Remove all stack volumes for a clean start?", false)
+				if ok {
+					volumes, volErr := docker.VolumeList(executor, cfg.Name)
+					if volErr == nil && len(volumes) > 0 {
+						if err := docker.VolumeRemove(executor, volumes); err != nil {
+							printWarning(fmt.Sprintf("Failed to remove volumes: %v", err))
+						} else {
+							for _, v := range volumes {
+								printInfo(fmt.Sprintf("  Removed volume: %s", v))
 							}
+							printSuccess(fmt.Sprintf(MsgRemovedVolumes, len(volumes)))
 						}
 					}
 				}
@@ -204,39 +218,40 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 11. (Profile/services filtering already applied at step 6a)
+	return composeData, nil
+}
 
-	// 12. For production, check that all referenced images are reachable in
-	// their registries before touching the live stack. This catches authentication
-	// failures and missing tags early, preventing partial updates that cause downtime.
-	if isProduction() {
-		images := compose.ExtractServiceImages(composeData)
-		if dryRun {
-			if len(images) > 0 {
-				printInfo(fmt.Sprintf("[dry-run] Would check image accessibility for: %s", strings.Join(images, ", ")))
-			}
-		} else {
-			if len(images) > 0 {
-				unreachable := docker.CheckImagesAccessible(executor, images)
-				if len(unreachable) > 0 {
-					for img := range unreachable {
-						printError(fmt.Sprintf("image not accessible: %s", img))
-					}
-					return fmt.Errorf("one or more images are not accessible — fix registry credentials or image references before deploying")
+// deployPreDeployChecks validates production image accessibility and strips
+// development labels before deployment.
+func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun bool) ([]byte, error) {
+	images := compose.ExtractServiceImages(composeData)
+	if dryRun {
+		if len(images) > 0 {
+			printInfo(fmt.Sprintf("[dry-run] Would check image accessibility for: %s", strings.Join(images, ", ")))
+		}
+	} else {
+		if len(images) > 0 {
+			unreachable := docker.CheckImagesAccessible(executor, images)
+			if len(unreachable) > 0 {
+				for img := range unreachable {
+					printError(fmt.Sprintf("image not accessible: %s", img))
 				}
+				return nil, fmt.Errorf("one or more images are not accessible — fix registry credentials or image references before deploying")
 			}
 		}
 	}
 
-	// 13. For production, strip dargstack.development.* before deploying.
-	if isProduction() {
-		composeData, err = compose.StripProductionDevelopmentLabels(composeData)
-		if err != nil {
-			return wrapWithBugHint(err)
-		}
+	var err error
+	composeData, err = compose.StripProductionDevelopmentLabels(composeData)
+	if err != nil {
+		return nil, wrapWithBugHint(err)
 	}
+	return composeData, nil
+}
 
-	// 14. Deploy
+// deployExecute prints deploy messaging, saves the audit snapshot, and
+// runs docker stack deploy.
+func deployExecute(executor *docker.Executor, composeData []byte, env string, dryRun bool) error {
 	if isProduction() {
 		if cfg.Production.Domain == "app.localhost" {
 			prefix := ""
@@ -263,7 +278,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 15. Save audit trail (before deployment)
+	// Save audit trail
 	if dryRun {
 		printInfo("[dry-run] Would save deployment snapshot to audit log")
 	} else {
@@ -279,7 +294,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 16. Execute deployment
+	// Execute deployment
 	if dryRun {
 		printInfo("[dry-run] Would execute `docker stack deploy`")
 		printInfo("[dry-run] Final compose output:")
@@ -291,7 +306,11 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 17. Post-deploy status
+	return nil
+}
+
+// deployPostDeploy prints service count and offers runtime cleanup.
+func deployPostDeploy(ctx context.Context, dockerClient *docker.Client, executor *docker.Executor, composeData []byte, dryRun bool) {
 	if dryRun {
 		svcCount := countComposeServices(composeData)
 		printInfo(fmt.Sprintf("[dry-run] Would have %d service(s) running", svcCount))
@@ -301,7 +320,6 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 18. Offer to clean up stopped containers and unused images (production)
 	if isProduction() {
 		if dryRun {
 			printInfo("[dry-run] Would offer runtime cleanup of stopped containers and unused images")
@@ -309,8 +327,6 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 			offerRuntimeCleanup(executor)
 		}
 	}
-
-	return nil
 }
 
 // extractBuildServices returns the sorted list of service names that have a
