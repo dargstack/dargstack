@@ -141,7 +141,14 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 8. Auto-build images (development only)
+	// 8. Fetch build-context repos and warn if behind (development only)
+	if !isProduction() {
+		if !dryRun {
+			fetchAndWarnBehind(composeData)
+		}
+	}
+
+	// 9. Auto-build images (development only)
 	if !isProduction() {
 		buildServices := extractBuildServices(composeData)
 		if dryRun {
@@ -157,7 +164,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 9. Volume cleanup prompt (development, not already running)
+	// 10. Volume cleanup prompt (development, not already running)
 	if !isProduction() {
 		if dryRun {
 			printInfo("[dry-run] Would prompt for volume cleanup (first-time deploy)")
@@ -189,7 +196,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 10. Filter for profile/services
+	// 11. Filter for profile/services
 	switch {
 	case deployAll:
 		printInfo("Deploying full stack (--all: profile and service filters bypassed)")
@@ -224,7 +231,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 11. For production, check that all referenced images are reachable in
+	// 12. For production, check that all referenced images are reachable in
 	// their registries before touching the live stack. This catches authentication
 	// failures and missing tags early, preventing partial updates that cause downtime.
 	if isProduction() {
@@ -246,7 +253,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 12. For production, strip dargstack.development.* before deploying.
+	// 13. For production, strip dargstack.development.* before deploying.
 	if isProduction() {
 		composeData, err = compose.StripProductionDevelopmentLabels(composeData)
 		if err != nil {
@@ -254,7 +261,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 13. Deploy
+	// 14. Deploy
 	if isProduction() {
 		if cfg.Production.Domain == "app.localhost" {
 			prefix := ""
@@ -281,7 +288,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 14. Save audit trail (before deployment)
+	// 15. Save audit trail (before deployment)
 	if dryRun {
 		printInfo("[dry-run] Would save deployment snapshot to audit log")
 	} else {
@@ -297,7 +304,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 15. Execute deployment
+	// 16. Execute deployment
 	if dryRun {
 		printInfo("[dry-run] Would execute `docker stack deploy`")
 		printInfo("[dry-run] Final compose output:")
@@ -309,7 +316,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 16. Post-deploy status
+	// 17. Post-deploy status
 	if dryRun {
 		svcCount := countComposeServices(composeData)
 		printInfo(fmt.Sprintf("[dry-run] Would have %d service(s) running", svcCount))
@@ -319,7 +326,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 17. Offer to clean up stopped containers and unused images (production)
+	// 18. Offer to clean up stopped containers and unused images (production)
 	if isProduction() {
 		if dryRun {
 			printInfo("[dry-run] Would offer runtime cleanup of stopped containers and unused images")

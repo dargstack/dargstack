@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -171,6 +172,153 @@ func extractNames(tasks []buildTask) []string {
 		names[i] = t.name
 	}
 	return names
+}
+
+// gitBehindInfo holds the result of checking if a repo is behind its remote.
+type gitBehindInfo struct {
+	serviceName string
+	behind      int
+	branch      string
+}
+
+// fetchAndWarnBehind fetches all git repos used as build contexts in parallel
+// and prints an aggregate warning for any that are behind their remote.
+func fetchAndWarnBehind(composeData []byte) {
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(composeData, &doc); err != nil {
+		return
+	}
+
+	svcMap, ok := doc["services"].(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	baseDir := config.DevDir(stackDir)
+
+	// Collect build context directories.
+	type contextDir struct {
+		name string
+		path string
+	}
+	var dirs []contextDir
+
+	for name, def := range svcMap {
+		svc, ok := def.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		contextPath := extractDargstackBuildContext(svc)
+		if contextPath == "" {
+			continue
+		}
+
+		if !filepath.IsAbs(contextPath) {
+			svcDir := filepath.Join(baseDir, name)
+			if _, err := os.Stat(svcDir); os.IsNotExist(err) {
+				continue
+			}
+			contextPath = filepath.Join(svcDir, contextPath)
+		}
+
+		dirs = append(dirs, contextDir{name: name, path: contextPath})
+	}
+
+	if len(dirs) == 0 {
+		return
+	}
+
+	// Fetch and check behind in parallel.
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var behind []gitBehindInfo
+
+	for _, d := range dirs {
+		wg.Add(1)
+		go func(cd contextDir) {
+			defer wg.Done()
+
+			behindCount, branch, err := fetchAndCheckBehind(cd.path)
+			if err != nil || behindCount == 0 {
+				return
+			}
+
+			mu.Lock()
+			behind = append(behind, gitBehindInfo{serviceName: cd.name, behind: behindCount, branch: branch})
+			mu.Unlock()
+		}(d)
+	}
+
+	wg.Wait()
+
+	if len(behind) == 0 {
+		return
+	}
+
+	// Sort for deterministic output.
+	sort.Slice(behind, func(i, j int) bool { return behind[i].serviceName < behind[j].serviceName })
+
+	parts := make([]string, len(behind))
+	for i, b := range behind {
+		parts[i] = fmt.Sprintf("%s (%s) — %d commit%s behind", b.serviceName, b.branch, b.behind, pluralS(b.behind))
+	}
+	printWarning(fmt.Sprintf("Local repos behind remote: %s", strings.Join(parts, ", ")))
+}
+
+// fetchAndCheckBehind runs `git fetch` in dir and returns how many commits
+// the current branch is behind its upstream. Returns (0, "", err) on failure.
+func fetchAndCheckBehind(dir string) (int, string, error) {
+	// Check if it's a git repo.
+	if _, err := os.Stat(filepath.Join(dir, ".git")); os.IsNotExist(err) {
+		return 0, "", nil
+	}
+
+	// Fetch.
+	cmd := exec.Command("git", "fetch")
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return 0, "", fmt.Errorf("git fetch in %s: %s: %w", dir, strings.TrimSpace(string(out)), err)
+	}
+
+	// Get current branch.
+	branchOut, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
+	if err != nil {
+		return 0, "", nil
+	}
+	branch := strings.TrimSpace(string(branchOut))
+	if branch == "HEAD" {
+		// Detached HEAD — nothing to compare.
+		return 0, "", nil
+	}
+
+	// Get upstream branch.
+	upstreamOut, err := exec.Command("git", "rev-parse", "--abbrev-ref", branch+"@{upstream}").Output()
+	if err != nil {
+		// No upstream configured.
+		return 0, "", nil
+	}
+	upstream := strings.TrimSpace(string(upstreamOut))
+
+	// Count commits behind: `git rev-list COUNT..upstream --count`
+	countOut, err := exec.Command("git", "rev-list", fmt.Sprintf("%s..%s", branch, upstream), "--count").Output()
+	if err != nil {
+		return 0, branch, nil
+	}
+	count := strings.TrimSpace(string(countOut))
+
+	behind, err := strconv.Atoi(count)
+	if err != nil {
+		return 0, branch, nil
+	}
+	return behind, branch, nil
+}
+
+func pluralS(n int) string {
+	if n == 1 {
+		return ""
+	}
+	return "s"
 }
 
 func imageExists(executor *docker.Executor, tag string) bool {
