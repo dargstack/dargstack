@@ -77,7 +77,7 @@ func resolveDeployTag() (string, error) {
 	if deployTag != "" {
 		return deployTag, nil
 	}
-	if cfg.Production.Tag != "latest" {
+	if cfg.Production.Tag != "" {
 		return cfg.Production.Tag, nil
 	}
 	if !offline {

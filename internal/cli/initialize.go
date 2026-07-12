@@ -478,7 +478,6 @@ production:
   domain: "app.localhost"
   # Git branch for production deployments
   branch: "main"
-  # Tag strategy for production — use "latest" to auto-detect from git tags
-  tag: "latest"
+  # Tag for production deployments — leave unset to auto-detect from git tags
 `, name, name, name)
 }

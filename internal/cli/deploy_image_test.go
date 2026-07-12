@@ -151,7 +151,7 @@ func TestResolveDeployTagFromGit(t *testing.T) {
 	offline = true
 	cfg = &config.Config{
 		Production: config.ProductionConfig{
-			Tag:    "latest",
+			Tag:    "",
 			Branch: "main",
 		},
 	}
@@ -163,6 +163,34 @@ func TestResolveDeployTagFromGit(t *testing.T) {
 	}
 	if tag != "v1.2.3" {
 		t.Errorf("expected v1.2.3, got %s", tag)
+	}
+}
+
+func TestResolveDeployTagLiteralLatest(t *testing.T) {
+	origDeployTag := deployTag
+	origOffline := offline
+	origCfg := cfg
+	defer func() {
+		deployTag = origDeployTag
+		offline = origOffline
+		cfg = origCfg
+	}()
+
+	deployTag = ""
+	offline = false
+	cfg = &config.Config{
+		Production: config.ProductionConfig{
+			Tag:    "latest",
+			Branch: "main",
+		},
+	}
+
+	tag, err := resolveDeployTag()
+	if err != nil {
+		t.Fatalf("resolveDeployTag failed: %v", err)
+	}
+	if tag != "latest" {
+		t.Errorf("expected literal 'latest', got %s", tag)
 	}
 }
 

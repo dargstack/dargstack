@@ -121,9 +121,7 @@ func (c *Config) applyDefaults(stackDir string) {
 	if c.Production.Branch == "" {
 		c.Production.Branch = "main"
 	}
-	if c.Production.Tag == "" {
-		c.Production.Tag = "latest"
-	}
+	
 	if c.Production.Domain == "" {
 		c.Production.Domain = "app.localhost"
 	}

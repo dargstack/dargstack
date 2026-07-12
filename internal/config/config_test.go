@@ -53,8 +53,8 @@ func TestLoadConfigDefaults(t *testing.T) {
 	if cfg.Production.Branch != "main" {
 		t.Errorf("expected default branch=main, got %s", cfg.Production.Branch)
 	}
-	if cfg.Production.Tag != "latest" {
-		t.Errorf("expected default tag=latest, got %s", cfg.Production.Tag)
+	if cfg.Production.Tag != "" {
+		t.Errorf("expected default tag to be empty (auto-detect), got %s", cfg.Production.Tag)
 	}
 }
 
