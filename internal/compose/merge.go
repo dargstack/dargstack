@@ -31,11 +31,12 @@ func PreprocessStackRoot(stackDir string) func([]byte) []byte {
 		scanner.Buffer(make([]byte, 64*1024), 10*1024*1024)
 		for scanner.Scan() {
 			line := scanner.Text()
-			if strings.Contains(line, StackRootPrefix) {
-				line = strings.ReplaceAll(line, StackRootPrefix, stackDir)
-			}
+			// Replace longer prefix first to avoid ~~~ being partially consumed by ~~.
 			if strings.Contains(line, ParentDirPrefix) {
 				line = strings.ReplaceAll(line, ParentDirPrefix, parentDir)
+			}
+			if strings.Contains(line, StackRootPrefix) {
+				line = strings.ReplaceAll(line, StackRootPrefix, stackDir)
 			}
 			result = append(result, line)
 		}
