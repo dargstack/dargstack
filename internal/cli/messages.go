@@ -24,8 +24,8 @@ const (
 	FlagDescProfiles = "activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined"
 
 	// Prompt choices
-	ChoiceAutoGenAll  = "Auto-generate this and remaining auto-generatable secrets (skip all)"
-	ChoiceAutoGenThis = "Auto-generate this secret (skip)"
+	ChoiceAutoGenAll  = "Auto-generate this and remaining auto-generatable secrets"
+	ChoiceAutoGenThis = "Auto-generate this secret"
 	ChoiceCopyKey     = "Copy key to clipboard"
 	ChoiceCopyValue   = "Copy value to clipboard"
 )

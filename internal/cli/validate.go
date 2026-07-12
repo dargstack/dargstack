@@ -40,10 +40,11 @@ func runValidate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	composeData, err = applyProfileFilter(composeData)
+	composeData, filterMsg, err := applyProfileFilter(composeData)
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
 	}
+	printInfo(filterMsg)
 
 	issues, err := resource.Validate(composeData, stackDir, production)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/config"
@@ -128,26 +129,32 @@ func composeHasProfile(composeData []byte, profile string) bool {
 }
 
 // applyProfileFilter applies the active --profiles / --services / default-profile
-// filter to composeData and returns the filtered result. This must be called
-// before any operation that should only concern the active portion of the stack
-// (e.g. secret setup, validation).
+// filter to composeData and returns the filtered result along with a human-readable
+// description of the filter applied. This must be called before any operation that
+// should only concern the active portion of the stack (e.g. secret setup, validation).
 //
 // In production mode without an explicit --profiles or --services flag, all
 // services are included (matching the deploy step that skips the default-profile
 // filter in production).
-func applyProfileFilter(composeData []byte) ([]byte, error) {
+func applyProfileFilter(composeData []byte) ([]byte, string, error) {
 	if deployAll {
-		return composeData, nil
+		return composeData, "Profile filter bypassed (--all)", nil
 	}
 	switch {
 	case len(profiles) > 0:
-		return compose.FilterByProfile(composeData, profiles)
+		result, err := compose.FilterByProfile(composeData, profiles)
+		return result, fmt.Sprintf("Filtering by profiles: %s", strings.Join(profiles, ", ")), err
 	case len(services) > 0:
-		return compose.FilterServices(composeData, services)
+		result, err := compose.FilterServices(composeData, services)
+		return result, fmt.Sprintf("Filtering by services: %s", strings.Join(services, ", ")), err
 	case production:
-		// Production deploys all services by default; skip the default-profile filter.
-		return composeData, nil
+		return composeData, "Production mode: no profile filter applied", nil
 	default:
-		return compose.FilterByProfile(composeData, nil)
+		hasDefault := composeHasProfile(composeData, "default")
+		result, err := compose.FilterByProfile(composeData, nil)
+		if hasDefault {
+			return result, "Default profile active: filtering to \"default\" profile only", err
+		}
+		return result, "No default profile: no filtering applied", err
 	}
 }

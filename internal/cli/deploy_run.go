@@ -50,7 +50,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	}
 
 	// 4. Filter by profile for secret setup
-	secretComposeData, filterErr := applyProfileFilter(composeData)
+	secretComposeData, _, filterErr := applyProfileFilter(composeData)
 	if filterErr != nil {
 		return fmt.Errorf("filter compose by profile for secret setup: %w", filterErr)
 	}

@@ -141,10 +141,11 @@ func runRemoveTargeted(executor *docker.Executor) error {
 		return fmt.Errorf("build compose for targeted remove: %w", err)
 	}
 
-	composeData, err = applyProfileFilter(composeData)
+	composeData, filterMsg, err := applyProfileFilter(composeData)
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
 	}
+	printInfo(filterMsg)
 
 	// Extract service names from the filtered compose.
 	targetServices, err := compose.ServiceNames(composeData)

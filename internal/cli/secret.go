@@ -95,11 +95,14 @@ func init() {
 	secretCmd.AddCommand(secretStatusCmd)
 
 	secretListCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
+	secretListCmd.Flags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
 	secretShowCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
+	secretShowCmd.Flags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
 	secretShowCmd.Flags().StringVar(&secretShowType, "type", "value", "output type: value (secret values) or key (derived public keys)")
 	secretGenerateCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
 	secretGenerateCmd.Flags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
 	secretStatusCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
+	secretStatusCmd.Flags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
 }
 
 func runSecretList(_ *cobra.Command, _ []string) error {
@@ -107,6 +110,12 @@ func runSecretList(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return wrapWithBugHint(err)
 	}
+
+	composeData, filterMsg, err := applyProfileFilter(composeData)
+	if err != nil {
+		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
+	}
+	printInfo(filterMsg)
 
 	paths := secret.ExtractSecretPaths(composeData)
 	if len(paths) == 0 {
@@ -165,6 +174,12 @@ func runSecretShowValues(targetName string) error {
 		return wrapWithBugHint(err)
 	}
 
+	composeData, filterMsg, err := applyProfileFilter(composeData)
+	if err != nil {
+		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
+	}
+	printInfo(filterMsg)
+
 	paths := secret.ExtractSecretPaths(composeData)
 	if len(paths) == 0 {
 		printInfo("No secrets found")
@@ -213,9 +228,9 @@ func runSecretShowValues(targetName string) error {
 			for {
 				title := fmt.Sprintf("Secret %d/%d: %s", i+1, len(names), name)
 				choice, choiceErr := prompt.Select(title, []string{
-					ChoiceCopyKey,
-					ChoiceCopyValue,
 					"Next",
+					ChoiceCopyValue,
+					ChoiceCopyKey,
 					"Done",
 				})
 				if choiceErr != nil {
@@ -265,6 +280,12 @@ func runSecretShowKeys(targetName string) error {
 	if err != nil {
 		return wrapWithBugHint(err)
 	}
+
+	composeData, filterMsg, err := applyProfileFilter(composeData)
+	if err != nil {
+		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
+	}
+	printInfo(filterMsg)
 
 	templates, err := secret.ExtractTemplates(composeData)
 	if err != nil {
@@ -351,10 +372,11 @@ func runSecretGenerate(_ *cobra.Command, _ []string) error {
 		return wrapWithBugHint(err)
 	}
 
-	composeData, err = applyProfileFilter(composeData)
+	composeData, filterMsg, err := applyProfileFilter(composeData)
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
 	}
+	printInfo(filterMsg)
 
 	if err, allSet := secretSetupFlow(composeData, production); err != nil {
 		return err
@@ -369,6 +391,12 @@ func runSecretStatus(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return wrapWithBugHint(err)
 	}
+
+	composeData, filterMsg, err := applyProfileFilter(composeData)
+	if err != nil {
+		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
+	}
+	printInfo(filterMsg)
 
 	paths := secret.ExtractSecretPaths(composeData)
 	if len(paths) == 0 {
