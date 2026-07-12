@@ -25,7 +25,7 @@ dargstack initialize [name-or-url] [flags]
 ### Options
 
 ```
-  -o, --configuration-only   print config template to stdout without creating a project
+      --configuration-only   print config template to stdout without creating a project
   -h, --help                 help for initialize
 ```
 
@@ -37,8 +37,8 @@ dargstack initialize [name-or-url] [flags]
   -e, --environment string     environment to operate on: development|production (default "development")
   -f, --format string          output format for compatible commands: table|json (default "table")
   -n, --no-interaction         disable interactive prompts
-      --offline                skip fetching remote resources
-      --profiles strings       activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
+  -o, --offline                skip fetching remote resources
+  -p, --profiles strings       activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
   -s, --services strings       filter to specific services
   -v, --verbose                verbose output
 ```

@@ -103,8 +103,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&env, "environment", "e", "development", "environment to operate on: development|production")
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "format", "f", "table", "output format for compatible commands: table|json")
 	rootCmd.PersistentFlags().BoolVarP(&noInteraction, "no-interaction", "n", false, "disable interactive prompts")
-	rootCmd.PersistentFlags().BoolVar(&offline, "offline", false, "skip fetching remote resources")
-	rootCmd.PersistentFlags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
+	rootCmd.PersistentFlags().BoolVarP(&offline, "offline", "o", false, "skip fetching remote resources")
+	rootCmd.PersistentFlags().StringSliceVarP(&profiles, "profiles", "p", nil, FlagDescProfiles)
 	rootCmd.PersistentFlags().StringSliceVarP(&services, "services", "s", nil, "filter to specific services")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 

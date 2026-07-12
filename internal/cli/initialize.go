@@ -36,7 +36,7 @@ Use ` + "`--configuration-only`" + ` to print a full config template to stdout w
 }
 
 func init() {
-	initCmd.Flags().BoolVarP(&configOnly, "configuration-only", "o", false, "print config template to stdout without creating a project")
+	initCmd.Flags().BoolVar(&configOnly, "configuration-only", false, "print config template to stdout without creating a project")
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
