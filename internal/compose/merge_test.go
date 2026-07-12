@@ -644,3 +644,65 @@ func TestExpandStackRootWithMerge(t *testing.T) {
 		t.Errorf("expected overlay secret path %q in output", overlayWant)
 	}
 }
+
+func TestExpandParentDirInSecret(t *testing.T) {
+	stackDir := "/project/stack"
+	parentDir := "/project"
+	dir := t.TempDir()
+	f := filepath.Join(dir, "compose.yaml")
+
+	content := "secrets:\n  app-secret:\n    file: " + ParentDirPrefix + "/shared/app.secret\n"
+	writeTestFile(t, f, content)
+
+	out, err := LoadSingle(stackDir, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := filepath.Join(parentDir, "shared", "app.secret")
+	if !strings.Contains(string(out), want) {
+		t.Errorf("expected secret path %q, got:\n%s", want, string(out))
+	}
+}
+
+func TestExpandParentDirInVolume(t *testing.T) {
+	stackDir := "/project/stack"
+	parentDir := "/project"
+	dir := t.TempDir()
+	f := filepath.Join(dir, "compose.yaml")
+
+	content := "services:\n  api:\n    image: api\n    volumes:\n      - " + ParentDirPrefix + "/api:/srv/app\n"
+	writeTestFile(t, f, content)
+
+	out, err := LoadSingle(stackDir, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := filepath.Join(parentDir, "api")
+	if !strings.Contains(string(out), want) {
+		t.Errorf("expected volume path to contain %q, got:\n%s", want, string(out))
+	}
+}
+
+func TestExpandBothPrefixes(t *testing.T) {
+	stackDir := "/project/stack"
+	parentDir := "/project"
+	dir := t.TempDir()
+	f := filepath.Join(dir, "compose.yaml")
+
+	content := "services:\n  api:\n    image: api\n    volumes:\n      - " + StackRootPrefix + "/local:/local\n      - " + ParentDirPrefix + "/shared:/shared\n"
+	writeTestFile(t, f, content)
+
+	out, err := LoadSingle(stackDir, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(string(out), stackDir) {
+		t.Errorf("expected volume path to contain stack dir %q, got:\n%s", stackDir, string(out))
+	}
+	if !strings.Contains(string(out), parentDir) {
+		t.Errorf("expected volume path to contain parent dir %q, got:\n%s", parentDir, string(out))
+	}
+}
