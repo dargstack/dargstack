@@ -34,7 +34,7 @@ x-dargstack:
 	noInteraction = true
 	defer func() { noInteraction = false }()
 
-	err, _ := secretSetupFlow([]byte(composeYAML), false)
+	err, _ := secretSetupFlow([]byte(composeYAML), false, false)
 	if err != nil {
 		t.Fatalf("secretSetupFlow: %v", err)
 	}
@@ -84,7 +84,7 @@ x-dargstack:
 	noInteraction = true
 	defer func() { noInteraction = false }()
 
-	err, _ := secretSetupFlow([]byte(composeYAML), false)
+	err, _ := secretSetupFlow([]byte(composeYAML), false, false)
 	if err != nil {
 		t.Fatalf("secretSetupFlow: %v", err)
 	}
@@ -125,7 +125,7 @@ x-dargstack:
 	noInteraction = true
 	defer func() { noInteraction = false }()
 
-	err, _ := secretSetupFlow([]byte(composeYAML), false)
+	err, _ := secretSetupFlow([]byte(composeYAML), false, false)
 	if err != nil {
 		t.Fatalf("secretSetupFlow: %v", err)
 	}

@@ -12,7 +12,9 @@ import (
 
 // secretSetupFlow sets up secrets for deployment. Returns an error on failure
 // and a bool indicating whether all secrets are set (no missing, no placeholders).
-func secretSetupFlow(composeData []byte, prod bool) (error, bool) {
+// When deployMode is true, tip messages are suppressed because the resource
+// validator will report them in its structured output.
+func secretSetupFlow(composeData []byte, prod bool, deployMode bool) (error, bool) {
 	templates, err := secret.ExtractTemplates(composeData)
 	if err != nil || len(templates) == 0 {
 		return nil, true
@@ -102,7 +104,9 @@ func secretSetupFlow(composeData []byte, prod bool) (error, bool) {
 			if len(noFile) > 0 {
 				sort.Strings(noFile)
 				printWarning(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(noFile, ", ")))
-				printInfo(MsgReplaceSecretFiles)
+				if !deployMode {
+					printInfo(MsgReplaceSecretFiles)
+				}
 			}
 		}
 
@@ -190,7 +194,9 @@ func secretSetupFlow(composeData []byte, prod bool) (error, bool) {
 
 		if len(unsetThirdParty) > 0 {
 			printWarning(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(unsetThirdParty, ", ")))
-			printInfo(MsgReplaceSecretFiles)
+			if !deployMode {
+				printInfo(MsgReplaceSecretFiles)
+			}
 		}
 
 		// Warn about templates that resolved with placeholder content.
@@ -218,7 +224,7 @@ func secretSetupFlow(composeData []byte, prod bool) (error, bool) {
 					break
 				}
 			}
-			if hasNoTemplate {
+			if hasNoTemplate && !deployMode {
 				printInfo(TipAddSecretMetadata)
 			}
 		}
@@ -344,7 +350,9 @@ func secretSetupFlow(composeData []byte, prod bool) (error, bool) {
 	sort.Strings(unsetThirdParty)
 	if len(unsetThirdParty) > 0 {
 		printWarning(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(unsetThirdParty, ", ")))
-		printInfo(MsgReplaceSecretFiles)
+		if !deployMode {
+			printInfo(MsgReplaceSecretFiles)
+		}
 	}
 
 	if len(stillMissing) > 0 {
@@ -357,7 +365,7 @@ func secretSetupFlow(composeData []byte, prod bool) (error, bool) {
 				break
 			}
 		}
-		if hasNoTemplate {
+		if hasNoTemplate && !deployMode {
 			printInfo(TipAddSecretMetadata)
 		}
 	}

@@ -18,7 +18,6 @@ const (
 	MsgReplaceSecretFiles   = "Replace those secret files with real values before deploying to production."
 	MsgClipboardCopyFailed  = "Clipboard copy failed: %v"
 	TipAddSecretMetadata    = "Tip: Add x-dargstack.secrets entries with typed secret metadata to auto-generate missing secrets."
-	TipDefineSecretMetadata = "Tip: Define missing secrets in x-dargstack.secrets with typed secret metadata to auto-generate them during deploy."
 
 	// Flag descriptions
 	FlagDescProfiles = "activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined"

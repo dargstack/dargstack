@@ -90,14 +90,8 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 			printInfo("[dry-run] No secrets to set up")
 		}
 	} else {
-		if err, _ := secretSetupFlow(secretComposeData, isProduction()); err != nil {
+		if err, _ := secretSetupFlow(secretComposeData, isProduction(), true); err != nil {
 			return fmt.Errorf("secret setup: %w", err)
-		}
-
-		// Warn if any secrets still hold the UNSET THIRD PARTY SECRET placeholder.
-		if placeholders := secret.PlaceholderSecrets(secretComposeData, stackDir); len(placeholders) > 0 {
-			printWarning(fmt.Sprintf("Third party secrets hold placeholder value: %s", strings.Join(placeholders, ", ")))
-			printInfo(TipDefineSecretMetadata)
 		}
 	}
 
@@ -111,10 +105,6 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 
 		if printIssues(issues) {
-			missing := resource.MissingSecrets(issues)
-			if len(missing) > 0 {
-				printInfo("Tip: Define missing secrets in x-dargstack.secrets with typed secret metadata to auto-generate them during deploy.")
-			}
 			return hintErr(
 				errors.New(ErrValidationFailed),
 				"Fix the errors listed above, then run `dargstack deploy` again.",

@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
@@ -192,27 +191,6 @@ func SecretFileExists(secretPaths map[string]string, name string) bool {
 	}
 	_, err := os.Stat(path)
 	return err == nil
-}
-
-// PlaceholderSecrets returns names of secrets whose file still contains a placeholder value.
-func PlaceholderSecrets(composeData []byte, _ string) []string {
-	paths := ExtractSecretPaths(composeData)
-	if len(paths) == 0 {
-		return nil
-	}
-	var names []string
-	for name, path := range paths {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			continue
-		}
-		v := strings.TrimSpace(string(data))
-		if isPlaceholderValue(v) {
-			names = append(names, name)
-		}
-	}
-	sort.Strings(names)
-	return names
 }
 
 func isPlaceholderValue(v string) bool {
