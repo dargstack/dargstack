@@ -27,6 +27,7 @@ dargstack inspect [timestamp] [flags]
   -c, --configuration string   path to stack directory (default: auto-detect)
   -d, --dry-run                trace all steps without executing
   -f, --format string          output format for compatible commands: table|json (default "table")
+  -l, --log-level string       log level: error, warn, info, debug (default "info")
   -n, --no-interaction         disable interactive prompts
   -o, --offline                skip fetching remote resources
   -p, --profiles strings       activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined

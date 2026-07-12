@@ -34,6 +34,18 @@ var (
 	styleWarn = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
 )
 
+const (
+	levelError = iota
+	levelWarn
+	levelInfo
+	levelDebug
+)
+
+var (
+	logLevel      string
+	logLevelValue = levelInfo
+)
+
 var rootCmd = &cobra.Command{
 	Use:          "dargstack",
 	Short:        "Docker stack helper CLI",
@@ -43,6 +55,15 @@ var rootCmd = &cobra.Command{
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Propagate --no-interaction to the prompt package.
 		prompt.NonInteractive = noInteraction
+
+		level, logErr := resolveLogLevel(logLevel)
+		if logErr != nil {
+			return logErr
+		}
+		logLevelValue = level
+		if verbose {
+			logLevelValue = levelDebug
+		}
 
 		// Skip config loading for commands that don't need a stack project.
 		// Walk up to the first subcommand (child of root) to check.
@@ -107,6 +128,7 @@ func init() {
 	rootCmd.PersistentFlags().StringSliceVarP(&profiles, "profiles", "p", nil, FlagDescProfiles)
 	rootCmd.PersistentFlags().StringSliceVarP(&services, "services", "s", nil, "filter to specific services")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "info", "log level: error, warn, info, debug")
 
 	rootCmd.AddCommand(buildCmd)
 	rootCmd.AddCommand(certificatesCmd)
@@ -145,25 +167,48 @@ func isSkippedCommand(cmd *cobra.Command) bool {
 // isProduction returns true if the active --environment is "production".
 func isProduction() bool { return env == "production" }
 
+func resolveLogLevel(level string) (int, error) {
+	switch level {
+	case "error":
+		return levelError, nil
+	case "warn":
+		return levelWarn, nil
+	case "info":
+		return levelInfo, nil
+	case "debug":
+		return levelDebug, nil
+	default:
+		return 0, fmt.Errorf("invalid log level %q: must be one of error, warn, info, debug", level)
+	}
+}
+
 // Execute runs the root command.
 func Execute() error {
 	return rootCmd.Execute()
 }
 
 func printError(msg string) {
-	fmt.Fprintln(os.Stderr, styleErr.Render("Error: "+msg))
+	if levelError <= logLevelValue {
+		fmt.Fprintln(os.Stderr, styleErr.Render("Error: "+msg))
+	}
 }
 
 func printWarning(msg string) {
-	fmt.Fprintln(os.Stderr, styleWarn.Render("Warning: "+msg))
+	if levelWarn <= logLevelValue {
+		fmt.Fprintln(os.Stderr, styleWarn.Render("Warning: "+msg))
+	}
 }
 
 func printSuccess(msg string) {
-	fmt.Println(styleOK.Render(msg))
+	if levelInfo <= logLevelValue {
+		fmt.Println(styleOK.Render(msg))
+	}
 }
 
 func printInfo(msg string) {
-	fmt.Println(styleInfo.Render(msg))
+	if levelInfo <= logLevelValue {
+		fmt.Println(styleInfo.Render(msg))
+	}
 }
 
 const bugReportURL = "https://github.com/dargstack/dargstack/issues/new?template=bug_report.yaml"
