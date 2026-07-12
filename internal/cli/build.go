@@ -44,6 +44,33 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("build compose: %w", err)
 	}
 
+	// Filter by profile/services so only active services are offered for building.
+	if !deployAll {
+		switch {
+		case len(profiles) > 0:
+			composeData, err = compose.FilterByProfile(composeData, profiles)
+			if err != nil {
+				return fmt.Errorf("filter profiles %v: %w", profiles, err)
+			}
+			printInfo(fmt.Sprintf("Building with profiles %v active", profiles))
+		case len(services) > 0:
+			composeData, err = compose.FilterServices(composeData, services)
+			if err != nil {
+				return fmt.Errorf("filter services: %w", err)
+			}
+			printInfo(fmt.Sprintf("Building services: %s", joinNames(services)))
+		default:
+			hasDefault := composeHasProfile(composeData, "default")
+			composeData, err = compose.FilterByProfile(composeData, nil)
+			if err != nil {
+				return fmt.Errorf("apply default profile semantics: %w", err)
+			}
+			if hasDefault {
+				printInfo("Default profile active: only services in profile \"default\" are available for building")
+			}
+		}
+	}
+
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
 		return fmt.Errorf("%s: %w", compose.ErrParseCompose, err)

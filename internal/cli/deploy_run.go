@@ -112,6 +112,15 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
+	// 6a. Filter by profile/services for all subsequent operations.
+	// Applied here so TLS, git cloning, repo fetching, and auto-builds
+	// only operate on services that will actually be deployed.
+	composeData, filterMsg, filterErr := applyProfileFilter(composeData)
+	if filterErr != nil {
+		return fmt.Errorf("filter compose by profile: %w", filterErr)
+	}
+	printInfo(filterMsg)
+
 	// 7. TLS certificates (development only) with domain-aware regeneration
 	if !isProduction() {
 		domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Development.Domain), cfg.Development.Certificate.Domains)
@@ -195,40 +204,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// 11. Filter for profile/services
-	switch {
-	case deployAll:
-		printInfo("Deploying full stack (--all: profile and service filters bypassed)")
-	case len(profiles) > 0:
-		composeData, err = compose.FilterByProfile(composeData, profiles)
-		if err != nil {
-			return fmt.Errorf("filter profiles %v: %w", profiles, err)
-		}
-		printInfo(fmt.Sprintf("Deploying with profiles %v active", profiles))
-	case len(services) > 0:
-		composeData, err = compose.FilterServices(composeData, services)
-		if err != nil {
-			return fmt.Errorf("filter services: %w", err)
-		}
-		printInfo(fmt.Sprintf("Deploying services: %s", strings.Join(services, ", ")))
-	default:
-		if isProduction() {
-			// Production deploys all services by default; --profiles or --services
-			// can still scope the deployment explicitly.
-			printInfo("Production deployment: deploying all services")
-		} else {
-			defaultProfileExists := composeHasProfile(composeData, "default")
-			composeData, err = compose.FilterByProfile(composeData, nil)
-			if err != nil {
-				return fmt.Errorf("apply default profile semantics: %w", err)
-			}
-			if defaultProfileExists {
-				printInfo("Deploying services in profile \"default\". Use --profiles, --services, --unlabeled or --all to change the set of deployed services.")
-			} else {
-				printInfo("No default profile detected: deploying all services")
-			}
-		}
-	}
+	// 11. (Profile/services filtering already applied at step 6a)
 
 	// 12. For production, check that all referenced images are reachable in
 	// their registries before touching the live stack. This catches authentication

@@ -138,23 +138,23 @@ func composeHasProfile(composeData []byte, profile string) bool {
 // filter in production).
 func applyProfileFilter(composeData []byte) (filtered []byte, msg string, err error) {
 	if deployAll {
-		return composeData, "Profile filter bypassed (--all)", nil
+		return composeData, "Deploying full stack (--all: profile and service filters bypassed)", nil
 	}
 	switch {
 	case len(profiles) > 0:
 		result, err := compose.FilterByProfile(composeData, profiles)
-		return result, fmt.Sprintf("Filtering by profiles: %s", strings.Join(profiles, ", ")), err
+		return result, fmt.Sprintf("Deploying with profiles %v active", profiles), err
 	case len(services) > 0:
 		result, err := compose.FilterServices(composeData, services)
-		return result, fmt.Sprintf("Filtering by services: %s", strings.Join(services, ", ")), err
+		return result, fmt.Sprintf("Deploying services: %s", strings.Join(services, ", ")), err
 	case isProduction():
-		return composeData, "Production mode: no profile filter applied", nil
+		return composeData, "Production deployment: deploying all services", nil
 	default:
 		hasDefault := composeHasProfile(composeData, "default")
 		result, err := compose.FilterByProfile(composeData, nil)
 		if hasDefault {
-			return result, "Default profile active: filtering to \"default\" profile only", err
+			return result, "Deploying services in profile \"default\". Use --profiles, --services, --unlabeled or --all to change the set of deployed services.", err
 		}
-		return result, "No default profile: no filtering applied", err
+		return result, "No default profile detected: deploying all services", err
 	}
 }
