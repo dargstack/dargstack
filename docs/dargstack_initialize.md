@@ -33,8 +33,13 @@ dargstack initialize [name-or-url] [flags]
 
 ```
   -c, --configuration string   path to stack directory (default: auto-detect)
+  -d, --dry-run                trace all steps without executing
+  -e, --environment string     environment to operate on: development|production (default "development")
   -f, --format string          output format for compatible commands: table|json (default "table")
   -n, --no-interaction         disable interactive prompts
+      --offline                skip fetching remote resources
+      --profiles strings       activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
+  -s, --services strings       filter to specific services
   -v, --verbose                verbose output
 ```
 

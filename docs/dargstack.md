@@ -10,9 +10,14 @@ dargstack - simplified, approachable Docker Swarm stack management.
 
 ```
   -c, --configuration string   path to stack directory (default: auto-detect)
+  -d, --dry-run                trace all steps without executing
+  -e, --environment string     environment to operate on: development|production (default "development")
   -f, --format string          output format for compatible commands: table|json (default "table")
   -h, --help                   help for dargstack
   -n, --no-interaction         disable interactive prompts
+      --offline                skip fetching remote resources
+      --profiles strings       activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
+  -s, --services strings       filter to specific services
   -v, --verbose                verbose output
 ```
 
@@ -24,6 +29,7 @@ dargstack - simplified, approachable Docker Swarm stack management.
 * [dargstack document](dargstack_document.md)	 - Generate the stack documentation
 * [dargstack initialize](dargstack_initialize.md)	 - Initialize a new dargstack project
 * [dargstack inspect](dargstack_inspect.md)	 - Inspect deployed compose snapshots
+* [dargstack profiles](dargstack_profiles.md)	 - List discovered deploy profiles
 * [dargstack remove](dargstack_remove.md)	 - Remove the deployed stack
 * [dargstack secret](dargstack_secret.md)	 - Manage stack secrets
 * [dargstack update](dargstack_update.md)	 - Update components

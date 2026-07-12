@@ -25,16 +25,13 @@ var rmCmd = &cobra.Command{
 
 Removes all services, networks, and secrets from the Docker Swarm stack.
 Use ` + "`--profiles`" + ` or ` + "`--services`" + ` to remove only a subset of services. Without
-those flags the full stack is removed. Use ` + "`--production`" + ` to build the compose
+those flags the full stack is removed. Use ` + "`--env production`" + ` to build the compose
 from production sources when resolving which services belong to a profile.
 Optionally (with ` + "`--volumes`" + `) removes all stack volumes, clearing persistent data.`,
 	RunE: runRemove,
 }
 
 func init() {
-	rmCmd.Flags().BoolVarP(&production, "production", "p", false, "remove in production mode")
-	rmCmd.Flags().StringSliceVar(&profiles, "profiles", nil, "remove only services in the given compose profiles")
-	rmCmd.Flags().StringSliceVarP(&services, "services", "s", nil, "remove only the specified services")
 	rmCmd.Flags().BoolVar(&removeVolumes, "volumes", false, "also remove stack volumes")
 }
 
@@ -132,7 +129,7 @@ func runRemoveTargeted(executor *docker.Executor) error {
 	// Build compose to determine which services belong to the active profile.
 	var composeData []byte
 	var err error
-	if production {
+	if isProduction() {
 		composeData, err = buildProductionCompose()
 	} else {
 		composeData, err = buildDevelopmentCompose()

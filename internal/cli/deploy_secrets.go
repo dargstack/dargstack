@@ -98,10 +98,10 @@ func secretSetupFlow(composeData []byte, prod bool) (error, bool) {
 					values[name] = secret.ThirdPartyPlaceholder
 				}
 			}
-			allUnset := append(noFile, placeholder...)
-			if len(allUnset) > 0 {
-				sort.Strings(allUnset)
-				printWarning(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(allUnset, ", ")))
+			noFile = append(noFile, placeholder...)
+			if len(noFile) > 0 {
+				sort.Strings(noFile)
+				printWarning(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(noFile, ", ")))
 				printInfo(MsgReplaceSecretFiles)
 			}
 		}
@@ -371,7 +371,7 @@ func secretSetupFlow(composeData []byte, prod bool) (error, bool) {
 }
 
 // checkAllSecretsSet returns true if all secrets have real values (no missing, no placeholders).
-func checkAllSecretsSet(secretPaths map[string]string, values map[string]string, thirdParty map[string]bool) bool {
+func checkAllSecretsSet(secretPaths, values map[string]string, thirdParty map[string]bool) bool {
 	for name := range secretPaths {
 		v := values[name]
 		if v == "" || secret.IsPlaceholderValue(v) || strings.Contains(v, secret.ThirdPartyPlaceholder) {

@@ -23,8 +23,13 @@ Use 'dargstack secret status' to check which secrets are set, missing, or hold p
 
 ```
   -c, --configuration string   path to stack directory (default: auto-detect)
+  -d, --dry-run                trace all steps without executing
+  -e, --environment string     environment to operate on: development|production (default "development")
   -f, --format string          output format for compatible commands: table|json (default "table")
   -n, --no-interaction         disable interactive prompts
+      --offline                skip fetching remote resources
+      --profiles strings       activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
+  -s, --services strings       filter to specific services
   -v, --verbose                verbose output
 ```
 
@@ -32,7 +37,6 @@ Use 'dargstack secret status' to check which secrets are set, missing, or hold p
 
 * [dargstack](dargstack.md)	 - Docker stack helper CLI
 * [dargstack secret generate](dargstack_secret_generate.md)	 - Generate secrets from x-dargstack.secrets templates
-* [dargstack secret list](dargstack_secret_list.md)	 - List secret names and file paths
 * [dargstack secret show](dargstack_secret_show.md)	 - Show secret values
 * [dargstack secret status](dargstack_secret_status.md)	 - Show secret status
 

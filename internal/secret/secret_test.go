@@ -490,8 +490,8 @@ func TestSpecialCharsEnabled(t *testing.T) {
 
 func TestResolveAllowPlaceholders(t *testing.T) {
 	templates := map[string]Template{
-		"api-key":          {Type: TypeThirdParty},
-		"aws-credentials":  {Template: "[default]\naws_secret_access_key = {{secret:api-key}}"},
+		"api-key":         {Type: TypeThirdParty},
+		"aws-credentials": {Template: "[default]\naws_secret_access_key = {{secret:api-key}}"},
 	}
 	values := map[string]string{"api-key": ThirdPartyPlaceholder}
 

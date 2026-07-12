@@ -16,8 +16,13 @@ import (
 
 var (
 	cfgPath       string
+	dryRun        bool
+	env           string
 	noInteraction bool
+	offline       bool
 	outputFormat  string
+	profiles      []string
+	services      []string
 	verbose       bool
 
 	cfg      *config.Config
@@ -73,11 +78,15 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		// Set STACK_DOMAIN if not already set — use the development domain as the
-		// default since most non-deploy commands (certify, validate, inspect) operate
-		// in a development context. The deploy command overrides this explicitly.
+		// Set STACK_DOMAIN if not already set — use the domain matching the
+		// active --env. Production commands use the production domain;
+		// development commands use the development domain.
 		if os.Getenv("STACK_DOMAIN") == "" {
-			_ = os.Setenv("STACK_DOMAIN", cfg.Development.Domain)
+			domain := cfg.Development.Domain
+			if env == "production" {
+				domain = cfg.Production.Domain
+			}
+			_ = os.Setenv("STACK_DOMAIN", domain)
 		}
 
 		return nil
@@ -90,8 +99,13 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgPath, "configuration", "c", "", "path to stack directory (default: auto-detect)")
+	rootCmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "d", false, "trace all steps without executing")
+	rootCmd.PersistentFlags().StringVarP(&env, "environment", "e", "development", "environment to operate on: development|production")
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "format", "f", "table", "output format for compatible commands: table|json")
 	rootCmd.PersistentFlags().BoolVarP(&noInteraction, "no-interaction", "n", false, "disable interactive prompts")
+	rootCmd.PersistentFlags().BoolVar(&offline, "offline", false, "skip fetching remote resources")
+	rootCmd.PersistentFlags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
+	rootCmd.PersistentFlags().StringSliceVarP(&services, "services", "s", nil, "filter to specific services")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	rootCmd.AddCommand(buildCmd)
@@ -100,6 +114,7 @@ func init() {
 	rootCmd.AddCommand(docsCmd)
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(inspectCmd)
+	rootCmd.AddCommand(profilesCmd)
 	rootCmd.AddCommand(rmCmd)
 	rootCmd.AddCommand(secretCmd)
 	rootCmd.AddCommand(updateCmd)
@@ -126,6 +141,9 @@ func isSkippedCommand(cmd *cobra.Command) bool {
 	}
 	return false
 }
+
+// isProduction returns true if the active --env is "production".
+func isProduction() bool { return env == "production" }
 
 // Execute runs the root command.
 func Execute() error {

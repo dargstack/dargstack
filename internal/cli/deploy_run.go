@@ -27,7 +27,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	// 1. Build compose data
 	var composeData []byte
 	var err error
-	if production {
+	if isProduction() {
 		composeData, err = buildProductionCompose()
 	} else {
 		composeData, err = buildDevelopmentCompose()
@@ -37,13 +37,13 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	}
 
 	// 2. Environment variables
-	composeVars := applyEnvToProcess(production)
+	composeVars := applyEnvToProcess(isProduction())
 
 	// 3. Environment variable prompt
 	if dryRun {
 		printInfo("[dry-run] Would check for missing environment variable values")
 	} else {
-		if err := promptForEnvValues(production); err != nil {
+		if err := promptForEnvValues(isProduction()); err != nil {
 			printWarning(fmt.Sprintf("Environment variable check: %v", err))
 		}
 		executor.SetComposeEnv(composeVars)
@@ -90,7 +90,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 			printInfo("[dry-run] No secrets to set up")
 		}
 	} else {
-		if err, _ := secretSetupFlow(secretComposeData, production); err != nil {
+		if err, _ := secretSetupFlow(secretComposeData, isProduction()); err != nil {
 			return fmt.Errorf("secret setup: %w", err)
 		}
 
@@ -105,7 +105,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	if dryRun {
 		printInfo("[dry-run] Would validate all stack resources")
 	} else {
-		issues, err := resource.Validate(secretComposeData, stackDir, production)
+		issues, err := resource.Validate(secretComposeData, stackDir, isProduction())
 		if err != nil {
 			return wrapWithBugHint(err)
 		}
@@ -123,7 +123,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	}
 
 	// 7. TLS certificates (development only) with domain-aware regeneration
-	if !production {
+	if !isProduction() {
 		domains := uniqueSortedDomains(tls.ExtractDomains(composeData, cfg.Development.Domain), cfg.Development.Certificate.Domains)
 		if dryRun {
 			printInfo(fmt.Sprintf("[dry-run] Would ensure TLS certificates for: %s", strings.Join(domains, ", ")))
@@ -136,7 +136,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	}
 
 	// 7a. Clone git repos (development only)
-	if !production {
+	if !isProduction() {
 		if dryRun {
 			gitServices := extractGitServices(composeData)
 			if len(gitServices) > 0 {
@@ -152,7 +152,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	}
 
 	// 8. Auto-build images (development only)
-	if !production {
+	if !isProduction() {
 		buildServices := extractBuildServices(composeData)
 		if dryRun {
 			if len(buildServices) > 0 {
@@ -168,7 +168,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	}
 
 	// 9. Volume cleanup prompt (development, not already running)
-	if !production {
+	if !isProduction() {
 		if dryRun {
 			printInfo("[dry-run] Would prompt for volume cleanup (first-time deploy)")
 		} else if !noInteraction {
@@ -216,7 +216,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 		printInfo(fmt.Sprintf("Deploying services: %s", strings.Join(services, ", ")))
 	default:
-		if production {
+		if isProduction() {
 			// Production deploys all services by default; --profiles or --services
 			// can still scope the deployment explicitly.
 			printInfo("Production deployment: deploying all services")
@@ -237,7 +237,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	// 11. For production, check that all referenced images are reachable in
 	// their registries before touching the live stack. This catches authentication
 	// failures and missing tags early, preventing partial updates that cause downtime.
-	if production {
+	if isProduction() {
 		images := compose.ExtractServiceImages(composeData)
 		if dryRun {
 			if len(images) > 0 {
@@ -257,7 +257,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	}
 
 	// 12. For production, strip dargstack.development.* before deploying.
-	if production {
+	if isProduction() {
 		composeData, err = compose.StripProductionDevelopmentLabels(composeData)
 		if err != nil {
 			return wrapWithBugHint(err)
@@ -265,7 +265,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	}
 
 	// 13. Deploy
-	if production {
+	if isProduction() {
 		if cfg.Production.Domain == "app.localhost" {
 			prefix := ""
 			if dryRun {
@@ -330,7 +330,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	}
 
 	// 17. Offer to clean up stopped containers and unused images (production)
-	if production {
+	if isProduction() {
 		if dryRun {
 			printInfo("[dry-run] Would offer runtime cleanup of stopped containers and unused images")
 		} else if !noInteraction {

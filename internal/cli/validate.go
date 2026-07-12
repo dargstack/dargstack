@@ -21,17 +21,13 @@ Checks:
 	RunE: runValidate,
 }
 
-func init() {
-	validateCmd.Flags().BoolVarP(&production, "production", "p", false, "validate in production mode")
-	validateCmd.Flags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
-	validateCmd.Flags().StringSliceVarP(&services, "services", "s", nil, "validate specific services only")
-}
+func init() {}
 
 func runValidate(cmd *cobra.Command, args []string) error {
 	var composeData []byte
 	var err error
 
-	if production {
+	if isProduction() {
 		composeData, err = buildProductionCompose()
 	} else {
 		composeData, err = buildDevelopmentCompose()
@@ -46,7 +42,7 @@ func runValidate(cmd *cobra.Command, args []string) error {
 	}
 	printInfo(filterMsg)
 
-	issues, err := resource.Validate(composeData, stackDir, production)
+	issues, err := resource.Validate(composeData, stackDir, isProduction())
 	if err != nil {
 		return err
 	}

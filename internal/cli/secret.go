@@ -31,15 +31,6 @@ Use 'dargstack secret show --type key' to derive public keys from private_key ty
 Use 'dargstack secret status' to check which secrets are set, missing, or hold placeholders.`,
 }
 
-var secretListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List secret names and file paths",
-	Long: `List all secret names and their file paths.
-
-Without flags, lists all secret names and their file paths in the current stack.`,
-	RunE: runSecretList,
-}
-
 var secretShowType string
 
 var secretShowCmd = &cobra.Command{
@@ -68,7 +59,7 @@ missing secrets. Auto-generatable types (random_string, wordlist_word,
 private_key, insecure_default, template) are created automatically.
 Third-party secrets require manual values.
 
-In production mode (--production), validates that third-party secrets do not
+In production mode (--env production), validates that third-party secrets do not
 hold placeholder values and blocks if they do.
 
 In non-interactive mode (--no-interaction), auto-generates what it can and
@@ -89,72 +80,11 @@ Displays the status of each secret:
 }
 
 func init() {
-	secretCmd.AddCommand(secretListCmd)
 	secretCmd.AddCommand(secretShowCmd)
 	secretCmd.AddCommand(secretGenerateCmd)
 	secretCmd.AddCommand(secretStatusCmd)
 
-	secretListCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
-	secretListCmd.Flags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
-	secretShowCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
-	secretShowCmd.Flags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
 	secretShowCmd.Flags().StringVar(&secretShowType, "type", "value", "output type: value (secret values) or key (derived public keys)")
-	secretGenerateCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
-	secretGenerateCmd.Flags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
-	secretStatusCmd.Flags().BoolVarP(&production, "production", "p", false, "use production compose")
-	secretStatusCmd.Flags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
-}
-
-func runSecretList(_ *cobra.Command, _ []string) error {
-	composeData, err := buildComposeData(production)
-	if err != nil {
-		return wrapWithBugHint(err)
-	}
-
-	composeData, filterMsg, err := applyProfileFilter(composeData)
-	if err != nil {
-		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
-	}
-	printInfo(filterMsg)
-
-	paths := secret.ExtractSecretPaths(composeData)
-	if len(paths) == 0 {
-		printInfo("No secrets found")
-		return nil
-	}
-
-	names := make([]string, 0, len(paths))
-	for name := range paths {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	jsonOutput := noInteraction || strings.EqualFold(outputFormat, "json")
-	if jsonOutput {
-		entries := make([]map[string]string, 0, len(names))
-		for _, name := range names {
-			entries = append(entries, map[string]string{
-				"name": name,
-				"file": paths[name],
-			})
-		}
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(entries)
-	}
-
-	nameWidth := len("NAME")
-	for _, name := range names {
-		if len(name) > nameWidth {
-			nameWidth = len(name)
-		}
-	}
-	fmt.Printf("%-*s  %s\n", nameWidth, "NAME", "FILE")
-	fmt.Printf("%-*s  %s\n", nameWidth, strings.Repeat("-", nameWidth), strings.Repeat("-", 4))
-	for _, name := range names {
-		fmt.Printf("%-*s  %s\n", nameWidth, name, paths[name])
-	}
-	return nil
 }
 
 func runSecretShow(_ *cobra.Command, args []string) error {
@@ -169,7 +99,7 @@ func runSecretShow(_ *cobra.Command, args []string) error {
 }
 
 func runSecretShowValues(targetName string) error {
-	composeData, err := buildComposeData(production)
+	composeData, err := buildComposeData(isProduction())
 	if err != nil {
 		return wrapWithBugHint(err)
 	}
@@ -276,7 +206,7 @@ func runSecretShowValues(targetName string) error {
 }
 
 func runSecretShowKeys(targetName string) error {
-	composeData, err := buildComposeData(production)
+	composeData, err := buildComposeData(isProduction())
 	if err != nil {
 		return wrapWithBugHint(err)
 	}
@@ -367,7 +297,7 @@ func runSecretShowKeys(targetName string) error {
 }
 
 func runSecretGenerate(_ *cobra.Command, _ []string) error {
-	composeData, err := buildComposeData(production)
+	composeData, err := buildComposeData(isProduction())
 	if err != nil {
 		return wrapWithBugHint(err)
 	}
@@ -378,7 +308,7 @@ func runSecretGenerate(_ *cobra.Command, _ []string) error {
 	}
 	printInfo(filterMsg)
 
-	if err, allSet := secretSetupFlow(composeData, production); err != nil {
+	if err, allSet := secretSetupFlow(composeData, isProduction()); err != nil {
 		return err
 	} else if allSet {
 		printSuccess("Secret generation complete. Run `dargstack deploy` to deploy.")
@@ -387,7 +317,7 @@ func runSecretGenerate(_ *cobra.Command, _ []string) error {
 }
 
 func runSecretStatus(_ *cobra.Command, _ []string) error {
-	composeData, err := buildComposeData(production)
+	composeData, err := buildComposeData(isProduction())
 	if err != nil {
 		return wrapWithBugHint(err)
 	}

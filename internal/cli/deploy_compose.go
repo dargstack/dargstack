@@ -136,7 +136,7 @@ func composeHasProfile(composeData []byte, profile string) bool {
 // In production mode without an explicit --profiles or --services flag, all
 // services are included (matching the deploy step that skips the default-profile
 // filter in production).
-func applyProfileFilter(composeData []byte) ([]byte, string, error) {
+func applyProfileFilter(composeData []byte) (filtered []byte, msg string, err error) {
 	if deployAll {
 		return composeData, "Profile filter bypassed (--all)", nil
 	}
@@ -147,7 +147,7 @@ func applyProfileFilter(composeData []byte) ([]byte, string, error) {
 	case len(services) > 0:
 		result, err := compose.FilterServices(composeData, services)
 		return result, fmt.Sprintf("Filtering by services: %s", strings.Join(services, ", ")), err
-	case production:
+	case isProduction():
 		return composeData, "Production mode: no profile filter applied", nil
 	default:
 		hasDefault := composeHasProfile(composeData, "default")

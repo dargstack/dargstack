@@ -1,30 +1,22 @@
-## dargstack secret generate
+## dargstack profiles
 
-Generate secrets from x-dargstack.secrets templates
+List discovered deploy profiles
 
 ### Synopsis
 
-Generate secrets from x-dargstack.secrets templates.
+List profiles discovered from compose service definitions.
 
-Reads secret templates from the compose file and generates values for any
-missing secrets. Auto-generatable types (random_string, wordlist_word,
-private_key, insecure_default, template) are created automatically.
-Third-party secrets require manual values.
-
-In production mode (--env production), validates that third-party secrets do not
-hold placeholder values and blocks if they do.
-
-In non-interactive mode (--no-interaction), auto-generates what it can and
-warns about secrets that still need values.
+Profiles are defined via the dargstack.profiles label on services.
+Use --env production to list profiles from the production compose stack.
 
 ```
-dargstack secret generate [flags]
+dargstack profiles [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for generate
+  -h, --help   help for profiles
 ```
 
 ### Options inherited from parent commands
@@ -43,5 +35,5 @@ dargstack secret generate [flags]
 
 ### SEE ALSO
 
-* [dargstack secret](dargstack_secret.md)	 - Manage stack secrets
+* [dargstack](dargstack.md)	 - Docker stack helper CLI
 

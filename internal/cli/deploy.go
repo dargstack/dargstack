@@ -4,26 +4,18 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
-	"sort"
 	"strings"
 
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/spf13/cobra"
 
-	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/docker"
 )
 
 var (
-	deployAll    bool
-	deployTag    string
-	dryRun       bool
-	listProfiles bool
-	offline      bool
-	production   bool
-	profiles     []string
-	remove       bool
-	services     []string
+	deployAll   bool
+	deployTag   string
+	forceDeploy bool
 )
 
 var deployCmd = &cobra.Command{
@@ -37,7 +29,7 @@ By default, deploys to the development environment. This includes:
 - Setting up secrets interactively or with defaults
 - Validating all stack resources
 
-Use ` + "`--production`" + ` to deploy to production, which:
+Use ` + "`--env production`" + ` to deploy to production, which:
 - Requires all environment variables and secrets to be set
 - Blocks deployment if default insecure secrets are present
 - Includes production-only services`,
@@ -46,32 +38,18 @@ Use ` + "`--production`" + ` to deploy to production, which:
 
 func init() {
 	deployCmd.Flags().BoolVarP(&deployAll, "all", "a", false, "deploy the full stack ignoring --profiles and --services filters")
-	deployCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "trace all steps without deploying")
-	deployCmd.Flags().StringSliceVar(&profiles, "profiles", nil, FlagDescProfiles)
-	deployCmd.Flags().BoolVar(&listProfiles, "profiles-list", false, "list discovered deploy profiles and exit")
-	deployCmd.Flags().BoolVarP(&production, "production", "p", false, "deploy in production mode")
-	deployCmd.Flags().BoolVarP(&remove, "remove", "r", false, "remove the running stack before deploying")
-	deployCmd.Flags().StringSliceVarP(&services, "services", "s", nil, "deploy only these services (comma-separated)")
-	deployCmd.Flags().BoolVar(&offline, "offline", false, "skip fetching remote git tags")
+	deployCmd.Flags().BoolVar(&forceDeploy, "force", false, "remove the running stack before deploying")
 	deployCmd.Flags().StringVarP(&deployTag, "tag", "t", "", "deploy a specific git tag (production only)")
 }
 
 func runDeploy(cmd *cobra.Command, _ []string) error {
 	ctx := context.Background()
-	env := "development"
-	if production {
-		env = "production"
-	}
 
 	if dryRun {
 		printInfo(fmt.Sprintf("[dry-run] Tracing %s deployment for stack %q", env, cfg.Name))
 	}
 
-	if listProfiles {
-		return runProfileList()
-	}
-
-	if remove && !dryRun {
+	if forceDeploy && !dryRun {
 		if err := runRemove(cmd, nil); err != nil {
 			return fmt.Errorf("pre-deploy remove: %w", err)
 		}
@@ -138,35 +116,6 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 	}
 
 	return runDeployWithExecutor(ctx, cmd, dockerClient, executor, env, false)
-}
-
-func runProfileList() error {
-	var composeData []byte
-	var err error
-	if production {
-		composeData, err = buildProductionCompose()
-	} else {
-		composeData, err = buildDevelopmentCompose()
-	}
-	if err != nil {
-		return wrapWithBugHint(err)
-	}
-
-	discoveredProfiles, profErr := compose.DiscoverProfiles(composeData)
-	if profErr != nil {
-		return profErr
-	}
-	sort.Strings(discoveredProfiles)
-	if len(discoveredProfiles) == 0 {
-		printInfo("No profiles found")
-	} else {
-		printInfo("Discovered profiles:")
-		for _, p := range discoveredProfiles {
-			fmt.Printf("- %s\n", p)
-		}
-	}
-
-	return nil
 }
 
 func hasClipboardSupport() bool {

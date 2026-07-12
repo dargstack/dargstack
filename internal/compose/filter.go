@@ -345,12 +345,6 @@ func extractDargstackSecretRefs(def map[string]interface{}) []string {
 		// No template field; not a template secret.
 		return nil
 	default:
-		// type: template with template as a string
-		if def["type"] == "template" {
-			if s, ok := def["template"].(string); ok {
-				tmpl = s
-			}
-		}
 		return nil
 	}
 
