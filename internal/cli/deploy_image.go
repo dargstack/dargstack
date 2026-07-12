@@ -17,6 +17,61 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
+// buildStatus tracks the live status of parallel builds for non-verbose output.
+type buildStatus struct {
+	mu     sync.Mutex
+	tasks  []buildTask
+	status map[string]string // name -> current status string
+	lines  int               // number of lines printed
+}
+
+func newBuildStatus(tasks []buildTask) *buildStatus {
+	return &buildStatus{
+		tasks:  tasks,
+		status: make(map[string]string, len(tasks)),
+	}
+}
+
+// printAll prints or overwrites all status lines.
+func (bs *buildStatus) printAll() {
+	bs.mu.Lock()
+	defer bs.mu.Unlock()
+
+	if bs.lines > 0 {
+		// Move cursor up to the first status line.
+		fmt.Printf("\033[%dA", bs.lines)
+	}
+	for _, t := range bs.tasks {
+		s := bs.status[t.name]
+		if s == "" {
+			s = "building..."
+		}
+		fmt.Printf("  [%s] %s\033[K\n", t.name, s)
+	}
+}
+
+// set updates a task's status and redraws.
+func (bs *buildStatus) set(name, status string) {
+	bs.mu.Lock()
+	bs.status[name] = status
+	bs.lines = len(bs.tasks)
+	bs.mu.Unlock()
+	bs.printAll()
+}
+
+// done clears the status lines and returns to normal output.
+func (bs *buildStatus) done() {
+	bs.mu.Lock()
+	defer bs.mu.Unlock()
+	// Clear status lines.
+	for i := 0; i < bs.lines; i++ {
+		fmt.Print("\033[2K\r\n")
+	}
+	// Move cursor back up.
+	fmt.Printf("\033[%dA", bs.lines)
+	bs.lines = 0
+}
+
 func resolveDeployTag() (string, error) {
 	if deployTag != "" {
 		return deployTag, nil
@@ -123,10 +178,17 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 		printInfo(fmt.Sprintf("Building %d image(s) in parallel: %s", len(tasks), joinNames(extractNames(tasks))))
 	}
 
+	var bs *buildStatus
+	if !verbose {
+		bs = newBuildStatus(tasks)
+		defer bs.done()
+		bs.printAll()
+	}
+
 	// Run builds in parallel.
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	var firstErr error
+	var buildErrs []string
 	successCount := 0
 
 	for _, task := range tasks {
@@ -134,15 +196,19 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 		go func(t buildTask) {
 			defer wg.Done()
 
-			if err := docker.StackBuild(executor, t.name, t.contextPath, "development", t.tag); err != nil {
-				mu.Lock()
-				if firstErr == nil {
-					firstErr = err
+			if err := docker.StackBuild(executor, t.name, verbose, t.contextPath, "development", t.tag); err != nil {
+				if bs != nil {
+					bs.set(t.name, "✗ failed")
 				}
+				mu.Lock()
+				buildErrs = append(buildErrs, fmt.Sprintf("build %s: %v", t.name, err))
 				mu.Unlock()
 				return
 			}
 
+			if bs != nil {
+				bs.set(t.name, "✓ built")
+			}
 			mu.Lock()
 			successCount++
 			mu.Unlock()
@@ -151,8 +217,8 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 
 	wg.Wait()
 
-	if firstErr != nil {
-		return firstErr
+	if len(buildErrs) > 0 {
+		return fmt.Errorf("build errors:\n  %s", joinNamesWithNewline(buildErrs))
 	}
 
 	if verbose {

@@ -113,6 +113,54 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Non-verbose: show per-service status lines.
+	type buildStatus struct {
+		mu     sync.Mutex
+		tasks  []resolvedBuild
+		status map[string]string
+		lines  int
+	}
+
+	var bs *buildStatus
+	if !verbose {
+		bs = &buildStatus{
+			tasks:  builds,
+			status: make(map[string]string, len(builds)),
+		}
+		bs.mu.Lock()
+		for _, t := range bs.tasks {
+			fmt.Printf("  [%s] building...\033[K\n", t.name)
+		}
+		bs.lines = len(bs.tasks)
+		bs.mu.Unlock()
+		defer func() {
+			bs.mu.Lock()
+			for i := 0; i < bs.lines; i++ {
+				fmt.Print("\033[2K\r\n")
+			}
+			fmt.Printf("\033[%dA", bs.lines)
+			bs.mu.Unlock()
+		}()
+	}
+
+	redrawStatus := func() {
+		if bs == nil {
+			return
+		}
+		bs.mu.Lock()
+		if bs.lines > 0 {
+			fmt.Printf("\033[%dA", bs.lines)
+		}
+		for _, t := range bs.tasks {
+			s := bs.status[t.name]
+			if s == "" {
+				s = "building..."
+			}
+			fmt.Printf("  [%s] %s\033[K\n", t.name, s)
+		}
+		bs.mu.Unlock()
+	}
+
 	// Run builds in parallel.
 	var wg sync.WaitGroup
 	var mu sync.Mutex
@@ -122,11 +170,23 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		wg.Add(1)
 		go func(rb resolvedBuild) {
 			defer wg.Done()
-			if err := docker.StackBuild(executor, rb.name, rb.contextPath, "development", rb.tag); err != nil {
+			if err := docker.StackBuild(executor, rb.name, verbose, rb.contextPath, "development", rb.tag); err != nil {
+				if bs != nil {
+					bs.mu.Lock()
+					bs.status[rb.name] = "✗ failed"
+					bs.mu.Unlock()
+					redrawStatus()
+				}
 				mu.Lock()
 				buildErrs = append(buildErrs, fmt.Sprintf("build %s: %v", rb.name, err))
 				mu.Unlock()
 				return
+			}
+			if bs != nil {
+				bs.mu.Lock()
+				bs.status[rb.name] = "✓ built"
+				bs.mu.Unlock()
+				redrawStatus()
 			}
 		}(b)
 	}

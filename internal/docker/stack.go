@@ -114,8 +114,9 @@ func VolumeRemove(exec *Executor, volumes []string) error {
 }
 
 // StackBuild builds a service image from a Dockerfile.
-// Output is captured silently; only returned on error.
-func StackBuild(exec *Executor, label, contextPath, target, tag string) error {
+// If verbose is true, build output is streamed to the terminal.
+// If verbose is false, output is suppressed unless the build fails.
+func StackBuild(exec *Executor, label string, verbose bool, contextPath, target, tag string) error {
 	args := []string{"build", "--target", target, "-t", tag, contextPath}
-	return exec.Build(label, args...)
+	return exec.Build(label, verbose, args...)
 }

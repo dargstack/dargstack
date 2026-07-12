@@ -3,10 +3,76 @@ package docker
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 )
+
+// ANSI color codes for build labels. Indexed by hash(label) % len.
+var buildColors = []string{
+	"\033[38;5;81m",  // blue
+	"\033[38;5;118m", // green
+	"\033[38;5;209m", // yellow
+	"\033[38;5;219m", // cyan
+	"\033[38;5;161m", // magenta
+	"\033[38;5;166m", // red
+	"\033[38;5;72m",  // teal
+	"\033[38;5;203m", // orange
+}
+const resetColor = "\033[0m"
+
+// labelWriter wraps an io.Writer, prepending a color-coded "[label] " prefix
+// to each line. Safe for concurrent use.
+type labelWriter struct {
+	mu     sync.Mutex
+	w      io.Writer
+	prefix string // includes color codes, e.g. "\033[38;5;81m[api]\033[0m "
+}
+
+func newLabelWriter(w io.Writer, label string) *labelWriter {
+	h := hashString(label)
+	color := buildColors[h%uint32(len(buildColors))]
+	return &labelWriter{
+		w:      w,
+		prefix: color + "[" + label + "]" + resetColor + " ",
+	}
+}
+
+func (lw *labelWriter) Write(p []byte) (int, error) {
+	lw.mu.Lock()
+	defer lw.mu.Unlock()
+
+	n := 0
+	remaining := p
+	for len(remaining) > 0 {
+		lineEnd := bytes.IndexByte(remaining, '\n')
+		if lineEnd == -1 {
+			if _, err := lw.w.Write([]byte(lw.prefix + string(remaining))); err != nil {
+				return n, err
+			}
+			n += len(remaining)
+			break
+		}
+		line := remaining[:lineEnd]
+		if _, err := lw.w.Write([]byte(lw.prefix + string(line) + "\n")); err != nil {
+			return n, err
+		}
+		n += lineEnd + 1
+		remaining = remaining[lineEnd+1:]
+	}
+	return n, nil
+}
+
+// Simple string hash for consistent color assignment.
+func hashString(s string) uint32 {
+	var h uint32
+	for i := 0; i < len(s); i++ {
+		h = h*31 + uint32(s[i])
+	}
+	return h
+}
 
 // Executor runs docker CLI commands, handling sudo as needed.
 type Executor struct {
@@ -146,9 +212,12 @@ func (e *Executor) RunPassthrough(args ...string) error {
 	return nil
 }
 
-// Build executes a docker build command, capturing stdout/stderr.
-// Returns the captured output (prefixed with label) only on error.
-func (e *Executor) Build(label string, args ...string) error {
+// Build executes a docker build command.
+// If verbose is true, stdout/stderr are streamed to the terminal with a
+// color-coded "[label]" prefix per line to separate parallel builds.
+// If verbose is false, output is captured and suppressed; only stderr
+// is returned on error.
+func (e *Executor) Build(label string, verbose bool, args ...string) error {
 	var cmd *exec.Cmd
 	if e.useSudo {
 		fullArgs := append([]string{e.binary}, args...)
@@ -157,21 +226,26 @@ func (e *Executor) Build(label string, args ...string) error {
 		cmd = exec.Command(e.binary, args...)
 	}
 
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	if verbose {
+		lw := newLabelWriter(os.Stdout, label)
+		cmd.Stdout = lw
+		cmd.Stderr = lw
+	} else {
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+	}
 	cmd.Stdin = os.Stdin
 
 	if err := cmd.Run(); err != nil {
-		output := ""
-		if s := strings.TrimSpace(stdout.String()); s != "" {
-			output = s
+		if verbose {
+			return fmt.Errorf("docker %s [%s]: %w", strings.Join(args, " "), label, err)
 		}
-		if s := strings.TrimSpace(stderr.String()); s != "" {
-			if output != "" {
-				output += "\n"
-			}
-			output += s
+		output := strings.TrimSpace(stderr.String())
+		if output == "" {
+			output = strings.TrimSpace(stdout.String())
 		}
 		return fmt.Errorf("docker %s [%s]: %w\n%s", strings.Join(args, " "), label, err, output)
 	}
