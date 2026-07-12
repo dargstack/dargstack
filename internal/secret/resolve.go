@@ -101,6 +101,17 @@ func extractTemplateRefs(tmpl string) []string {
 // Resolve processes all secrets: generates missing, resolves templates.
 // Returns the resolved values map.
 func Resolve(templates map[string]Template, values map[string]string) (map[string]string, error) {
+	return resolveTemplates(templates, values, false)
+}
+
+// ResolveAllowPlaceholders is like Resolve but allows template references to
+// pass through placeholder values instead of returning an error. This is useful
+// for non-interactive modes where third-party secrets haven't been set yet.
+func ResolveAllowPlaceholders(templates map[string]Template, values map[string]string) (map[string]string, error) {
+	return resolveTemplates(templates, values, true)
+}
+
+func resolveTemplates(templates map[string]Template, values map[string]string, allowPlaceholders bool) (map[string]string, error) {
 	if values == nil {
 		values = make(map[string]string)
 	}
@@ -122,7 +133,7 @@ func Resolve(templates map[string]Template, values map[string]string) (map[strin
 		var value string
 		switch tmpl.Type {
 		case TypeTemplate:
-			value, err = resolveTemplate(tmpl.Template, values)
+			value, err = resolveTemplate(tmpl.Template, values, allowPlaceholders)
 			if err != nil {
 				return nil, fmt.Errorf("resolve template %s: %w", name, err)
 			}
@@ -183,7 +194,7 @@ func templateDependency(token string) (string, bool) {
 	}
 }
 
-func resolveTemplate(tmpl string, values map[string]string) (string, error) {
+func resolveTemplate(tmpl string, values map[string]string, allowPlaceholders bool) (string, error) {
 	matches := templateTokenRegex.FindAllStringSubmatchIndex(tmpl, -1)
 	if len(matches) == 0 {
 		return tmpl, nil
@@ -199,7 +210,7 @@ func resolveTemplate(tmpl string, values map[string]string) (string, error) {
 		tokStart, tokEnd := m[2], m[3]
 		b.WriteString(tmpl[last:fullStart])
 		token := strings.TrimSpace(tmpl[tokStart:tokEnd])
-		repl, err := evaluateTemplateToken(token, values)
+		repl, err := evaluateTemplateToken(token, values, allowPlaceholders)
 		if err != nil {
 			return "", err
 		}
@@ -210,7 +221,7 @@ func resolveTemplate(tmpl string, values map[string]string) (string, error) {
 	return b.String(), nil
 }
 
-func evaluateTemplateToken(token string, values map[string]string) (string, error) {
+func evaluateTemplateToken(token string, values map[string]string, allowPlaceholders bool) (string, error) {
 	switch {
 	case token == "wordlist_word":
 		return generateWord()
@@ -220,13 +231,17 @@ func evaluateTemplateToken(token string, values map[string]string) (string, erro
 		return parseRandomToken(token)
 	case strings.HasPrefix(token, "secret:"):
 		name := strings.TrimSpace(strings.TrimPrefix(token, "secret:"))
-		if v, ok := values[name]; ok && v != "" && !isPlaceholderValue(v) {
-			return v, nil
+		if v, ok := values[name]; ok && v != "" {
+			if allowPlaceholders || !isPlaceholderValue(v) {
+				return v, nil
+			}
 		}
 		return "", fmt.Errorf("referenced secret %q is not set", name)
 	default:
-		if v, ok := values[token]; ok && v != "" && !isPlaceholderValue(v) {
-			return v, nil
+		if v, ok := values[token]; ok && v != "" {
+			if allowPlaceholders || !isPlaceholderValue(v) {
+				return v, nil
+			}
 		}
 		return "", fmt.Errorf("referenced secret %q is not set", token)
 	}

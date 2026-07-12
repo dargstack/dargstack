@@ -356,11 +356,11 @@ func runSecretGenerate(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
 	}
 
-	if err := secretSetupFlow(composeData, production); err != nil {
+	if err, allSet := secretSetupFlow(composeData, production); err != nil {
 		return err
+	} else if allSet {
+		printSuccess("Secret generation complete. Run `dargstack deploy` to deploy.")
 	}
-
-	printSuccess("Secret generation complete. Run `dargstack deploy` to deploy.")
 	return nil
 }
 

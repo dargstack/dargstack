@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"regexp"
+
 	"gopkg.in/yaml.v3"
 )
+
+var templateTokenRegex = regexp.MustCompile(`\{\{([^}]+)\}\}`)
 
 // FilterByProfile filters a compose document using dargstack profile semantics.
 // When activeProfiles is nil (no --profiles flag): if any service declares a "default"
@@ -240,6 +244,12 @@ func cleanupResources(doc, filteredServices map[string]interface{}) {
 
 	filterTopLevel(doc, "configs", usedConfigs)
 	filterTopLevel(doc, "networks", usedNetworks)
+
+	// Resolve transitive template dependencies before filtering secrets.
+	// This ensures secrets referenced via {{secret:name}} in a kept secret's
+	// template are also kept in both the top-level secrets: and x-dargstack.secrets.
+	resolveTransitiveSecretDeps(doc, usedSecrets)
+
 	filterTopLevel(doc, "secrets", usedSecrets)
 	filterTopLevel(doc, "volumes", usedVolumes)
 
@@ -249,8 +259,31 @@ func cleanupResources(doc, filteredServices map[string]interface{}) {
 	filterDargstackSecrets(doc, usedSecrets)
 }
 
+// resolveTransitiveSecretDeps expands usedSecrets to include secrets transitively
+// referenced via {{secret:name}} in x-dargstack.secrets templates.
+func resolveTransitiveSecretDeps(doc map[string]interface{}, usedSecrets map[string]bool) {
+	ext, ok := doc["x-dargstack"]
+	if !ok {
+		return
+	}
+	extMap, ok := ext.(map[string]interface{})
+	if !ok {
+		return
+	}
+	secretsRaw, ok := extMap["secrets"]
+	if !ok {
+		return
+	}
+	secretsMap, ok := secretsRaw.(map[string]interface{})
+	if !ok {
+		return
+	}
+	expandUsedSecrets(secretsMap, usedSecrets)
+}
+
 // filterDargstackSecrets removes x-dargstack.secrets entries whose names are
-// not present in usedSecrets.
+// not present in usedSecrets. usedSecrets should already be expanded with
+// transitive template dependencies via resolveTransitiveSecretDeps.
 func filterDargstackSecrets(doc map[string]interface{}, usedSecrets map[string]bool) {
 	ext, ok := doc["x-dargstack"]
 	if !ok {
@@ -268,11 +301,81 @@ func filterDargstackSecrets(doc map[string]interface{}, usedSecrets map[string]b
 	if !ok {
 		return
 	}
+
 	for name := range secretsMap {
 		if !usedSecrets[name] {
 			delete(secretsMap, name)
 		}
 	}
+}
+
+// expandUsedSecrets transitively adds secrets referenced via {{secret:name}}
+// in templates of already-used secrets to the usedSecrets set.
+func expandUsedSecrets(secretsMap map[string]interface{}, usedSecrets map[string]bool) {
+	changed := true
+	for changed {
+		changed = false
+		for name, def := range secretsMap {
+			if !usedSecrets[name] {
+				continue
+			}
+			defMap, ok := def.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			for _, dep := range extractDargstackSecretRefs(defMap) {
+				if !usedSecrets[dep] {
+					usedSecrets[dep] = true
+					changed = true
+				}
+			}
+		}
+	}
+}
+
+// extractDargstackSecretRefs extracts secret names referenced via {{secret:name}}
+// or {{name}} from a secret definition's template field. It mirrors the
+// templateDependency logic in the secret package.
+func extractDargstackSecretRefs(def map[string]interface{}) []string {
+	var tmpl string
+	switch v := def["template"].(type) {
+	case string:
+		tmpl = v
+	case nil:
+		// No template field; not a template secret.
+		return nil
+	default:
+		// type: template with template as a string
+		if def["type"] == "template" {
+			if s, ok := def["template"].(string); ok {
+				tmpl = s
+			}
+		}
+		return nil
+	}
+
+	var refs []string
+	matches := templateTokenRegex.FindAllStringSubmatch(tmpl, -1)
+	for _, m := range matches {
+		if len(m) < 2 {
+			continue
+		}
+		token := strings.TrimSpace(m[1])
+		switch {
+		case token == "", token == "wordlist_word", token == "private_key", strings.HasPrefix(token, "random_string"):
+			// Built-in generators, not secret references.
+			continue
+		case strings.HasPrefix(token, "secret:"):
+			dep := strings.TrimSpace(strings.TrimPrefix(token, "secret:"))
+			if dep != "" {
+				refs = append(refs, dep)
+			}
+		default:
+			// Bare name references (e.g. {{postgres-password}})
+			refs = append(refs, token)
+		}
+	}
+	return refs
 }
 
 func collectRefs(svc map[string]interface{}, key string, used map[string]bool) {

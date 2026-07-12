@@ -250,7 +250,7 @@ func TestExtractTemplateRefs(t *testing.T) {
 }
 
 func TestResolveTemplate(t *testing.T) {
-	result, err := resolveTemplate("{{a}}-{{b}}", map[string]string{"a": "hello", "b": "world"})
+	result, err := resolveTemplate("{{a}}-{{b}}", map[string]string{"a": "hello", "b": "world"}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -260,7 +260,7 @@ func TestResolveTemplate(t *testing.T) {
 }
 
 func TestResolveTemplateSpecialTokens(t *testing.T) {
-	result, err := resolveTemplate("{{random_string:8:false}}-{{wordlist_word}}-{{secret:name}}", map[string]string{"name": "alice"})
+	result, err := resolveTemplate("{{random_string:8:false}}-{{wordlist_word}}-{{secret:name}}", map[string]string{"name": "alice"}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -485,5 +485,40 @@ func TestSpecialCharsEnabled(t *testing.T) {
 	}
 	if specialCharsEnabled(&Template{SpecialCharacters: &falseVal}) {
 		t.Error("expected false when SpecialCharacters is false")
+	}
+}
+
+func TestResolveAllowPlaceholders(t *testing.T) {
+	templates := map[string]Template{
+		"api-key":          {Type: TypeThirdParty},
+		"aws-credentials":  {Template: "[default]\naws_secret_access_key = {{secret:api-key}}"},
+	}
+	values := map[string]string{"api-key": ThirdPartyPlaceholder}
+
+	resolved, err := ResolveAllowPlaceholders(templates, values)
+	if err != nil {
+		t.Fatalf("ResolveAllowPlaceholders: %v", err)
+	}
+
+	// The template should resolve with the placeholder value.
+	expected := "[default]\naws_secret_access_key = " + ThirdPartyPlaceholder
+	if resolved["aws-credentials"] != expected {
+		t.Errorf("expected template to resolve with placeholder, got %q", resolved["aws-credentials"])
+	}
+}
+
+func TestResolveRejectsPlaceholders(t *testing.T) {
+	templates := map[string]Template{
+		"api-key":         {Type: TypeThirdParty},
+		"aws-credentials": {Template: "[default]\naws_secret_access_key = {{secret:api-key}}"},
+	}
+	values := map[string]string{"api-key": ThirdPartyPlaceholder}
+
+	_, err := Resolve(templates, values)
+	if err == nil {
+		t.Fatal("expected Resolve to reject placeholder values")
+	}
+	if !strings.Contains(err.Error(), "api-key") {
+		t.Errorf("expected error to mention 'api-key', got: %s", err.Error())
 	}
 }

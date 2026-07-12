@@ -90,7 +90,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 			printInfo("[dry-run] No secrets to set up")
 		}
 	} else {
-		if err := secretSetupFlow(secretComposeData, production); err != nil {
+		if err, _ := secretSetupFlow(secretComposeData, production); err != nil {
 			return fmt.Errorf("secret setup: %w", err)
 		}
 

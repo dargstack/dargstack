@@ -442,6 +442,102 @@ secrets:
 	}
 }
 
+func TestFilterByProfileKeepsTransitiveSecretDeps(t *testing.T) {
+	// A service references "aws-credentials" directly.
+	// The "aws-credentials" template references "aws-access-key" and "aws-secret-key"
+	// via {{secret:...}}. Those are NOT directly referenced by any service.
+	// They should still be kept in both secrets: and x-dargstack.secrets.
+	composeYAML := `services:
+  app:
+    image: app:latest
+    secrets:
+      - aws-credentials
+    deploy:
+      labels:
+        dargstack.profiles: default
+  monitoring:
+    image: grafana:latest
+    secrets:
+      - grafana-webhook
+    deploy:
+      labels:
+        dargstack.profiles: monitoring
+secrets:
+  aws-credentials:
+    file: ./secrets/aws-credentials.secret
+  aws-access-key:
+    file: ./secrets/aws-access-key.secret
+  aws-secret-key:
+    file: ./secrets/aws-secret-key.secret
+  grafana-webhook:
+    file: ./secrets/grafana-webhook.secret
+x-dargstack:
+  secrets:
+    aws-credentials:
+      template: |
+        [default]
+        aws_access_key_id = {{secret:aws-access-key}}
+        aws_secret_access_key = {{secret:aws-secret-key}}
+    aws-access-key:
+      type: third_party
+    aws-secret-key:
+      type: third_party
+    grafana-webhook:
+      type: third_party
+      hint: "https://discord.com/api/webhooks/..."
+`
+
+	result, err := FilterByProfile([]byte(composeYAML), []string{"default"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(result, &doc); err != nil {
+		t.Fatal(err)
+	}
+
+	// Check top-level secrets: section
+	topSecrets, ok := doc["secrets"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected secrets section")
+	}
+	if _, ok := topSecrets["aws-credentials"]; !ok {
+		t.Error("expected aws-credentials in secrets (directly referenced)")
+	}
+	if _, ok := topSecrets["aws-access-key"]; !ok {
+		t.Error("expected aws-access-key in secrets (transitively referenced by aws-credentials template)")
+	}
+	if _, ok := topSecrets["aws-secret-key"]; !ok {
+		t.Error("expected aws-secret-key in secrets (transitively referenced by aws-credentials template)")
+	}
+	if _, ok := topSecrets["grafana-webhook"]; ok {
+		t.Error("expected grafana-webhook to be removed (inactive profile)")
+	}
+
+	// Check x-dargstack.secrets section
+	ext, ok := doc["x-dargstack"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected x-dargstack extension")
+	}
+	dargSecrets, ok := ext["secrets"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected x-dargstack.secrets")
+	}
+	if _, ok := dargSecrets["aws-credentials"]; !ok {
+		t.Error("expected aws-credentials in x-dargstack.secrets")
+	}
+	if _, ok := dargSecrets["aws-access-key"]; !ok {
+		t.Error("expected aws-access-key in x-dargstack.secrets (transitive dependency)")
+	}
+	if _, ok := dargSecrets["aws-secret-key"]; !ok {
+		t.Error("expected aws-secret-key in x-dargstack.secrets (transitive dependency)")
+	}
+	if _, ok := dargSecrets["grafana-webhook"]; ok {
+		t.Error("expected grafana-webhook to be removed from x-dargstack.secrets (inactive profile)")
+	}
+}
+
 func TestFilterServicesByName(t *testing.T) {
 	composeYAML := `services:
   api:
