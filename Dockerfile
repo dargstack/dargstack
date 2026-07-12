@@ -5,8 +5,9 @@ FROM golang:1.26.1-alpine AS base
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/var/cache/apk \
     go mod download \
-    && apk update && apk add git
+    && apk update && apk add git gcc musl-dev
 
 # ── copy: shared source snapshot ────────────────────────────────────────────
 FROM base AS copy
@@ -20,10 +21,8 @@ RUN golangci-lint run ./...
 
 # ── test ────────────────────────────────────────────────────────────────────
 FROM copy AS test
-RUN --mount=type=cache,target=/var/cache/apk \
-    --mount=type=cache,target=/go/pkg/mod \
-    apk update && apk add gcc musl-dev \
-    && go test -race -coverprofile=/tmp/coverage.txt -covermode=atomic ./...
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go test -race -coverprofile=/tmp/coverage.txt -covermode=atomic ./...
 
 # ── build ───────────────────────────────────────────────────────────────────
 FROM copy AS build
