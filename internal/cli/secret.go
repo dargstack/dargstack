@@ -43,13 +43,15 @@ Without flags, lists all secret names and their file paths in the current stack.
 var secretShowType string
 
 var secretShowCmd = &cobra.Command{
-	Use:   "show",
+	Use:   "show [name]",
 	Short: "Show secret values",
 	Long: `Show secret values.
 
 Displays the current values of all secrets. If a clipboard tool is available
 (wl-copy, xclip, xsel, pbcopy, clip), offers an interactive picker to copy
 individual keys and values.
+
+If a secret name is provided, only that secret is shown.
 
 Use --type key to derive and display public keys for private_key type secrets
 instead of showing stored values.`,
@@ -146,14 +148,18 @@ func runSecretList(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func runSecretShow(_ *cobra.Command, _ []string) error {
-	if secretShowType == "key" {
-		return runSecretShowKeys()
+func runSecretShow(_ *cobra.Command, args []string) error {
+	var targetName string
+	if len(args) > 0 {
+		targetName = args[0]
 	}
-	return runSecretShowValues()
+	if secretShowType == "key" {
+		return runSecretShowKeys(targetName)
+	}
+	return runSecretShowValues(targetName)
 }
 
-func runSecretShowValues() error {
+func runSecretShowValues(targetName string) error {
 	composeData, err := buildComposeData(production)
 	if err != nil {
 		return wrapWithBugHint(err)
@@ -170,6 +176,20 @@ func runSecretShowValues() error {
 		names = append(names, name)
 	}
 	sort.Strings(names)
+
+	if targetName != "" {
+		found := false
+		for _, name := range names {
+			if name == targetName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("secret %q not found", targetName)
+		}
+		names = []string{targetName}
+	}
 
 	values := secret.ReadSecretValues(paths)
 
@@ -240,7 +260,7 @@ func runSecretShowValues() error {
 	return nil
 }
 
-func runSecretShowKeys() error {
+func runSecretShowKeys(targetName string) error {
 	composeData, err := buildComposeData(production)
 	if err != nil {
 		return wrapWithBugHint(err)
@@ -263,6 +283,20 @@ func runSecretShowKeys() error {
 	}
 	sort.Strings(names)
 
+	if targetName != "" {
+		found := false
+		for _, name := range names {
+			if name == targetName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("secret %q not found", targetName)
+		}
+		names = []string{targetName}
+	}
+
 	type pubEntry struct {
 		KeyType   string `json:"key_type"`
 		Name      string `json:"name"`
@@ -277,9 +311,6 @@ func runSecretShowKeys() error {
 		}
 
 		filePath := paths[name]
-		if filePath == "" {
-			filePath = paths[name]
-		}
 
 		data, readErr := os.ReadFile(filePath)
 		if readErr != nil {

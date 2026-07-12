@@ -10,11 +10,13 @@ Displays the current values of all secrets. If a clipboard tool is available
 (wl-copy, xclip, xsel, pbcopy, clip), offers an interactive picker to copy
 individual keys and values.
 
+If a secret name is provided, only that secret is shown.
+
 Use --type key to derive and display public keys for private_key type secrets
 instead of showing stored values.
 
 ```
-dargstack secret show [flags]
+dargstack secret show [name] [flags]
 ```
 
 ### Options
