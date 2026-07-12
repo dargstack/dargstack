@@ -185,8 +185,8 @@ func TestGenerateDocumentation(t *testing.T) {
 		StackDir:       stackDir,
 		StackName:      "example-stack",
 		StackDomain:    "example.localhost",
-		SourceCodeName: "my-project",
-		SourceCodeURL:  "https://github.com/example/my-project",
+		SourceCodeName: "example",
+		SourceCodeURL:  "https://github.com/example",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -194,7 +194,7 @@ func TestGenerateDocumentation(t *testing.T) {
 
 	expected := `# example-stack
 
-The Docker stack configuration for [example.localhost](https://example.localhost/). Related to [my-project](https://github.com/example/my-project).
+The Docker stack configuration for [example.localhost](https://example.localhost/). See [example](https://github.com/example).
 
 ## Services
 

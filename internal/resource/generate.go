@@ -75,7 +75,7 @@ func GenerateDocumentation(dc *DocsConfig) (string, error) {
 	}
 	fmt.Fprintf(&b, "The Docker stack configuration for [%s](https://%s/).", dc.StackDomain, dc.StackDomain)
 	if dc.SourceCodeName != "" && dc.SourceCodeURL != "" {
-		fmt.Fprintf(&b, " Related to [%s](%s).", dc.SourceCodeName, dc.SourceCodeURL)
+		fmt.Fprintf(&b, " See [%s](%s).", dc.SourceCodeName, dc.SourceCodeURL)
 	}
 	b.WriteString("\n\n")
 
