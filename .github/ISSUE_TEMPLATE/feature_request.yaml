@@ -1,6 +1,6 @@
 name: Feature Request
 description: Suggest a feature for dargstack
-labels: [enhancement]
+type: feature
 body:
   - type: textarea
     attributes:
@@ -8,13 +8,3 @@ body:
       description: What feature would you like?
     validations:
       required: true
-  - type: textarea
-    attributes:
-      label: Use Case
-      description: What problem does this solve?
-    validations:
-      required: true
-  - type: textarea
-    attributes:
-      label: Proposed Solution
-      description: How should this work?
