@@ -634,7 +634,14 @@ func TestBackgroundCheck_OnlyRunsOnce(t *testing.T) {
 	BackgroundCheck()
 	BackgroundCheck()
 
-	// Wait for the background goroutine to finish before reading callCount.
+	// Wait for the background goroutine to make the HTTP call before collecting.
+	for i := 0; i < 50; i++ {
+		if callCount.Load() == 1 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
 	result := CollectBackgroundCheck()
 	if result == nil {
 		t.Fatal("expected result from background check")
