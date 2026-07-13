@@ -1,0 +1,16 @@
+/.editorconfig
+/.git
+/.github
+# /.golangci.yaml is needed for the lint stage
+/.goreleaser.yaml
+/.releaserc.json
+/.renovaterc.json
+/.vscode
+/AGENTS.md
+/CHANGELOG.md
+/CONTRIBUTING.md
+/dargstack
+/docs
+/LICENSE
+/MIGRATION.md
+/README.md

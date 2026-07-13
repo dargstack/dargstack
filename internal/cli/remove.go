@@ -1,0 +1,188 @@
+package cli
+
+import (
+	"context"
+	"fmt"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/spf13/cobra"
+
+	"github.com/dargstack/dargstack/v4/internal/compose"
+	"github.com/dargstack/dargstack/v4/internal/docker"
+	"github.com/dargstack/dargstack/v4/internal/logger"
+	"github.com/dargstack/dargstack/v4/internal/prompt"
+)
+
+var removeVolumes bool
+
+var rmCmd = &cobra.Command{
+	Use:     "remove",
+	Aliases: []string{"rm"},
+	Short:   "Remove the deployed stack",
+	Long: `Remove the deployed stack.
+
+Removes all services, networks, and secrets from the Docker Swarm stack.
+Use ` + "`--profiles`" + ` or ` + "`--services`" + ` to remove only a subset of services. Without
+those flags the full stack is removed. Use ` + "`--environment production`" + ` to build the compose
+from production sources when resolving which services belong to a profile.
+Optionally (with ` + "`--volumes`" + `) removes all stack volumes, clearing persistent data.`,
+	RunE: runRemove,
+}
+
+func init() {
+	rmCmd.Flags().BoolVar(&removeVolumes, "volumes", false, "also remove stack volumes")
+}
+
+func runRemove(cmd *cobra.Command, args []string) error {
+	ctx := context.Background()
+
+	executor, err := docker.NewExecutor(string(cfg.Runtime.Sudo))
+	if err != nil {
+		return err
+	}
+
+	// When sudo is needed the Docker SDK cannot reach the socket,
+	// so use the CLI executor for all checks.
+	var dockerClient *docker.Client
+	if !executor.NeedsSudo() {
+		dockerClient, err = docker.NewClient()
+		if err != nil {
+			return err
+		}
+		defer func() { _ = dockerClient.Close() }()
+	}
+
+	running := isStackRunning(ctx, dockerClient, executor)
+	if !running {
+		logger.L.Info(fmt.Sprintf("Stack %q is not running", cfg.Metadata.Name))
+		return nil
+	}
+
+	// Targeted removal: only a profile or specific services.
+	if len(profiles) > 0 || len(services) > 0 {
+		return runRemoveTargeted(executor)
+	}
+
+	if err := docker.StackRemove(executor, cfg.Metadata.Name); err != nil {
+		return err
+	}
+
+	logger.L.Info(fmt.Sprintf("Waiting for stack %q services to stop...", cfg.Metadata.Name))
+
+	spinDone := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		frames := []rune{'⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'}
+		i := 0
+		for {
+			select {
+			case <-spinDone:
+				fmt.Print("\r\033[K") // clear the spinner line
+				return
+			default:
+				fmt.Printf("\r  %c Waiting for stack %q to stop...", frames[i%len(frames)], cfg.Metadata.Name)
+				i++
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+
+	waitErr := docker.WaitForStackRemoval(executor, cfg.Metadata.Name, 60*time.Second, nil)
+	close(spinDone)
+	wg.Wait()
+
+	if waitErr != nil {
+		logger.L.Warn(waitErr.Error())
+	} else {
+		logger.Success(fmt.Sprintf("Stack %q removed", cfg.Metadata.Name))
+	}
+
+	if removeVolumes {
+		if !noInteraction {
+			ok, err := prompt.Confirm("Confirm removal of all stack volumes?", false)
+			if err != nil || !ok {
+				return nil
+			}
+		}
+
+		volumes, err := docker.VolumeList(executor, cfg.Metadata.Name)
+		if err != nil {
+			return fmt.Errorf("list volumes: %w", err)
+		}
+		if len(volumes) > 0 {
+			if err := docker.VolumeRemove(executor, volumes); err != nil {
+				return fmt.Errorf("remove volumes: %w", err)
+			}
+			logger.Success(fmt.Sprintf(MsgRemovedVolumes, len(volumes)))
+		}
+	}
+
+	return nil
+}
+
+// runRemoveTargeted removes only the services selected by --profiles / --services.
+func runRemoveTargeted(executor *docker.Executor) error {
+	// Build compose to determine which services belong to the active profile.
+	var composeData []byte
+	var err error
+	if isProduction() {
+		composeData, err = buildProductionCompose()
+	} else {
+		composeData, err = buildDevelopmentCompose()
+	}
+	if err != nil {
+		return fmt.Errorf("build compose for targeted remove: %w", err)
+	}
+
+	composeData, filterMsg, err := applyProfileFilter(composeData)
+	if err != nil {
+		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
+	}
+	logger.L.Info(filterMsg)
+
+	// Extract service names from the filtered compose.
+	targetServices, err := compose.ServiceNames(composeData)
+	if err != nil {
+		return fmt.Errorf("extract service names: %w", err)
+	}
+
+	// If --services was also provided, intersect with the compose-filtered set.
+	if len(services) > 0 {
+		svcSet := make(map[string]bool, len(services))
+		for _, s := range services {
+			svcSet[s] = true
+		}
+		filtered := targetServices[:0]
+		for _, s := range targetServices {
+			if svcSet[s] {
+				filtered = append(filtered, s)
+			}
+		}
+		targetServices = filtered
+	}
+
+	if len(targetServices) == 0 {
+		logger.L.Info("No matching services to remove")
+		return nil
+	}
+
+	sort.Strings(targetServices)
+
+	// Prefix with stack name for Docker service removal.
+	fullNames := make([]string, len(targetServices))
+	for i, s := range targetServices {
+		fullNames[i] = cfg.Metadata.Name + "_" + s
+	}
+
+	logger.L.Info(fmt.Sprintf("Removing services: %s", strings.Join(targetServices, ", ")))
+	if err := docker.ServiceRemove(executor, fullNames); err != nil {
+		return err
+	}
+	logger.Success(fmt.Sprintf("Removed %d service(s)", len(fullNames)))
+	return nil
+}
