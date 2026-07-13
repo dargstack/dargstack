@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 const renewalThreshold = 30 * 24 * time.Hour // 30 days before expiry

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
@@ -51,7 +50,7 @@ func (c *Client) SwarmStatus(ctx context.Context) (swarm.LocalNodeState, error) 
 // label filtering to avoid fetching all services on large swarms.
 func (c *Client) ListStackServices(ctx context.Context, stackName string) ([]swarm.Service, error) {
 	f := filters.NewArgs(filters.Arg("label", "com.docker.stack.namespace="+stackName))
-	services, err := c.api.ServiceList(ctx, types.ServiceListOptions{Filters: f})
+	services, err := c.api.ServiceList(ctx, swarm.ServiceListOptions{Filters: f})
 	if err != nil {
 		return nil, fmt.Errorf("list services: %w", err)
 	}

@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/geofffranks/spruce"
+	"go.yaml.in/yaml/v3"
 	yamlv2 "gopkg.in/yaml.v2"
-	"gopkg.in/yaml.v3"
 )
 
 // StackRootPrefix is the "~~" prefix that expands to the stack project root directory.

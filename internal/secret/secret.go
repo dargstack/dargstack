@@ -9,7 +9,7 @@ import (
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 // Template defines secret metadata from x-dargstack.secrets in compose.
