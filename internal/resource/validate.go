@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/secret"

@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/dargstack/dargstack/v4/internal/audit"
 	"github.com/dargstack/dargstack/v4/internal/compose"

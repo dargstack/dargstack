@@ -3,7 +3,7 @@ package compose
 import (
 	"sort"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 // ExtractServiceImages returns the unique sorted list of image names referenced
