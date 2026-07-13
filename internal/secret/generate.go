@@ -45,6 +45,9 @@ func generatePrivateKey(keyType string, keySize int) (string, error) {
 		if size <= 0 {
 			size = 2048
 		}
+		if size < 2048 {
+			return "", fmt.Errorf("RSA key size %d is too weak; minimum is 2048", size)
+		}
 		key, err := rsa.GenerateKey(rand.Reader, size)
 		if err != nil {
 			return "", fmt.Errorf("generate RSA key: %w", err)
