@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ── base: shared Go module cache ────────────────────────────────────────────
-FROM golang:1.26.1-alpine AS base
+FROM golang:1.26.5-alpine AS base
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
