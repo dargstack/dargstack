@@ -10,7 +10,7 @@ require (
 	github.com/docker/docker v27.4.1+incompatible
 	github.com/geofffranks/spruce v1.35.12
 	github.com/spf13/cobra v1.10.2
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
