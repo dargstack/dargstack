@@ -1,7 +1,7 @@
 package prompt
 
 import (
-	"github.com/charmbracelet/huh"
+	"charm.land/huh/v2"
 )
 
 // NonInteractive disables all prompts when set to true. Calls to Confirm, Select,
