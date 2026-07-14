@@ -95,7 +95,8 @@ func PrintUpdateNotice(result *CheckResult) {
 	if result == nil || !result.Available {
 		return
 	}
-	logger.L.Warn(fmt.Sprintf("A new version of dargstack is available: %s -> %s", currentVersion(), result.NewVersion))
+	current := strings.TrimPrefix(currentVersion(), "v")
+	logger.L.Warn(fmt.Sprintf("A new version of dargstack is available: %s -> %s", current, result.NewVersion))
 	logger.L.Warn("Run `dargstack update --self` to update.")
 }
 
