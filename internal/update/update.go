@@ -67,7 +67,8 @@ func resetBackgroundState() {
 
 // BackgroundCheck starts a non-blocking update check.
 func BackgroundCheck() {
-	if currentVersion() == "dev" {
+	v := currentVersion()
+	if v == "dev" || strings.HasSuffix(v, "+dirty") {
 		return
 	}
 	bgOnce.Do(func() {
