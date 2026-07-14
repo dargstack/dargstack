@@ -53,6 +53,7 @@ func runValidate(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	logger.L.Info("Validating stack...")
 	if printIssues(issues) {
 		return errors.New(ErrValidationFailed)
 	}

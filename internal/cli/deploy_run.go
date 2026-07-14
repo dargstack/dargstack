@@ -41,8 +41,9 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		executor.SetComposeEnv(composeVars)
 	}
 
-	// Filter for secrets and validation.
-	if err := deployFilterForSecrets(composeData, dryRun); err != nil {
+	// Secret setup (before validation so generated secrets are present).
+	secretIssues, err := deploySetupSecrets(composeData, dryRun)
+	if err != nil {
 		return err
 	}
 
@@ -68,6 +69,12 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
+	// Validate resources after preparation so generated certs and cloned
+	// repos are visible to the validator.
+	if err := deployValidateResources(composeData, secretIssues, dryRun); err != nil {
+		return err
+	}
+
 	if err := deployExecute(executor, composeData, env, dryRun); err != nil {
 		return err
 	}
@@ -77,12 +84,12 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	return nil
 }
 
-// deployFilterForSecrets filters composeData by profile, runs secret setup,
-// and validates resources.
-func deployFilterForSecrets(composeData []byte, dryRun bool) error {
+// deploySetupSecrets filters composeData by profile and runs secret setup.
+// Returns secret-related issues for later combination with validation results.
+func deploySetupSecrets(composeData []byte, dryRun bool) ([]resource.Issue, error) {
 	secretComposeData, _, filterErr := applyProfileFilter(composeData)
 	if filterErr != nil {
-		return fmt.Errorf("filter compose by profile for secret setup: %w", filterErr)
+		return nil, fmt.Errorf("filter compose by profile for secret setup: %w", filterErr)
 	}
 
 	if dryRun {
@@ -118,24 +125,34 @@ func deployFilterForSecrets(composeData []byte, dryRun bool) error {
 		} else {
 			logger.L.Info("[dry-run] No secrets to set up")
 		}
-	} else {
-		secretIssues, err, _ := secretSetupFlow(secretComposeData, isProduction(), true)
-		if err != nil {
-			return fmt.Errorf("secret setup: %w", err)
-		}
-
-		issues, err := resource.Validate(secretComposeData, stackDir, isProduction())
-		if err != nil {
-			return wrapWithBugHint(err)
-		}
-		if printIssues(append(secretIssues, issues...)) {
-			return hintErr(
-				errors.New(ErrValidationFailed),
-				"Fix the errors listed above, then run `dargstack deploy` again.",
-			)
-		}
+		return nil, nil
 	}
 
+	secretIssues, err, _ := secretSetupFlow(secretComposeData, isProduction(), true)
+	if err != nil {
+		return nil, fmt.Errorf("secret setup: %w", err)
+	}
+	return secretIssues, nil
+}
+
+// deployValidateResources runs resource validation and combines results with
+// any pre-existing secret issues. Returns an error if validation fails.
+func deployValidateResources(composeData []byte, secretIssues []resource.Issue, dryRun bool) error {
+	if dryRun {
+		logger.L.Info("[dry-run] Would validate stack resources")
+		return nil
+	}
+
+	issues, err := resource.Validate(composeData, stackDir, isProduction())
+	if err != nil {
+		return wrapWithBugHint(err)
+	}
+	if printIssues(append(secretIssues, issues...)) {
+		return hintErr(
+			errors.New(ErrValidationFailed),
+			"Fix the errors listed above, then run `dargstack deploy` again.",
+		)
+	}
 	return nil
 }
 
