@@ -10,8 +10,8 @@ var updateSelf bool
 
 var updateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "Update components",
-	Long:  "Update dargstack and related components.",
+	Short: "Update dargstack to the latest version",
+	Long:  "Downloads and installs the latest release of dargstack. Requires --self flag.",
 	RunE:  runUpdate,
 }
 

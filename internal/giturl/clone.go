@@ -57,7 +57,7 @@ func CloneWithFallback(g GitURL, targetDir string) error {
 
 func runClone(url, targetDir string) error {
 	logger.L.Info(fmt.Sprintf("Cloning %s", url))
-	cmd := exec.Command("git", "clone", "--depth", "1", url, targetDir)
+	cmd := exec.Command("git", "clone", url, targetDir)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%s: %w", strings.TrimSpace(string(out)), err)

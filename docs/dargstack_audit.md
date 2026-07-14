@@ -1,23 +1,23 @@
-## dargstack inspect
+## dargstack audit
 
-Inspect deployed compose snapshots
+View deployment audit log
 
 ### Synopsis
 
-Inspect the final composed YAML that was deployed.
+View the final composed YAML that was deployed.
 
 Without arguments, shows the latest deployment.
 
 ```
-dargstack inspect [timestamp] [flags]
+dargstack audit [timestamp] [flags]
 ```
 
 ### Options
 
 ```
       --difference           show diff between current and last deployed
-      --environment string   environment to inspect (development or production) (default "development")
-  -h, --help                 help for inspect
+      --environment string   environment to audit (development or production) (default "development")
+  -h, --help                 help for audit
       --list                 list all past deployments
 ```
 

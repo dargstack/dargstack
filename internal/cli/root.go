@@ -124,6 +124,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "info", "log level: error, warn, info, debug")
 
+	rootCmd.AddCommand(auditCmd)
 	rootCmd.AddCommand(buildCmd)
 	rootCmd.AddCommand(certificatesCmd)
 	rootCmd.AddCommand(cloneCmd)
