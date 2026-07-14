@@ -26,9 +26,10 @@ dargstack - simplified, approachable Docker Swarm stack management.
 
 * [dargstack build](dargstack_build.md)	 - Build development Dockerfiles
 * [dargstack certify](dargstack_certify.md)	 - Generate TLS certificates
+* [dargstack clone](dargstack_clone.md)	 - Clone an existing dargstack project
 * [dargstack deploy](dargstack_deploy.md)	 - Deploy the stack
 * [dargstack document](dargstack_document.md)	 - Generate the stack documentation
-* [dargstack initialize](dargstack_initialize.md)	 - Initialize a new dargstack project
+* [dargstack initialize](dargstack_initialize.md)	 - Bootstrap a new dargstack project
 * [dargstack inspect](dargstack_inspect.md)	 - Inspect deployed compose snapshots
 * [dargstack profiles](dargstack_profiles.md)	 - List discovered deploy profiles
 * [dargstack remove](dargstack_remove.md)	 - Remove the deployed stack

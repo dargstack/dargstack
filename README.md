@@ -314,7 +314,8 @@ Template tokens:
 | [dargstack certify](docs/dargstack_certify.md)       | Generate TLS certificates              |
 | [dargstack deploy](docs/dargstack_deploy.md)         | Deploy the stack                       |
 | [dargstack document](docs/dargstack_document.md)     | Generate the stack documentation       |
-| [dargstack initialize](docs/dargstack_initialize.md) | Initialize a new dargstack project     |
+| [dargstack clone](docs/dargstack_clone.md)         | Clone an existing dargstack project |
+| [dargstack initialize](docs/dargstack_initialize.md) | Bootstrap a new dargstack project |
 | [dargstack inspect](docs/dargstack_inspect.md)       | Inspect deployed compose snapshots     |
 | [dargstack remove](docs/dargstack_remove.md)         | Remove the deployed stack              |
 | [dargstack secret](docs/dargstack_secret.md)         | Manage stack secrets                   |

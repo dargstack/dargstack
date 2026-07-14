@@ -16,22 +16,23 @@ import (
 var configOnly bool
 
 var initCmd = &cobra.Command{
-	Use:     "initialize [name-or-url]",
+	Use:     "initialize [name]",
 	Aliases: []string{"init"},
-	Short:   "Initialize a new dargstack project",
-	Long: `Initialize a new dargstack project.
+	Short:   "Bootstrap a new dargstack project",
+	Long: `Bootstrap a new dargstack project.
 
 Creates a project directory structure with:
 - ` + "`dargstack.yaml`" + ` config file with all options (commented with defaults)
 - ` + "`src/development`" + ` and ` + "`src/production`" + ` service directories
 - ` + "`artifacts`" + ` directory for generated outputs (docs, certificates, audit logs)
 
-Optionally clone an existing dargstack project from a Git URL instead.
+Without arguments, prompts for a project name.
+With an argument, uses it as the project name directly.
 
-Without arguments, init prompts you for a project name.
-With an argument, uses it as the project name or Git URL directly.
+Use ` + "`--configuration-only`" + ` to print a full config template to stdout without creating a project.
 
-Use ` + "`--configuration-only`" + ` to print a full config template to stdout without creating a project.`,
+DEPRECATED: passing a Git URL to ` + "`init`" + ` will clone the repository.
+Use ` + "`dargstack clone`" + ` instead.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runInit,
 }
@@ -46,45 +47,33 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	var input string
+	var name string
 	if len(args) > 0 {
-		input = args[0]
+		name = args[0]
 	}
 
-	if input == "" {
+	if name == "" {
 		if noInteraction {
-			return fmt.Errorf("--no-interaction requires a name or Git URL argument")
+			return fmt.Errorf("--no-interaction requires a name argument")
 		}
 
-		mode, err := prompt.Select("What would you like to do?", []string{
-			"Bootstrap new project",
-			"Clone from Git URL",
-		})
+		var err error
+		name, err = prompt.Input("Project name", "my-project")
 		if err != nil {
 			return err
 		}
-
-		if mode == "Clone from Git URL" {
-			input, err = prompt.Input("Git URL", "")
-			if err != nil {
-				return err
-			}
-		} else {
-			input, err = prompt.Input("Project name", "my-project")
-			if err != nil {
-				return err
-			}
-		}
 	}
 
-	if input == "" {
-		return fmt.Errorf("project name or Git URL is required")
+	if name == "" {
+		return fmt.Errorf("project name is required")
 	}
 
-	if isGitURL(input) {
-		return cloneProject(input)
+	if isGitURL(name) {
+		logger.L.Warn("Passing a Git URL to `init` is deprecated; use `dargstack clone` instead.")
+		return cloneProject(name)
 	}
-	return bootstrapProject(input)
+
+	return bootstrapProject(name)
 }
 
 func isGitURL(s string) bool {
