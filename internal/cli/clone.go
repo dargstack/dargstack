@@ -60,11 +60,12 @@ func runClone(cmd *cobra.Command, args []string) error {
 	}
 
 	target := cloneTarget
-	if target == "" {
+	targetExplicit := cmd.Flags().Changed("target")
+	if !targetExplicit {
 		target = giturl.RepoNameFromURL(url)
 	}
 
-	if !noInteraction {
+	if !targetExplicit && !noInteraction {
 		result, err := prompt.Input("Clone into directory", target)
 		if err != nil {
 			return err
@@ -76,13 +77,19 @@ func runClone(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("target directory is required")
 	}
 
-	logger.L.Info(fmt.Sprintf("Cloning %s into ./%s ...", url, target))
+	displayTarget := target
+	if !filepath.IsAbs(target) {
+		displayTarget = "./" + target
+	}
+
+	logger.L.Info(fmt.Sprintf("Cloning %s into %s ...", url, displayTarget))
 	gitCmd := exec.Command("git", "clone", url, target) // #nosec G204 — URL is user-supplied intentionally
 	gitCmd.Stdout = os.Stdout
 	gitCmd.Stderr = os.Stderr
 	if err := gitCmd.Run(); err != nil {
 		return fmt.Errorf("git clone: %w", err)
 	}
-	logger.Success(fmt.Sprintf("Project cloned into ./%s. Navigate into the directory and run `dargstack deploy`.", filepath.Base(target)))
+	logger.Success(fmt.Sprintf("Project cloned into %s", displayTarget))
+	logger.L.Info("Run `cd` into the directory and then `dargstack deploy` to start.")
 	return nil
 }

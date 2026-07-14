@@ -78,7 +78,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	target := initTarget
-	if target == "" {
+	targetExplicit := cmd.Flags().Changed("target")
+	if !targetExplicit {
 		if isClone {
 			target = giturl.RepoNameFromURL(name)
 		} else {
@@ -86,7 +87,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if !noInteraction {
+	if !targetExplicit && !noInteraction {
 		promptTitle := "Clone into directory"
 		if !isClone {
 			promptTitle = "Create project in directory"
@@ -117,14 +118,20 @@ func isGitURL(s string) bool {
 }
 
 func cloneProject(url, target string) error {
-	logger.L.Info(fmt.Sprintf("Cloning %s into ./%s ...", url, target))
+	displayTarget := target
+	if !filepath.IsAbs(target) {
+		displayTarget = "./" + target
+	}
+
+	logger.L.Info(fmt.Sprintf("Cloning %s into %s ...", url, displayTarget))
 	gitCmd := exec.Command("git", "clone", url, target) // #nosec G204 — URL is user-supplied intentionally
 	gitCmd.Stdout = os.Stdout
 	gitCmd.Stderr = os.Stderr
 	if err := gitCmd.Run(); err != nil {
 		return fmt.Errorf("git clone: %w", err)
 	}
-	logger.Success(fmt.Sprintf("Project cloned into ./%s. Navigate into the directory and run `dargstack deploy`.", filepath.Base(target)))
+	logger.Success(fmt.Sprintf("Project cloned into %s", displayTarget))
+	logger.L.Info("Run `cd` into the directory and then `dargstack deploy` to start.")
 	return nil
 }
 
