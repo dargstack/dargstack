@@ -3,6 +3,7 @@ package update
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -111,7 +112,10 @@ func SelfUpdate() error {
 		return fmt.Errorf("create update source: %w", err)
 	}
 
-	updater, err := selfupdate.NewUpdater(selfupdate.Config{Source: source})
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{
+		Source:    source,
+		Validator: &selfupdate.ChecksumValidator{UniqueFilename: "checksums.txt"},
+	})
 	if err != nil {
 		return fmt.Errorf("create updater: %w", err)
 	}
@@ -143,6 +147,9 @@ func SelfUpdate() error {
 	}
 
 	if err := updater.UpdateTo(ctx, latest, exe); err != nil {
+		if errors.Is(err, selfupdate.ErrChecksumValidationFailed) {
+			return fmt.Errorf("update failed: checksum verification error — the release binary may be compromised: %w", err)
+		}
 		return fmt.Errorf("update: %w", err)
 	}
 

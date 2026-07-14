@@ -25,10 +25,13 @@ This guide helps you migrate an existing dargstack v3 (Bash) project to v4 (Go).
 go install github.com/dargstack/dargstack/v4/cmd/dargstack@latest
 ```
 
-**Alternative** (binary download — verify the checksum on the [Releases page](https://github.com/dargstack/dargstack/releases) before use):
+**Alternative** (binary download with checksum verification):
 
 ```bash
-curl -sL https://github.com/dargstack/dargstack/releases/latest/download/dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz | tar xz
+ARCHIVE="dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz"
+curl -sfL -o "$ARCHIVE" "https://github.com/dargstack/dargstack/releases/latest/download/$ARCHIVE"
+curl -sfL https://github.com/dargstack/dargstack/releases/latest/download/checksums.txt | sha256sum -c - --ignore-missing
+tar xzf "$ARCHIVE" && rm "$ARCHIVE"
 sudo mv dargstack /usr/local/bin/
 ```
 

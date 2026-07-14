@@ -55,13 +55,12 @@ dargstack inverts this: define development as the source of truth, then express 
 ### Recommended — From GitHub Releases
 
 ```bash
-curl -sL https://github.com/dargstack/dargstack/releases/latest/download/dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz | tar xz
+ARCHIVE="dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz"
+curl -sfL -o "$ARCHIVE" "https://github.com/dargstack/dargstack/releases/latest/download/$ARCHIVE"
+curl -sfL https://github.com/dargstack/dargstack/releases/latest/download/checksums.txt | sha256sum -c - --ignore-missing
+tar xzf "$ARCHIVE" && rm "$ARCHIVE"
 sudo mv dargstack /usr/local/bin/
 ```
-
-> **Security note:** Binary downloads do not include checksum verification in the snippet above.
-> Before moving the binary to your PATH, verify the SHA-256 checksum published on the
-> [Releases page](https://github.com/dargstack/dargstack/releases), or prefer `go install` below.
 
 ### Alternative — From Source
 
