@@ -81,6 +81,7 @@ func GenerateDocumentation(dc *DocsConfig) (string, error) {
 	// Profiles
 	if len(profileMap) > 0 {
 		b.WriteString("## Profiles\n\n")
+		b.WriteString("Profiles group services so you can deploy subsets on demand. Activate with `dargstack deploy --profiles <name>`.\n\n")
 		profileNames := make([]string, 0, len(profileMap))
 		for p := range profileMap {
 			profileNames = append(profileNames, p)
@@ -98,6 +99,7 @@ func GenerateDocumentation(dc *DocsConfig) (string, error) {
 	// Services
 	if len(names) > 0 {
 		b.WriteString("## Services\n\n")
+		b.WriteString("Each service corresponds to a compose.yaml file. Descriptions are extracted from YAML comments in the source. Services marked *(production only)* exist only in the production overlay.\n\n")
 		for _, name := range names {
 			fmt.Fprintf(&b, "### %s", name)
 			if !devSet[name] {

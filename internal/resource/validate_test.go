@@ -199,6 +199,8 @@ The Docker stack configuration for [example.localhost](https://example.localhost
 
 ## Services
 
+Each service corresponds to a compose.yaml file. Descriptions are extracted from YAML comments in the source. Services marked *(production only)* exist only in the production overlay.
+
 ### api
 
 The main API service.
