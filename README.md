@@ -294,7 +294,7 @@ x-dargstack:
 `type` controls secret behavior. Supported values: `random_string`, `wordlist_word`, `private_key`, `third_party`, `insecure_default`, `template`. If omitted, the type is inferred from the fields provided:
 
 - `private_key` if `key_type` or `key_size` is set
-- `third_party` if `hint` is set
+- `third_party` if `third_party` is set
 - `template` if `template` is set
 - `insecure_default` if `insecure_default` is set
 - `random_string` if `length` or `special_characters` is set

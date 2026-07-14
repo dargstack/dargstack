@@ -48,6 +48,6 @@ Understanding these decisions will help you make changes that align with dargsta
 
 11. **`x-dargstack` extension** — top-level compose extension key; `secrets` subkey holds templating metadata.
 
-12. **Secret templating** — `x-dargstack.secrets` with `hint`, `length`, `special_characters`, `template` (`{{ref}}`), and optional `third_party`. Topological sort resolves order.
+12. **Secret templating** — `x-dargstack.secrets` with `hint`, `length`, `special_characters`, `template` (`{{secret:<name>}}`), and optional `third_party`. Topological sort resolves order.
 
 13. **Audit trail** — each deployment saves a timestamped snapshot to `artifacts/audit-log/`. `inspect` lists, diffs, and displays past snapshots. `--dry-run` traces all steps without deploying.

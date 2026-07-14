@@ -6,7 +6,7 @@ Thank you for your interest in contributing!
 
 **Prerequisites**
 
-- Go 1.24 or later — see [go.dev: Download and install](https://go.dev/doc/install)
+- Go — see [go.dev: Download and install](https://go.dev/doc/install)
 - Git — see [git-scm.com: Install](https://git-scm.com/)
 - golangci-lint v2 — see [golangci-lint.run: Local Installation](https://golangci-lint.run/docs/welcome/install/local/)
 
