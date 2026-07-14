@@ -430,7 +430,7 @@ func extractDargstackBuildContext(svc map[string]interface{}) string {
 
 // resolveBuildContext returns the build context for a service.
 // It checks for a `dargstack.development.build` label first.
-// If not present, falls back to `dargstack.development.git` and derives
+// If not present, falls back to `dargstack.development.git.ssh`/`dargstack.development.git.https` and derives
 // the context from the cloned repo directory (sibling of the stack directory).
 // Returns "" if neither label is set.
 func resolveBuildContext(svc map[string]interface{}, stackDir string) string {

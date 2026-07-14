@@ -5,9 +5,9 @@ Build development Dockerfiles
 ### Synopsis
 
 Build service Docker images.
+Builds Dockerfiles for services with a `dargstack.development.build` or `dargstack.development.git.ssh`/`dargstack.development.git.https` label in their compose definition.
 
-Builds Dockerfiles for services with a `dargstack.development.build` or `dargstack.development.git` label in their compose definition.
-The `dargstack.development.build` label takes precedence over `dargstack.development.git`.
+The `dargstack.development.build` label takes precedence over `dargstack.development.git.ssh`/`dargstack.development.git.https`.
 Each service must have a Dockerfile in the build context directory.
 
 Without arguments, lists available services and prompts you to select which to build.

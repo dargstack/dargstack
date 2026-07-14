@@ -3,6 +3,7 @@ package update
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -36,6 +37,7 @@ var (
 	bgResultCh = make(chan *CheckResult, 1)
 	bgOnce     sync.Once
 	bgStarted  atomic.Bool
+	bgComplete atomic.Bool
 
 	// doHTTPRequest abstracts HTTP requests for testability.
 	doHTTPRequest = defaultDoHTTPRequest
@@ -55,6 +57,7 @@ func defaultDoHTTPRequest(req *http.Request) (*http.Response, error) {
 func resetBackgroundState() {
 	bgOnce = sync.Once{}
 	bgStarted.Store(false)
+	bgComplete.Store(false)
 	// Drain any leftover result.
 	select {
 	case <-bgResultCh:
@@ -70,6 +73,7 @@ func BackgroundCheck() {
 	bgOnce.Do(func() {
 		bgStarted.Store(true)
 		go func() {
+			defer bgComplete.Store(true)
 			result, _ := checkLatest()
 			bgResultCh <- result
 		}()
@@ -95,7 +99,8 @@ func PrintUpdateNotice(result *CheckResult) {
 	if result == nil || !result.Available {
 		return
 	}
-	logger.L.Warn(fmt.Sprintf("A new version of dargstack is available: %s -> %s", currentVersion(), result.NewVersion))
+	current := strings.TrimPrefix(currentVersion(), "v")
+	logger.L.Warn(fmt.Sprintf("A new version of dargstack is available: %s -> %s", current, result.NewVersion))
 	logger.L.Warn("Run `dargstack update --self` to update.")
 }
 
@@ -110,7 +115,10 @@ func SelfUpdate() error {
 		return fmt.Errorf("create update source: %w", err)
 	}
 
-	updater, err := selfupdate.NewUpdater(selfupdate.Config{Source: source})
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{
+		Source:    source,
+		Validator: &selfupdate.ChecksumValidator{UniqueFilename: "checksums.txt"},
+	})
 	if err != nil {
 		return fmt.Errorf("create updater: %w", err)
 	}
@@ -142,6 +150,9 @@ func SelfUpdate() error {
 	}
 
 	if err := updater.UpdateTo(ctx, latest, exe); err != nil {
+		if errors.Is(err, selfupdate.ErrChecksumValidationFailed) {
+			return fmt.Errorf("update failed: checksum verification error — the release binary may be compromised: %w", err)
+		}
 		return fmt.Errorf("update: %w", err)
 	}
 

@@ -21,6 +21,19 @@ func testSetup(t *testing.T) func(t *testing.T) {
 	origCurrentVersion := currentVersion
 	resetBackgroundState()
 	return func(t *testing.T) {
+		// Wait for the background goroutine to finish before restoring
+		// package-level variables, preventing data races.
+		if bgStarted.Load() {
+			for i := 0; i < 100; i++ {
+				if bgComplete.Load() {
+					break
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+			if !bgComplete.Load() {
+				t.Fatalf("background update check did not complete before cleanup")
+			}
+		}
 		doHTTPRequest = origDoHTTPRequest
 		cacheDirFunc = origCacheDirFunc
 		currentVersion = origCurrentVersion

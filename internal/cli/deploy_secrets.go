@@ -8,17 +8,18 @@ import (
 
 	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
+	"github.com/dargstack/dargstack/v4/internal/resource"
 	"github.com/dargstack/dargstack/v4/internal/secret"
 )
 
-// secretSetupFlow sets up secrets for deployment. Returns an error on failure
-// and a bool indicating whether all secrets are set (no missing, no placeholders).
-// When deployMode is true, tip messages are suppressed because the resource
-// validator will report them in its structured output.
-func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
+// secretSetupFlow sets up secrets for deployment. Returns warnings as []resource.Issue,
+// an error on failure, and a bool indicating whether all secrets are set (no missing,
+// no placeholders). When deployMode is true, tip messages are suppressed because the
+// resource validator will report them in its structured output.
+func secretSetupFlow(composeData []byte, prod, deployMode bool) ([]resource.Issue, error, bool) {
 	templates, err := secret.ExtractTemplates(composeData)
 	if err != nil || len(templates) == 0 {
-		return nil, true
+		return nil, nil, true
 	}
 
 	if prod {
@@ -39,19 +40,19 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 			}
 			if len(placeholderThirdParty) > 0 {
 				sort.Strings(placeholderThirdParty)
-				return hintErr(
+				return nil, hintErr(
 					fmt.Errorf("production deployment blocked: third-party secrets still hold placeholder values: %s", strings.Join(placeholderThirdParty, ", ")),
 					MsgReplaceSecretFiles,
 				), false
 			}
 		}
-		return nil, true
+		return nil, nil, true
 	}
 
 	// Extract file paths from compose for reading/writing secret values
 	secretPaths := secret.ExtractSecretPaths(composeData)
 	if len(secretPaths) == 0 {
-		return nil, true
+		return nil, nil, true
 	}
 
 	// Read existing values
@@ -81,6 +82,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 	sort.Strings(missing)
 
 	if len(missing) == 0 {
+		var issues []resource.Issue
 		if len(thirdParty) > 0 {
 			var noFile []string
 			var placeholder []string
@@ -104,7 +106,13 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 			noFile = append(noFile, placeholder...)
 			if len(noFile) > 0 {
 				sort.Strings(noFile)
-				logger.L.Warn(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(noFile, ", ")))
+				for _, name := range noFile {
+					issues = append(issues, resource.Issue{
+						Severity:    "warning",
+						Resource:    fmt.Sprintf("secret:%s", name),
+						Description: "third-party secret not set",
+					})
+				}
 				if !deployMode {
 					logger.L.Info(MsgReplaceSecretFiles)
 				}
@@ -116,30 +124,15 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 		// resolve with placeholder values instead of failing.
 		values, err = secret.ResolveAllowPlaceholders(templates, values)
 		if err != nil {
-			return err, false
-		}
-
-		// Warn about templates that resolved with placeholder content.
-		templatesWithPlaceholders := make([]string, 0)
-		for name, tmpl := range templates {
-			if !secret.IsAutoGeneratable(&tmpl) {
-				continue
-			}
-			if v, ok := values[name]; ok && strings.Contains(v, secret.ThirdPartyPlaceholder) {
-				templatesWithPlaceholders = append(templatesWithPlaceholders, name)
-			}
-		}
-		sort.Strings(templatesWithPlaceholders)
-		if len(templatesWithPlaceholders) > 0 {
-			logger.L.Warn(fmt.Sprintf("Templates contain unresolved third-party secrets: %s", strings.Join(templatesWithPlaceholders, ", ")))
+			return nil, err, false
 		}
 
 		if err := secret.WriteSecrets(secretPaths, values); err != nil {
-			return err, false
+			return nil, err, false
 		}
 
 		allSet := checkAllSecretsSet(secretPaths, values, thirdParty)
-		return nil, allSet
+		return issues, nil, allSet
 	}
 
 	if noInteraction {
@@ -154,7 +147,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 		// Auto-generate what we can without interaction.
 		values, err = secret.ResolveAllowPlaceholders(templates, values)
 		if err != nil {
-			return err, false
+			return nil, err, false
 		}
 
 		// Count auto-generated secrets.
@@ -184,7 +177,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 		}
 		sort.Strings(stillMissing)
 
-		// Only warn about third-party secrets that still have placeholders.
+		// Collect warnings for third-party secrets that still have placeholders.
 		unsetThirdParty := make([]string, 0, len(thirdParty))
 		for name := range thirdParty {
 			if values[name] == "" || secret.IsPlaceholderValue(values[name]) {
@@ -193,30 +186,28 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 		}
 		sort.Strings(unsetThirdParty)
 
+		var issues []resource.Issue
 		if len(unsetThirdParty) > 0 {
-			logger.L.Warn(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(unsetThirdParty, ", ")))
+			for _, name := range unsetThirdParty {
+				issues = append(issues, resource.Issue{
+					Severity:    "warning",
+					Resource:    fmt.Sprintf("secret:%s", name),
+					Description: "third-party secret not set",
+				})
+			}
 			if !deployMode {
 				logger.L.Info(MsgReplaceSecretFiles)
 			}
 		}
 
-		// Warn about templates that resolved with placeholder content.
-		templatesWithPlaceholders := make([]string, 0)
-		for name, tmpl := range templates {
-			if !secret.IsAutoGeneratable(&tmpl) {
-				continue
-			}
-			if v, ok := values[name]; ok && strings.Contains(v, secret.ThirdPartyPlaceholder) {
-				templatesWithPlaceholders = append(templatesWithPlaceholders, name)
-			}
-		}
-		sort.Strings(templatesWithPlaceholders)
-		if len(templatesWithPlaceholders) > 0 {
-			logger.L.Warn(fmt.Sprintf("Templates contain unresolved third-party secrets: %s", strings.Join(templatesWithPlaceholders, ", ")))
-		}
-
 		if len(stillMissing) > 0 {
-			logger.L.Warn(fmt.Sprintf("Unset secrets: %s — run interactively to set them", strings.Join(stillMissing, ", ")))
+			for _, name := range stillMissing {
+				issues = append(issues, resource.Issue{
+					Severity:    "warning",
+					Resource:    fmt.Sprintf("secret:%s", name),
+					Description: "secret not set — run interactively to set it",
+				})
+			}
 			// Only show tip if any missing secret lacks an x-dargstack.secrets definition.
 			hasNoTemplate := false
 			for _, name := range stillMissing {
@@ -231,10 +222,10 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 		}
 
 		if err := secret.WriteSecrets(secretPaths, values); err != nil {
-			return err, false
+			return nil, err, false
 		}
 
-		return nil, len(stillMissing) == 0 && len(unsetThirdParty) == 0 && len(templatesWithPlaceholders) == 0
+		return issues, nil, len(stillMissing) == 0 && len(unsetThirdParty) == 0
 	}
 
 	manualInput := make(map[string]bool)
@@ -262,7 +253,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 				},
 			)
 			if choiceErr != nil {
-				return choiceErr, false
+				return nil, choiceErr, false
 			}
 
 			if choice == ChoiceAutoGenAll {
@@ -277,7 +268,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 		promptText := fmt.Sprintf("Value for secret %s:", name)
 		val, inputErr := prompt.Password(promptText)
 		if inputErr != nil {
-			return inputErr, false
+			return nil, inputErr, false
 		}
 		if val != "" {
 			values[name] = val
@@ -298,7 +289,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 	// secrets resolve with placeholder values instead of failing.
 	values, err = secret.ResolveAllowPlaceholders(templates, values)
 	if err != nil {
-		return err, false
+		return nil, err, false
 	}
 
 	autoResolvedCount := 0
@@ -318,21 +309,6 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 		logger.L.Info("Review generated values with `dargstack secret show`.")
 	}
 
-	// Warn about templates that resolved with placeholder content.
-	templatesWithPlaceholders := make([]string, 0)
-	for name, tmpl := range templates {
-		if !secret.IsAutoGeneratable(&tmpl) {
-			continue
-		}
-		if v, ok := values[name]; ok && strings.Contains(v, secret.ThirdPartyPlaceholder) {
-			templatesWithPlaceholders = append(templatesWithPlaceholders, name)
-		}
-	}
-	sort.Strings(templatesWithPlaceholders)
-	if len(templatesWithPlaceholders) > 0 {
-		logger.L.Warn(fmt.Sprintf("Templates contain unresolved third-party secrets: %s", strings.Join(templatesWithPlaceholders, ", ")))
-	}
-
 	stillMissing := make([]string, 0, len(secretPaths))
 	for name := range secretPaths {
 		if values[name] == "" && !thirdParty[name] {
@@ -341,7 +317,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 	}
 	sort.Strings(stillMissing)
 
-	// Warn about third-party secrets that still have placeholders.
+	// Collect warnings for third-party secrets that still have placeholders.
 	unsetThirdParty := make([]string, 0, len(thirdParty))
 	for name := range thirdParty {
 		if values[name] == "" || secret.IsPlaceholderValue(values[name]) {
@@ -349,15 +325,29 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 		}
 	}
 	sort.Strings(unsetThirdParty)
+
+	var issues []resource.Issue
 	if len(unsetThirdParty) > 0 {
-		logger.L.Warn(fmt.Sprintf("Third-party secrets still unset: %s", strings.Join(unsetThirdParty, ", ")))
+		for _, name := range unsetThirdParty {
+			issues = append(issues, resource.Issue{
+				Severity:    "warning",
+				Resource:    fmt.Sprintf("secret:%s", name),
+				Description: "third-party secret not set",
+			})
+		}
 		if !deployMode {
 			logger.L.Info(MsgReplaceSecretFiles)
 		}
 	}
 
 	if len(stillMissing) > 0 {
-		logger.L.Warn(fmt.Sprintf("Unset secrets remain: %s", strings.Join(stillMissing, ", ")))
+		for _, name := range stillMissing {
+			issues = append(issues, resource.Issue{
+				Severity:    "warning",
+				Resource:    fmt.Sprintf("secret:%s", name),
+				Description: "secret not set",
+			})
+		}
 		// Only show tip if any missing secret lacks an x-dargstack.secrets definition.
 		hasNoTemplate := false
 		for _, name := range stillMissing {
@@ -372,11 +362,11 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) (error, bool) {
 	}
 
 	if err := secret.WriteSecrets(secretPaths, values); err != nil {
-		return err, false
+		return nil, err, false
 	}
 
 	allSet := checkAllSecretsSet(secretPaths, values, thirdParty)
-	return nil, allSet
+	return issues, nil, allSet
 }
 
 // checkAllSecretsSet returns true if all secrets have real values (no missing, no placeholders).

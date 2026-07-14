@@ -20,9 +20,9 @@ var buildCmd = &cobra.Command{
 	Use:   "build [service...]",
 	Short: "Build development Dockerfiles",
 	Long: `Build service Docker images.
+Builds Dockerfiles for services with a ` + "`dargstack.development.build`" + ` or ` + "`dargstack.development.git.ssh`/`dargstack.development.git.https`" + ` label in their compose definition.
 
-Builds Dockerfiles for services with a ` + "`dargstack.development.build`" + ` or ` + "`dargstack.development.git`" + ` label in their compose definition.
-The ` + "`dargstack.development.build`" + ` label takes precedence over ` + "`dargstack.development.git`" + `.
+The ` + "`dargstack.development.build`" + ` label takes precedence over ` + "`dargstack.development.git.ssh`/`dargstack.development.git.https`" + `.
 Each service must have a Dockerfile in the build context directory.
 
 Without arguments, lists available services and prompts you to select which to build.
@@ -98,7 +98,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 			}
 			contextPath := resolveBuildContext(svcDef, stackDir)
 			if contextPath == "" {
-				return fmt.Errorf("service %q has no dargstack.development.build or dargstack.development.git label — it uses a pre-built image", name)
+				return fmt.Errorf("service %q has no dargstack.development.build or dargstack.development.git.ssh/https label — it uses a pre-built image", name)
 			}
 			if !filepath.IsAbs(contextPath) {
 				// Context is relative to the service directory.
@@ -236,7 +236,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 }
 
 // selectBuildableServices discovers services with a `dargstack.development.build` or
-// `dargstack.development.git` label, classifies them as available (context exists)
+// `dargstack.development.git.ssh`/`dargstack.development.git.https` label, classifies them as available (context exists)
 // or unavailable, and prompts the user.
 func selectBuildableServices(svcMap map[string]interface{}) ([]string, error) {
 	var available, unavailable []string
@@ -266,7 +266,7 @@ func selectBuildableServices(svcMap map[string]interface{}) ([]string, error) {
 	sort.Strings(unavailable)
 
 	if len(available) == 0 && len(unavailable) == 0 {
-		logger.L.Info("No services have a `dargstack.development.build` or `dargstack.development.git` label")
+		logger.L.Info("No services have a `dargstack.development.build` or `dargstack.development.git.ssh`/`dargstack.development.git.https` label")
 		return nil, nil
 	}
 

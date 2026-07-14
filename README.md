@@ -16,6 +16,11 @@ The following projects successfully employ dargstack in production:
 
 ---
 
+Migrating from v3? See [MIGRATION.md](MIGRATION.md).
+Contributing? See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
 ## Table of Contents
 
 - [Why dargstack?](#why-dargstack)
@@ -29,9 +34,6 @@ The following projects successfully employ dargstack in production:
   - [Secret Templating](#secret-templating)
   - [Environment Files](#environment-files)
 - [Commands](#commands)
-- [Migration from v3](#migration-from-v3)
-- [Contributing](#contributing)
-- [License](#license)
 
 ---
 
@@ -55,13 +57,12 @@ dargstack inverts this: define development as the source of truth, then express 
 ### Recommended — From GitHub Releases
 
 ```bash
-curl -sL https://github.com/dargstack/dargstack/releases/latest/download/dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz | tar xz
+ARCHIVE="dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz"
+curl -sfL -o "$ARCHIVE" "https://github.com/dargstack/dargstack/releases/latest/download/$ARCHIVE"
+curl -sfL https://github.com/dargstack/dargstack/releases/latest/download/checksums.txt | sha256sum -c - --ignore-missing
+tar xzf "$ARCHIVE" && rm "$ARCHIVE"
 sudo mv dargstack /usr/local/bin/
 ```
-
-> **Security note:** Binary downloads do not include checksum verification in the snippet above.
-> Before moving the binary to your PATH, verify the SHA-256 checksum published on the
-> [Releases page](https://github.com/dargstack/dargstack/releases), or prefer `go install` below.
 
 ### Alternative — From Source
 
@@ -185,14 +186,14 @@ services:
 
 ### Git Cloning
 
-The `dargstack.development.git` label instructs dargstack to clone a git repository before building a service's Docker image. The repository is cloned to a sibling directory of the stack, named after the repository:
+The `dargstack.development.git.ssh` and `dargstack.development.git.https` labels instruct dargstack to clone a git repository before building a service's Docker image. The repository is cloned to a sibling directory of the stack, named after the repository:
 
 ```yaml
 services:
   webapp:
     deploy:
       labels:
-        dargstack.development.git: "git@github.com:mystack/webapp.git"
+        dargstack.development.git.ssh: "git@github.com:mystack/webapp.git"
     image: mystack/webapp:development
 ```
 
@@ -203,12 +204,13 @@ services:
   webapp:
     deploy:
       labels:
-        dargstack.development.git: "git@github.com:mystack/webapp.git"
+        dargstack.development.git.ssh: "git@github.com:mystack/webapp.git"
+        dargstack.development.git.https: "https://github.com/mystack/webapp.git"
         dargstack.development.build: "../../../../repository/packages/frontend"
     image: mystack/webapp:development
 ```
 
-The repository is cloned once (on first deploy) and left untouched on subsequent deploys.
+The SSH URL is used as the primary clone URL, with the HTTPS URL as a fallback. Providing both ensures cloning works regardless of network restrictions. The repository is cloned once (on first deploy) and left untouched on subsequent deploys.
 
 ### Configuration: dargstack.yaml
 
@@ -273,37 +275,56 @@ x-dargstack:
   secrets:
     postgres-password:
       type: random_string
-      # length defaults to 32, special_characters defaults to true
+      length: 32
+      special_characters: true
     jwt-signing-key.secret:
-      # type: private_key
-      key_type: ed25519 # default; also: rsa, ecdsa
-      # key_size: 2048     # rsa default 2048; ecdsa: 256 (P-256), 384 (P-384), 521 (P-521)
+      type: private_key
+      key_type: ed25519
     external-api-token:
       type: third_party
       hint: "Get yours at https://example.com/settings/tokens"
     dev-only-secret:
-      # type: insecure_default
+      type: insecure_default
       insecure_default: "CHANGE_ME"
     api-db_url:
-      # type: template
+      type: template
       template: "postgresql://postgres:{{secret:postgres-password}}@postgres:5432/app"
 ```
 
-- `type` — Secret behavior. Supported values: `random_string`, `wordlist_word`, `private_key`, `third_party`, `insecure_default`, `template`. If omitted, the type is inferred from the fields provided: `private_key` if `key_type` or `key_size` is set, `third_party` if `third_party` is set, `template` if `template` is set, `insecure_default` if `insecure_default` is set, otherwise `random_string` if `length` or `special_characters` is set.
-- `hint` — Human-readable hint for expected value (shown for `third_party` secrets when unset)
-- `length` — Random string length for `type: random_string` (default: `32`)
-- `special_characters` — Include special characters for `type: random_string` (default: `true`; set `false` to opt out)
-- `insecure_default` — Default value used for `type: insecure_default`
-- `template` — Template string for `type: template`
-- `key_type` — Key algorithm for `type: private_key`: `ed25519` (default), `rsa`, `ecdsa`
-- `key_size` — Key size for `type: private_key`: RSA default `2048`; ECDSA `256` (P-256), `384` (P-384), `521` (P-521)
+`type` controls secret behavior. Supported values: `random_string`, `wordlist_word`, `private_key`, `third_party`, `insecure_default`, `template`. If omitted, the type is inferred from the fields provided:
 
-Template tokens:
+- `private_key` if `key_type` or `key_size` is set
+- `third_party` if `third_party` is set
+- `template` if `template` is set
+- `insecure_default` if `insecure_default` is set
+- `random_string` if `length` or `special_characters` is set
 
-- `{{secret:<name>}}` (or legacy `{{<name>}}`) — Reference another secret
-- `{{random_string}}`, `{{random_string:<length>}}`, `{{random_string:<length>:<special>}}` — Inline random generation
-- `{{wordlist_word}}` — Inline word generation
-- `{{private_key}}` — Inline private key generation
+**`random_string` properties:**
+
+- `length` — Random string length (default: `32`)
+- `special_characters` — Include special characters (default: `true`; set `false` to opt out)
+
+**`private_key` properties:**
+
+- `key_type` — Key algorithm: `ed25519` (default), `rsa`, `ecdsa`
+- `key_size` — Key size: RSA default `2048`; ECDSA `256` (P-256), `384` (P-384), `521` (P-521)
+
+**`third_party` properties:**
+
+- `hint` — Human-readable hint for expected value (shown when the secret is unset)
+
+**`insecure_default` properties:**
+
+- `insecure_default` — Default value used for the secret
+
+**`template` properties:**
+
+- `template` — Template string, supporting the following tokens:
+
+  - `{{secret:<name>}}` (or legacy `{{<name>}}`) — Reference another secret
+  - `{{random_string}}`, `{{random_string:<length>}}`, `{{random_string:<length>:<special>}}` — Inline random generation
+  - `{{wordlist_word}}` — Inline word generation
+  - `{{private_key}}` — Inline private key generation
 
 ### Environment Files
 
@@ -327,14 +348,6 @@ Template tokens:
 
 See [docs/dargstack.md](docs/dargstack.md) for global flags and detailed command documentation.
 
-## Migration from v3
+---
 
-If you're migrating from dargstack v3 (Bash), see [MIGRATION.md](MIGRATION.md).
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## License
-
-GNU General Public License v3.0 — see [LICENSE](LICENSE) for details.
+Licensed under [GPLv3](LICENSE).

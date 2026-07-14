@@ -18,7 +18,11 @@ import (
 	"strings"
 	"time"
 
+	"bytes"
+
 	"go.yaml.in/yaml/v3"
+
+	"github.com/dargstack/dargstack/v4/internal/logger"
 )
 
 const renewalThreshold = 30 * 24 * time.Hour // 30 days before expiry
@@ -180,11 +184,12 @@ func hasMkcert() bool {
 
 func generateWithMkcert(certDir string, domains []string) error {
 	installCA := exec.Command("mkcert", "-install")
-	installCA.Stdout = os.Stdout
-	installCA.Stderr = os.Stderr
+	var caStdout, caStderr bytes.Buffer
+	installCA.Stdout = &caStdout
+	installCA.Stderr = &caStderr
 	if err := installCA.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "warning: mkcert CA installation failed: %v\n", err)
-		fmt.Fprintf(os.Stderr, "  Certificates will be generated but may not be trusted by browsers.\n")
+		logger.L.Warn(fmt.Sprintf("mkcert CA installation failed: %v", err))
+		logger.L.Warn("Certificates will be generated but may not be trusted by browsers.")
 	}
 
 	certFile := filepath.Join(certDir, "localhost.pem")
@@ -194,12 +199,19 @@ func generateWithMkcert(certDir string, domains []string) error {
 	args = append(args, domains...)
 
 	cmd := exec.Command("mkcert", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	var certStdout, certStderr bytes.Buffer
+	cmd.Stdout = &certStdout
+	cmd.Stderr = &certStderr
 
 	if err := cmd.Run(); err != nil {
+		output := certStdout.String() + certStderr.String()
+		if output != "" {
+			fmt.Fprintf(os.Stderr, "mkcert output:\n%s", output)
+		}
 		return fmt.Errorf("mkcert: %w", err)
 	}
+
+	logger.Success(fmt.Sprintf("TLS certificate generated for %d domain(s)", len(domains)))
 	return nil
 }
 

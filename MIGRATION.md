@@ -25,10 +25,13 @@ This guide helps you migrate an existing dargstack v3 (Bash) project to v4 (Go).
 go install github.com/dargstack/dargstack/v4/cmd/dargstack@latest
 ```
 
-**Alternative** (binary download — verify the checksum on the [Releases page](https://github.com/dargstack/dargstack/releases) before use):
+**Alternative** (binary download with checksum verification):
 
 ```bash
-curl -sL https://github.com/dargstack/dargstack/releases/latest/download/dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz | tar xz
+ARCHIVE="dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz"
+curl -sfL -o "$ARCHIVE" "https://github.com/dargstack/dargstack/releases/latest/download/$ARCHIVE"
+curl -sfL https://github.com/dargstack/dargstack/releases/latest/download/checksums.txt | sha256sum -c - --ignore-missing
+tar xzf "$ARCHIVE" && rm "$ARCHIVE"
 sudo mv dargstack /usr/local/bin/
 ```
 
@@ -54,13 +57,16 @@ v4 uses a structured `dargstack.yaml` at the root of your stack directory:
 
 ```yaml
 # dargstack.yaml (v4)
-compatibility: ">=4.0.0 <5.0.0"
-name: my-stack # optional; defaults to parent directory name
-production:
-  branch: main # optional
-  tag: latest # optional; "latest" or a specific image tag/version
-  domain: app.example.com # optional
-sudo: auto # optional; "auto" | "always" | "never"
+metadata:
+  compatibility: ">=4.0.0 <5.0.0"
+  name: my-stack # optional; defaults to parent directory name
+environment:
+  production:
+    branch: main # optional
+    tag: latest # optional; "latest" or a specific image tag/version
+    domain: app.example.com # optional
+runtime:
+  sudo: auto # optional; "auto" | "always" | "never"
 ```
 
 Create `dargstack.yaml` at the root of your stack directory (same level as
@@ -265,7 +271,12 @@ service's compose file. Generated values are written to `artifacts/secrets/`
          template: "postgresql://postgres:{{secret:postgres-password}}@postgres:5432/mydb"
    ```
 
-4. Delete `src/development/secrets/` and `src/production/secrets/` — those
+4. For secrets that need a human-readable word, use `type: wordlist_word`.
+
+5. For development-only secrets with a hardcoded default, use
+   `type: insecure_default`.
+
+6. Delete `src/development/secrets/` and `src/production/secrets/` — those
    directories are no longer used.
 
 ---
@@ -308,17 +319,19 @@ dargstack deploy
 | v3                                    | v4                                                          |
 | ------------------------------------- | ----------------------------------------------------------- |
 | `dargstack build`                     | `dargstack build`                                           |
-| `dargstack deploy --production <tag>` | `dargstack deploy --production <tag>`                       |
 | `dargstack deploy`                    | `dargstack deploy`                                          |
 | `dargstack derive`                    | _(removed — automatic during deploy)_                       |
-| `dargstack redeploy`                  | `dargstack deploy --remove`                                 |
+| `dargstack redeploy`                  | `dargstack deploy --force`                                          |
 | `dargstack rgen`                      | `dargstack document`                                        |
 | `dargstack rm`                        | `dargstack remove`                                          |
 | `dargstack self-update`               | `dargstack update --self`                                   |
 | `dargstack validate`                  | `dargstack validate`                                        |
+| _(none)_                              | `dargstack audit`                                         |
 | _(none)_                              | `dargstack certify`                                         |
-| _(none)_                              | `dargstack init`                                            |
+| _(none)_                              | `dargstack clone`                                         |
+| _(none)_                              | `dargstack initialize`                                            |
 | _(none)_                              | `dargstack inspect`                                         |
+| _(none)_                              | `dargstack profiles`                                        |
 | _(none)_                              | `dargstack secret`                                          |
 
 ---
