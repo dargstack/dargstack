@@ -31,6 +31,10 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		return wrapWithBugHint(err)
 	}
 
+	// Extract TLS domains from all services before profile filtering, so
+	// certificates cover every domain regardless of which profile is active.
+	allDomains := tls.FilterDomains(tls.ExtractDomains(composeData, cfg.Environment.Development.Domain), cfg.Environment.Development.Certificate.Include, cfg.Environment.Development.Certificate.Exclude)
+
 	composeVars := applyEnvToProcess(isProduction())
 
 	if dryRun {
@@ -57,7 +61,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	logger.L.Info(filterMsg)
 
 	if !isProduction() {
-		composeData, err = deployPrepareDevelopment(ctx, dockerClient, executor, composeData, dryRun)
+		composeData, err = deployPrepareDevelopment(ctx, dockerClient, executor, composeData, allDomains, dryRun)
 		if err != nil {
 			return err
 		}
@@ -159,10 +163,8 @@ func deployValidateResources(composeData []byte, secretIssues []resource.Issue, 
 
 // deployPrepareDevelopment handles TLS certs, git clones, repo fetches,
 // auto-builds, and volume cleanup for development deployments.
-func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, executor *docker.Executor, composeData []byte, dryRun bool) ([]byte, error) {
+func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, executor *docker.Executor, composeData []byte, domains []string, dryRun bool) ([]byte, error) {
 	// TLS certificates
-	cert := cfg.Environment.Development.Certificate
-	domains := tls.FilterDomains(tls.ExtractDomains(composeData, cfg.Environment.Development.Domain), cert.Include, cert.Exclude)
 	if dryRun {
 		logger.L.Info(fmt.Sprintf("[dry-run] Would ensure TLS certificates for: %s", strings.Join(domains, ", ")))
 	} else {
