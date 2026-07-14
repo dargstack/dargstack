@@ -319,7 +319,6 @@ dargstack deploy
 | v3                                    | v4                                                          |
 | ------------------------------------- | ----------------------------------------------------------- |
 | `dargstack build`                     | `dargstack build`                                           |
-| `dargstack deploy --production <tag>` | `dargstack deploy --production <tag>`                       |
 | `dargstack deploy`                    | `dargstack deploy`                                          |
 | `dargstack derive`                    | _(removed — automatic during deploy)_                       |
 | `dargstack redeploy`                  | `dargstack deploy --force`                                          |

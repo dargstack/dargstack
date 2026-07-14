@@ -16,8 +16,8 @@ The following projects successfully employ dargstack in production:
 
 ---
 
-- Migrating from v3? See [MIGRATION.md](MIGRATION.md).
-- Contributing? See [CONTRIBUTING.md](CONTRIBUTING.md).
+Migrating from v3? See [MIGRATION.md](MIGRATION.md).
+Contributing? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 

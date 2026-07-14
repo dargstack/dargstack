@@ -37,6 +37,7 @@ var (
 	bgResultCh = make(chan *CheckResult, 1)
 	bgOnce     sync.Once
 	bgStarted  atomic.Bool
+	bgComplete atomic.Bool
 
 	// doHTTPRequest abstracts HTTP requests for testability.
 	doHTTPRequest = defaultDoHTTPRequest
@@ -56,6 +57,7 @@ func defaultDoHTTPRequest(req *http.Request) (*http.Response, error) {
 func resetBackgroundState() {
 	bgOnce = sync.Once{}
 	bgStarted.Store(false)
+	bgComplete.Store(false)
 	// Drain any leftover result.
 	select {
 	case <-bgResultCh:
@@ -71,6 +73,7 @@ func BackgroundCheck() {
 	bgOnce.Do(func() {
 		bgStarted.Store(true)
 		go func() {
+			defer bgComplete.Store(true)
 			result, _ := checkLatest()
 			bgResultCh <- result
 		}()
