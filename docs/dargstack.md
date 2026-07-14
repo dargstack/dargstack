@@ -34,6 +34,6 @@ dargstack - simplified, approachable Docker Swarm stack management.
 * [dargstack profiles](dargstack_profiles.md)	 - List discovered deploy profiles
 * [dargstack remove](dargstack_remove.md)	 - Remove the deployed stack
 * [dargstack secret](dargstack_secret.md)	 - Manage stack secrets
-* [dargstack update](dargstack_update.md)	 - Update components
+* [dargstack update](dargstack_update.md)	 - Update dargstack to the latest version
 * [dargstack validate](dargstack_validate.md)	 - Validate stack resources
 

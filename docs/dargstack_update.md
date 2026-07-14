@@ -1,10 +1,10 @@
 ## dargstack update
 
-Update components
+Update dargstack to the latest version
 
 ### Synopsis
 
-Update dargstack and related components.
+Downloads and installs the latest release of dargstack. Requires --self flag.
 
 ```
 dargstack update [flags]
