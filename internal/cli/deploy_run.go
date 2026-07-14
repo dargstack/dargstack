@@ -119,19 +119,16 @@ func deployFilterForSecrets(composeData []byte, dryRun bool) error {
 			logger.L.Info("[dry-run] No secrets to set up")
 		}
 	} else {
-		if err, _ := secretSetupFlow(secretComposeData, isProduction(), true); err != nil {
+		secretIssues, err, _ := secretSetupFlow(secretComposeData, isProduction(), true)
+		if err != nil {
 			return fmt.Errorf("secret setup: %w", err)
 		}
-	}
 
-	if dryRun {
-		logger.L.Info("[dry-run] Would validate all stack resources")
-	} else {
 		issues, err := resource.Validate(secretComposeData, stackDir, isProduction())
 		if err != nil {
 			return wrapWithBugHint(err)
 		}
-		if printIssues(issues) {
+		if printIssues(append(secretIssues, issues...)) {
 			return hintErr(
 				errors.New(ErrValidationFailed),
 				"Fix the errors listed above, then run `dargstack deploy` again.",
@@ -360,7 +357,7 @@ func extractBuildServices(composeData []byte) []string {
 }
 
 // extractGitServices returns the sorted list of service names that have a
-// dargstack.development.git label, meaning their repos would be cloned.
+// dargstack.development.git.ssh or dargstack.development.git.https label, meaning their repos would be cloned.
 func extractGitServices(composeData []byte) []string {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
@@ -446,8 +443,8 @@ func injectBuildContext(composeData []byte, serviceName, buildPath string) ([]by
 }
 
 // cloneGitRepos clones git repositories for services with a
-// dargstack.development.git label. It returns mutated compose data with
-// .build labels injected where .git is set but .build is not.
+// dargstack.development.git.ssh or dargstack.development.git.https label. It returns mutated compose data with
+// .build labels injected where .git.ssh/.git.https is set but .build is not.
 func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
@@ -484,7 +481,6 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 			continue
 		}
 
-		logger.L.Info(fmt.Sprintf("Cloning repository for service %q", name))
 		cloneErr := giturl.CloneWithFallback(gitURL, targetDir)
 		if cloneErr != nil {
 			return nil, fmt.Errorf("clone repository for service %q: %w", name, cloneErr)

@@ -309,8 +309,10 @@ func runSecretGenerate(_ *cobra.Command, _ []string) error {
 	}
 	logger.L.Info(filterMsg)
 
-	if err, allSet := secretSetupFlow(composeData, isProduction(), false); err != nil {
+	if issues, err, allSet := secretSetupFlow(composeData, isProduction(), false); err != nil {
 		return err
+	} else if len(issues) > 0 {
+		printIssues(issues)
 	} else if allSet {
 		logger.Success("Secret generation complete. Run `dargstack deploy` to deploy.")
 	}
