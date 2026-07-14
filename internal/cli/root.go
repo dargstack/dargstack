@@ -126,6 +126,7 @@ func init() {
 
 	rootCmd.AddCommand(buildCmd)
 	rootCmd.AddCommand(certificatesCmd)
+	rootCmd.AddCommand(cloneCmd)
 	rootCmd.AddCommand(deployCmd)
 	rootCmd.AddCommand(docsCmd)
 	rootCmd.AddCommand(initCmd)
@@ -144,8 +145,10 @@ func Root() *cobra.Command { return rootCmd }
 // is one that doesn't require a stack project directory.
 func isSkippedCommand(cmd *cobra.Command) bool {
 	skipped := map[string]bool{
+		"clone":      true,
 		"completion": true,
 		"help":       true,
+		"init":       true,
 		"initialize": true,
 		"update":     true,
 	}
