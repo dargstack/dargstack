@@ -95,7 +95,6 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) ([]resource.Issu
 			}
 			if len(noFile) > 0 {
 				sort.Strings(noFile)
-				logger.L.Info("Skipping local generation for third-party secrets")
 				for _, name := range noFile {
 					if tmpl, ok := templates[name]; ok && tmpl.Hint != "" {
 						logger.L.Info(fmt.Sprintf("  %s: expected value — %s", name, tmpl.Hint))
