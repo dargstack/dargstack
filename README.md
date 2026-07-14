@@ -316,7 +316,7 @@ Template tokens:
 | [dargstack document](docs/dargstack_document.md)     | Generate the stack documentation       |
 | [dargstack clone](docs/dargstack_clone.md)         | Clone an existing dargstack project |
 | [dargstack initialize](docs/dargstack_initialize.md) | Bootstrap a new dargstack project |
-| [dargstack inspect](docs/dargstack_inspect.md)       | Inspect deployed compose snapshots     |
+| [dargstack audit](docs/dargstack_audit.md)         | View deployment audit log            |
 | [dargstack remove](docs/dargstack_remove.md)         | Remove the deployed stack              |
 | [dargstack secret](docs/dargstack_secret.md)         | Manage stack secrets                   |
 | [dargstack update](docs/dargstack_update.md)         | Update dargstack to the latest version |
