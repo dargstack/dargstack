@@ -25,14 +25,23 @@ Includes a link to the stack domain and source code repository.`,
 func runDocs(_ *cobra.Command, _ []string) error {
 	outputDir := cfg.ArtifactsDir()
 	docsDir := filepath.Join(outputDir, "docs")
+
+	externalServices := make(map[string]resource.ExternalService, len(cfg.Metadata.ExternalServices))
+	for name, svc := range cfg.Metadata.ExternalServices {
+		externalServices[name] = resource.ExternalService{
+			Description: svc.Description,
+		}
+	}
+
 	content, err := resource.GenerateDocumentation(&resource.DocsConfig{
-		DevDir:         cfg.DevDir(),
-		OutputDir:      docsDir,
-		ProdDir:        cfg.ProdDir(),
-		SourceCodeName: cfg.Metadata.Source.Name,
-		SourceCodeURL:  cfg.Metadata.Source.URL,
-		StackDomain:    cfg.Environment.Production.Domain,
-		StackName:      cfg.Metadata.Name,
+		DevDir:           cfg.DevDir(),
+		ExternalServices: externalServices,
+		OutputDir:        docsDir,
+		ProdDir:          cfg.ProdDir(),
+		SourceCodeName:   cfg.Metadata.Source.Name,
+		SourceCodeURL:    cfg.Metadata.Source.URL,
+		StackDomain:      cfg.Environment.Production.Domain,
+		StackName:        cfg.Metadata.Name,
 	})
 	if err != nil {
 		return err
