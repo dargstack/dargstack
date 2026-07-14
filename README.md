@@ -16,6 +16,11 @@ The following projects successfully employ dargstack in production:
 
 ---
 
+- Migrating from v3? See [MIGRATION.md](MIGRATION.md).
+- Contributing? See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
 ## Table of Contents
 
 - [Why dargstack?](#why-dargstack)
@@ -29,9 +34,6 @@ The following projects successfully employ dargstack in production:
   - [Secret Templating](#secret-templating)
   - [Environment Files](#environment-files)
 - [Commands](#commands)
-- [Migration from v3](#migration-from-v3)
-- [Contributing](#contributing)
-- [License](#license)
 
 ---
 
@@ -346,14 +348,6 @@ x-dargstack:
 
 See [docs/dargstack.md](docs/dargstack.md) for global flags and detailed command documentation.
 
-## Migration from v3
+---
 
-If you're migrating from dargstack v3 (Bash), see [MIGRATION.md](MIGRATION.md).
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## License
-
-GNU General Public License v3.0 — see [LICENSE](LICENSE) for details.
+Licensed under [GPLv3](LICENSE).
