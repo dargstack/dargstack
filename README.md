@@ -52,7 +52,18 @@ dargstack inverts this: define development as the source of truth, then express 
 
 ## Install
 
-### Recommended — From Source
+### Recommended — From GitHub Releases
+
+```bash
+curl -sL https://github.com/dargstack/dargstack/releases/latest/download/dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz | tar xz
+sudo mv dargstack /usr/local/bin/
+```
+
+> **Security note:** Binary downloads do not include checksum verification in the snippet above.
+> Before moving the binary to your PATH, verify the SHA-256 checksum published on the
+> [Releases page](https://github.com/dargstack/dargstack/releases), or prefer `go install` below.
+
+### Alternative — From Source
 
 **Prerequisite** – Go installed, see [go.dev: Download and install](https://go.dev/doc/install).
 
@@ -62,17 +73,6 @@ go install github.com/dargstack/dargstack/v4/cmd/dargstack@latest
 
 Package integrity is enforced by the Go module proxy and the module's `go.sum` lockfile.
 Pin to a specific version (e.g., `@v4.1.0`) for a reproducible, auditable install.
-
-### Alternative — From GitHub Releases
-
-> **Security note:** Binary downloads do not include checksum verification in the snippet below.
-> Before moving the binary to your PATH, verify the SHA-256 checksum published on the
-> [Releases page](https://github.com/dargstack/dargstack/releases), or prefer `go install` above.
-
-```bash
-curl -sL https://github.com/dargstack/dargstack/releases/latest/download/dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz | tar xz
-sudo mv dargstack /usr/local/bin/
-```
 
 ## Quick Start
 
