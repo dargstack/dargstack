@@ -185,14 +185,14 @@ services:
 
 ### Git Cloning
 
-The `dargstack.development.git` label instructs dargstack to clone a git repository before building a service's Docker image. The repository is cloned to a sibling directory of the stack, named after the repository:
+The `dargstack.development.git.ssh` and `dargstack.development.git.https` labels instruct dargstack to clone a git repository before building a service's Docker image. The repository is cloned to a sibling directory of the stack, named after the repository:
 
 ```yaml
 services:
   webapp:
     deploy:
       labels:
-        dargstack.development.git: "git@github.com:mystack/webapp.git"
+        dargstack.development.git.ssh: "git@github.com:mystack/webapp.git"
     image: mystack/webapp:development
 ```
 
@@ -203,12 +203,13 @@ services:
   webapp:
     deploy:
       labels:
-        dargstack.development.git: "git@github.com:mystack/webapp.git"
+        dargstack.development.git.ssh: "git@github.com:mystack/webapp.git"
+        dargstack.development.git.https: "https://github.com/mystack/webapp.git"
         dargstack.development.build: "../../../../repository/packages/frontend"
     image: mystack/webapp:development
 ```
 
-The repository is cloned once (on first deploy) and left untouched on subsequent deploys.
+The SSH URL is used as the primary clone URL, with the HTTPS URL as a fallback. Providing both ensures cloning works regardless of network restrictions. The repository is cloned once (on first deploy) and left untouched on subsequent deploys.
 
 ### Configuration: dargstack.yaml
 
