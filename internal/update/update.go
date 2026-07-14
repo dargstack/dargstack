@@ -197,7 +197,7 @@ func checkLatest() (*CheckResult, error) {
 	latestTag := strings.TrimPrefix(release.TagName, "v")
 	result := &CheckResult{NewVersion: latestTag}
 
-	current, err := semver.NewVersion(currentVersion())
+	currentSemver, err := semver.NewVersion(currentVersion())
 	if err != nil {
 		return result, nil
 	}
@@ -206,7 +206,17 @@ func checkLatest() (*CheckResult, error) {
 		return result, nil
 	}
 
-	result.Available = latestVer.GreaterThan(current)
+	// Compare base versions (without pre-release) so a pre-release of a
+	// future version (e.g. 4.5.1-0.timestamp-commit) is not incorrectly
+	// flagged as needing an update to an earlier release (e.g. 4.4.0).
+	currentBase := currentSemver.Original()
+	if pre := currentSemver.Prerelease(); pre != "" {
+		currentBase = fmt.Sprintf("%d.%d.%d", currentSemver.Major(), currentSemver.Minor(), currentSemver.Patch())
+	}
+	currentBaseVer, err := semver.NewVersion(currentBase)
+	if err == nil && latestVer.GreaterThan(currentBaseVer) {
+		result.Available = true
+	}
 	writeCache(result)
 	return result, nil
 }

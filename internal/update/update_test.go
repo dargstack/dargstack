@@ -141,6 +141,34 @@ func TestCheckLatest_OlderVersion(t *testing.T) {
 	}
 }
 
+func TestCheckLatest_PreleaseOfFutureVersion(t *testing.T) {
+	cleanup := testSetup(t)
+	defer cleanup(t)
+
+	// A pre-release of 4.5.1 should NOT be told to update to 4.4.0.
+	currentVersion = func() string { return "4.5.1-0.20260714055726-b0e399e5d01c" }
+	cacheDirFunc = func() (string, error) { return t.TempDir(), nil }
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprint(w, `{"tag_name":"v4.4.0"}`)
+	}))
+	defer server.Close()
+
+	doHTTPRequest = redirectToServer(server.URL)
+
+	result, err := checkLatest()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Available {
+		t.Error("expected no update available when running a pre-release of a future version")
+	}
+	if result.NewVersion != "4.4.0" {
+		t.Errorf("expected NewVersion=4.4.0, got %q", result.NewVersion)
+	}
+}
+
 func TestCheckLatest_HTTPError(t *testing.T) {
 	cleanup := testSetup(t)
 	defer cleanup(t)
