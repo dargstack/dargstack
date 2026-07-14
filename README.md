@@ -14,6 +14,27 @@ The following projects successfully employ dargstack in production:
 - [dargmuesli/jonas-thelemann_stack](https://github.com/dargmuesli/jonas-thelemann_stack/)
 - [flipdot/drinks-touch_stack](https://github.com/flipdot/drinks-touch_stack/)
 
+---
+
+## Table of Contents
+
+- [Why dargstack?](#why-dargstack)
+- [Install](#install)
+- [Quick Start](#quick-start)
+- [Core Concepts](#core-concepts)
+  - [Service Files](#service-files)
+  - [Git Cloning](#git-cloning)
+  - [Configuration: dargstack.yaml](#configuration-dargstackyaml)
+  - [Profiles & Performance](#profiles--performance)
+  - [Secret Templating](#secret-templating)
+  - [Environment Files](#environment-files)
+- [Commands](#commands)
+- [Migration from v3](#migration-from-v3)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
 ## Why dargstack?
 
 Deploying the same app to development and production with Docker Swarm usually means maintaining two nearly identical compose files. Change one thing? Manually copy, edit, hope nothing breaks.
@@ -74,7 +95,7 @@ sudo mv dargstack /usr/local/bin/
 
 Done! 🎉 Your stack is live.
 
-## Project Structure
+## Core Concepts
 
 Suppose you have an `api` service as part of an `example` project:
 
