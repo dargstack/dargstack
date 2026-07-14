@@ -81,7 +81,7 @@ Pin to a specific version (e.g., `@v4.1.0`) for a reproducible, auditable instal
 1. Initialize a new dargstack project:
 
    ```bash
-   dargstack init
+   dargstack initialize
    ```
 
 2. Fill in your service configuration according to the [docker.com: Compose file reference](https://docs.docker.com/reference/compose-file).
