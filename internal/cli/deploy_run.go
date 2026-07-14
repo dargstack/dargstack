@@ -485,7 +485,7 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 		}
 
 		logger.L.Info(fmt.Sprintf("Cloning %s for service %q", gitURL, name))
-		cmd := exec.Command("git", "clone", "--depth", "1", gitURL, targetDir)
+		cmd := exec.Command("git", "clone", gitURL, targetDir)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			return nil, fmt.Errorf("clone %s for service %q: %s: %w", gitURL, name, strings.TrimSpace(string(out)), err)
