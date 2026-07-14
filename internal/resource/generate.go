@@ -12,13 +12,19 @@ import (
 
 // DocsConfig controls the output of GenerateDocumentation.
 type DocsConfig struct {
-	DevDir         string
-	OutputDir      string
-	ProdDir        string
-	SourceCodeName string
-	SourceCodeURL  string
-	StackDomain    string
-	StackName      string
+	DevDir           string
+	ExternalServices map[string]ExternalService
+	OutputDir        string
+	ProdDir          string
+	SourceCodeName   string
+	SourceCodeURL    string
+	StackDomain      string
+	StackName        string
+}
+
+// ExternalService holds metadata about a service managed outside this stack.
+type ExternalService struct {
+	Description string
 }
 
 // GenerateDocumentation generates a markdown documentation file for the stack.
@@ -77,6 +83,26 @@ func GenerateDocumentation(dc *DocsConfig) (string, error) {
 		fmt.Fprintf(&b, " See [%s](%s).", dc.SourceCodeName, dc.SourceCodeURL)
 	}
 	b.WriteString("\n\n")
+
+	// External services
+	if len(dc.ExternalServices) > 0 {
+		b.WriteString("## External Services\n\n")
+		b.WriteString("Services this stack depends on but does not manage.\n\n")
+		extNames := make([]string, 0, len(dc.ExternalServices))
+		for name := range dc.ExternalServices {
+			extNames = append(extNames, name)
+		}
+		sort.Strings(extNames)
+
+		for _, name := range extNames {
+			svc := dc.ExternalServices[name]
+			fmt.Fprintf(&b, "### %s\n\n", name)
+			if svc.Description != "" {
+				b.WriteString(svc.Description)
+				b.WriteString("\n\n")
+			}
+		}
+	}
 
 	// Profiles
 	if len(profileMap) > 0 {

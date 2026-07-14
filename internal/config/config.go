@@ -63,10 +63,15 @@ type Config struct {
 	Runtime     RuntimeConfig     `yaml:"runtime"`
 }
 
+type ExternalService struct {
+	Description string `yaml:"description"`
+}
+
 type MetadataConfig struct {
-	Compatibility string       `yaml:"compatibility"`
-	Name          string       `yaml:"name"`
-	Source        SourceConfig `yaml:"source"`
+	Compatibility    string                     `yaml:"compatibility"`
+	ExternalServices map[string]ExternalService `yaml:"external_services"`
+	Name             string                     `yaml:"name"`
+	Source           SourceConfig               `yaml:"source"`
 }
 
 type SourceConfig struct {

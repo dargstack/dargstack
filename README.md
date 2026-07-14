@@ -219,6 +219,9 @@ metadata:
   source: # optional
     name: my-repo
     url: https://github.com/org/repo
+  external_services: # optional
+    status:
+      description: Service status dashboard
 
 runtime:
   sudo: auto # optional, `auto` | `always` | `never`
