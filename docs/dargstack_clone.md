@@ -7,16 +7,20 @@ Clone an existing dargstack project
 Clone an existing dargstack project from a Git URL.
 
 Supports https://, git@, git://, and ssh:// URLs.
-The repository is cloned into the current directory.
+Without arguments, prompts for a Git URL.
+By default, clones into a subdirectory of the current directory named after the repository.
+
+Use --target to specify a different directory for the clone.
 
 ```
-dargstack clone <url> [flags]
+dargstack clone [url] [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for clone
+  -h, --help            help for clone
+      --target string   target directory for the clone (default: inferred from URL)
 ```
 
 ### Options inherited from parent commands

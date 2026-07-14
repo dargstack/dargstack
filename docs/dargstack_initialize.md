@@ -15,6 +15,7 @@ Without arguments, prompts for a project name.
 With an argument, uses it as the project name directly.
 
 Use `--configuration-only` to print a full config template to stdout without creating a project.
+Use `--target` to specify the parent directory for the project (default: current directory).
 
 DEPRECATED: passing a Git URL to `init` will clone the repository.
 Use `dargstack clone` instead.
@@ -28,6 +29,7 @@ dargstack initialize [name] [flags]
 ```
       --configuration-only   print config template to stdout without creating a project
   -h, --help                 help for initialize
+      --target string        parent directory for the project (default: current directory)
 ```
 
 ### Options inherited from parent commands
