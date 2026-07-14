@@ -38,3 +38,4 @@ dargstack audit [timestamp] [flags]
 ### SEE ALSO
 
 * [dargstack](dargstack.md)	 - Docker stack helper CLI
+
