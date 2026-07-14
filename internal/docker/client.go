@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 // Client wraps the Docker SDK client for query operations.
@@ -16,7 +15,7 @@ type Client struct {
 
 // NewClient creates a new Docker SDK client.
 func NewClient() (*Client, error) {
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	cli, err := client.New(client.FromEnv)
 	if err != nil {
 		return nil, fmt.Errorf("create Docker client: %w", err)
 	}
@@ -30,7 +29,7 @@ func (c *Client) Close() error {
 
 // Ping checks if Docker is reachable.
 func (c *Client) Ping(ctx context.Context) error {
-	_, err := c.api.Ping(ctx)
+	_, err := c.api.Ping(ctx, client.PingOptions{})
 	if err != nil {
 		return fmt.Errorf("docker is not reachable: %w", err)
 	}
@@ -39,22 +38,22 @@ func (c *Client) Ping(ctx context.Context) error {
 
 // SwarmStatus returns the current node's swarm state.
 func (c *Client) SwarmStatus(ctx context.Context) (swarm.LocalNodeState, error) {
-	info, err := c.api.Info(ctx)
+	result, err := c.api.Info(ctx, client.InfoOptions{})
 	if err != nil {
 		return "", fmt.Errorf("get Docker info: %w", err)
 	}
-	return info.Swarm.LocalNodeState, nil
+	return result.Info.Swarm.LocalNodeState, nil
 }
 
 // ListStackServices lists services belonging to a stack, using server-side
 // label filtering to avoid fetching all services on large swarms.
 func (c *Client) ListStackServices(ctx context.Context, stackName string) ([]swarm.Service, error) {
-	f := filters.NewArgs(filters.Arg("label", "com.docker.stack.namespace="+stackName))
-	services, err := c.api.ServiceList(ctx, swarm.ServiceListOptions{Filters: f})
+	f := make(client.Filters).Add("label", "com.docker.stack.namespace="+stackName)
+	result, err := c.api.ServiceList(ctx, client.ServiceListOptions{Filters: f})
 	if err != nil {
 		return nil, fmt.Errorf("list services: %w", err)
 	}
-	return services, nil
+	return result.Items, nil
 }
 
 // IsStackRunning checks if any services for the stack are deployed.
