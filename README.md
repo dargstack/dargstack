@@ -273,7 +273,7 @@ x-dargstack:
       # length defaults to 32, special_characters defaults to true
     jwt-signing-key.secret:
       # type: private_key
-      key_type: ed25519  # default; also: rsa, ecdsa
+      key_type: ed25519 # default; also: rsa, ecdsa
       # key_size: 2048     # rsa default 2048; ecdsa: 256 (P-256), 384 (P-384), 521 (P-521)
     external-api-token:
       type: third_party
@@ -310,13 +310,13 @@ Template tokens:
 
 | Command                                              | Description                            |
 | ---------------------------------------------------- | -------------------------------------- |
+| [dargstack audit](docs/dargstack_audit.md)           | View deployment audit log              |
 | [dargstack build](docs/dargstack_build.md)           | Build development Dockerfiles          |
 | [dargstack certify](docs/dargstack_certify.md)       | Generate TLS certificates              |
+| [dargstack clone](docs/dargstack_clone.md)           | Clone an existing dargstack project    |
 | [dargstack deploy](docs/dargstack_deploy.md)         | Deploy the stack                       |
 | [dargstack document](docs/dargstack_document.md)     | Generate the stack documentation       |
-| [dargstack clone](docs/dargstack_clone.md)         | Clone an existing dargstack project |
-| [dargstack initialize](docs/dargstack_initialize.md) | Bootstrap a new dargstack project |
-| [dargstack audit](docs/dargstack_audit.md)         | View deployment audit log            |
+| [dargstack initialize](docs/dargstack_initialize.md) | Bootstrap a new dargstack project      |
 | [dargstack remove](docs/dargstack_remove.md)         | Remove the deployed stack              |
 | [dargstack secret](docs/dargstack_secret.md)         | Manage stack secrets                   |
 | [dargstack update](docs/dargstack_update.md)         | Update dargstack to the latest version |

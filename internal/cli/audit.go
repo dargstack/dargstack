@@ -60,7 +60,7 @@ func runAudit(cmd *cobra.Command, args []string) error {
 	}
 
 	if auditDiff {
-		return showDiff(auditDir, dep, data)
+		return showDiff(dep, data)
 	}
 
 	fmt.Printf("# Latest %s deployment (%s)\n\n", dep.Environment, dep.Timestamp.Format("2006-01-02 15:04:05 UTC"))
@@ -117,7 +117,7 @@ func showDeploymentByPrefix(auditDir, prefix string) error {
 	)
 }
 
-func showDiff(auditDir string, latest *audit.Deployment, latestData []byte) error {
+func showDiff(latest *audit.Deployment, latestData []byte) error {
 	// Build current compose for comparison
 	var currentData []byte
 	var err error

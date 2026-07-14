@@ -10,10 +10,10 @@ import (
 )
 
 var inspectCmd = &cobra.Command{
-	Use:    "inspect [timestamp]",
-	Short:  "View deployment audit log",
-	Long:   "View the final composed YAML that was deployed.\n\nWithout arguments, shows the latest deployment.",
-	Hidden: true,
+	Use:        "inspect [timestamp]",
+	Short:      "View deployment audit log",
+	Long:       "View the final composed YAML that was deployed.\n\nWithout arguments, shows the latest deployment.",
+	Deprecated: "use 'audit' instead",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, logger.StyleWarn.Render("Warning: 'inspect' is deprecated, use 'audit' instead."))
 		return runAudit(cmd, args)
