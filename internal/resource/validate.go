@@ -9,6 +9,7 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
+	"github.com/dargstack/dargstack/v4/internal/giturl"
 	"github.com/dargstack/dargstack/v4/internal/secret"
 )
 
@@ -171,16 +172,16 @@ func validateServices(doc map[string]interface{}, stackDir string, production bo
 			continue
 		}
 
-		gitURL := extractDargstackGitLabel(svcDef)
-		if gitURL != "" {
-			repoName := repoNameFromURL(gitURL)
+		gitURL := giturl.ExtractFromService(svcDef, name)
+		if gitURL.IsSet() {
+			repoName := giturl.RepoNameFromURL(gitURL.Primary())
 			parentDir := filepath.Dir(stackDir)
 			clonedDir := filepath.Join(parentDir, repoName)
 			if _, err := os.Stat(clonedDir); err != nil {
 				issues = append(issues, Issue{
 					Severity:    "warning",
 					Resource:    fmt.Sprintf("service:%s", name),
-					Description: fmt.Sprintf("git repository %q will be cloned during deployment (target: %s)", gitURL, clonedDir),
+					Description: fmt.Sprintf("git repository %q will be cloned during deployment (target: %s)", gitURL.Primary(), clonedDir),
 				})
 			}
 		}
@@ -237,48 +238,6 @@ func extractDargstackBuildLabel(svc map[string]interface{}) string {
 		}
 	}
 	return ""
-}
-
-// extractDargstackGitLabel reads the dargstack.development.git label from deploy.labels.
-func extractDargstackGitLabel(svc map[string]interface{}) string {
-	deploy, ok := svc["deploy"].(map[string]interface{})
-	if !ok {
-		return ""
-	}
-	labels, ok := deploy["labels"]
-	if !ok {
-		return ""
-	}
-	switch v := labels.(type) {
-	case map[string]interface{}:
-		if git, ok := v["dargstack.development.git"].(string); ok {
-			return git
-		}
-	case []interface{}:
-		for _, item := range v {
-			s, ok := item.(string)
-			if !ok {
-				continue
-			}
-			if strings.HasPrefix(s, "dargstack.development.git=") {
-				return strings.TrimPrefix(s, "dargstack.development.git=")
-			}
-		}
-	}
-	return ""
-}
-
-// repoNameFromURL extracts the repository directory name from a git URL.
-func repoNameFromURL(url string) string {
-	name := url
-	if idx := strings.LastIndex(name, ":"); idx >= 0 {
-		name = name[idx+1:]
-	}
-	if idx := strings.LastIndex(name, "/"); idx >= 0 {
-		name = name[idx+1:]
-	}
-	name = strings.TrimSuffix(name, ".git")
-	return name
 }
 
 // hasUpdateOrder reports whether the service has an explicit deploy.update_config.order value.

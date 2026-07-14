@@ -16,6 +16,7 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/audit"
 	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/docker"
+	"github.com/dargstack/dargstack/v4/internal/giturl"
 	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 	"github.com/dargstack/dargstack/v4/internal/resource"
@@ -377,7 +378,7 @@ func extractGitServices(composeData []byte) []string {
 		if !ok {
 			continue
 		}
-		if extractDargstackGitLabel(svc) != "" {
+		if giturl.ExtractFromService(svc, name).IsSet() {
 			names = append(names, name)
 		}
 	}
@@ -458,7 +459,6 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 		return composeData, nil
 	}
 
-	// Sibling directory of the stack directory
 	parentDir := filepath.Dir(stackDir)
 
 	for name, def := range svcMap {
@@ -467,16 +467,16 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 			continue
 		}
 
-		gitURL := extractDargstackGitLabel(svc)
-		if gitURL == "" {
+		gitURL := giturl.ExtractFromService(svc, name)
+		if !gitURL.IsSet() {
 			continue
 		}
 
-		repoName := repoNameFromURL(gitURL)
+		repoName := giturl.RepoNameFromURL(gitURL.Primary())
 		targetDir := filepath.Join(parentDir, repoName)
 
-		if _, err := os.Stat(targetDir); err == nil {
-			// Directory already exists — inject .build if missing, skip clone.
+		var err error
+		if _, err = os.Stat(targetDir); err == nil {
 			composeData, err = injectBuildContext(composeData, name, targetDir)
 			if err != nil {
 				return nil, fmt.Errorf("service %q inject build context: %w", name, err)
@@ -484,16 +484,14 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 			continue
 		}
 
-		logger.L.Info(fmt.Sprintf("Cloning %s for service %q", gitURL, name))
-		cmd := exec.Command("git", "clone", "--depth", "1", gitURL, targetDir)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			return nil, fmt.Errorf("clone %s for service %q: %s: %w", gitURL, name, strings.TrimSpace(string(out)), err)
+		logger.L.Info(fmt.Sprintf("Cloning repository for service %q", name))
+		cloneErr := giturl.CloneWithFallback(gitURL, targetDir)
+		if cloneErr != nil {
+			return nil, fmt.Errorf("clone repository for service %q: %w", name, cloneErr)
 		}
 
-		// Run make init if a Makefile exists.
 		makefile := filepath.Join(targetDir, "Makefile")
-		if _, err := os.Stat(makefile); err == nil {
+		if _, statErr := os.Stat(makefile); statErr == nil {
 			logger.L.Info(fmt.Sprintf("Initializing %s for service %q", repoName, name))
 			initCmd := exec.Command("make", "init")
 			initCmd.Dir = targetDir
