@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"charm.land/huh/v2/spinner"
 	"go.yaml.in/yaml/v3"
 
 	"github.com/dargstack/dargstack/v4/internal/config"
@@ -18,61 +19,6 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
-
-// buildStatus tracks the live status of parallel builds for non-verbose output.
-type buildStatus struct {
-	mu     sync.Mutex
-	tasks  []buildTask
-	status map[string]string // name -> current status string
-	lines  int               // number of lines printed
-}
-
-func newBuildStatus(tasks []buildTask) *buildStatus {
-	return &buildStatus{
-		tasks:  tasks,
-		status: make(map[string]string, len(tasks)),
-	}
-}
-
-// printAll prints or overwrites all status lines.
-func (bs *buildStatus) printAll() {
-	bs.mu.Lock()
-	defer bs.mu.Unlock()
-
-	if bs.lines > 0 {
-		// Move cursor up to the first status line.
-		fmt.Printf("\033[%dA", bs.lines)
-	}
-	for _, t := range bs.tasks {
-		s := bs.status[t.name]
-		if s == "" {
-			s = "building..."
-		}
-		fmt.Printf("  [%s] %s\033[K\n", t.name, s)
-	}
-}
-
-// set updates a task's status and redraws.
-func (bs *buildStatus) set(name, status string) {
-	bs.mu.Lock()
-	bs.status[name] = status
-	bs.lines = len(bs.tasks)
-	bs.mu.Unlock()
-	bs.printAll()
-}
-
-// done clears the status lines and returns to normal output.
-func (bs *buildStatus) done() {
-	bs.mu.Lock()
-	defer bs.mu.Unlock()
-	// Clear status lines.
-	for i := 0; i < bs.lines; i++ {
-		fmt.Print("\033[2K\r\n")
-	}
-	// Move cursor back up.
-	fmt.Printf("\033[%dA", bs.lines)
-	bs.lines = 0
-}
 
 func resolveDeployTag() (string, error) {
 	if deployTag != "" {
@@ -180,44 +126,45 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 		logger.L.Info(fmt.Sprintf("Building %d image(s) in parallel: %s", len(tasks), joinNames(extractNames(tasks))))
 	}
 
-	var bs *buildStatus
-	if !verbose {
-		bs = newBuildStatus(tasks)
-		defer bs.done()
-		bs.printAll()
-	}
-
-	// Run builds in parallel.
-	var wg sync.WaitGroup
-	var mu sync.Mutex
 	var buildErrs []string
+	var mu sync.Mutex
 	successCount := 0
 
-	for _, task := range tasks {
-		wg.Add(1)
-		go func(t buildTask) {
-			defer wg.Done()
+	runBuilds := func() {
+		var wg sync.WaitGroup
+		for _, task := range tasks {
+			wg.Add(1)
+			go func(t buildTask) {
+				defer wg.Done()
 
-			if err := docker.StackBuild(executor, t.name, verbose, t.contextPath, "development", t.tag); err != nil {
-				if bs != nil {
-					bs.set(t.name, "✗ failed")
+				if err := docker.StackBuild(executor, t.name, verbose, t.contextPath, "development", t.tag); err != nil {
+					mu.Lock()
+					buildErrs = append(buildErrs, fmt.Sprintf("build %s: %v", t.name, err))
+					mu.Unlock()
+					return
 				}
-				mu.Lock()
-				buildErrs = append(buildErrs, fmt.Sprintf("build %s: %v", t.name, err))
-				mu.Unlock()
-				return
-			}
 
-			if bs != nil {
-				bs.set(t.name, "✓ built")
-			}
-			mu.Lock()
-			successCount++
-			mu.Unlock()
-		}(task)
+				mu.Lock()
+				successCount++
+				mu.Unlock()
+			}(task)
+		}
+		wg.Wait()
 	}
 
-	wg.Wait()
+	if !verbose {
+		err := spinner.New().
+			Title("Building images").
+			Action(func() {
+				runBuilds()
+			}).
+			Run()
+		if err != nil {
+			return err
+		}
+	} else {
+		runBuilds()
+	}
 
 	if len(buildErrs) > 0 {
 		return fmt.Errorf("build errors:\n  %s", joinNamesWithNewline(buildErrs))
@@ -287,29 +234,32 @@ func fetchAndWarnBehind(composeData []byte) []gitBehindInfo {
 		return nil
 	}
 
-	// Fetch and check behind in parallel.
-	logger.L.Info(fmt.Sprintf("Checking %d repo%s for remote changes...", len(dirs), pluralS(len(dirs))))
-	var wg sync.WaitGroup
-	var mu sync.Mutex
 	var behind []gitBehindInfo
+	_ = spinner.New().
+		Title("Checking repositories for updates").
+		Action(func() {
+			var wg sync.WaitGroup
+			var mu sync.Mutex
 
-	for _, d := range dirs {
-		wg.Add(1)
-		go func(cd contextDir) {
-			defer wg.Done()
+			for _, d := range dirs {
+				wg.Add(1)
+				go func(cd contextDir) {
+					defer wg.Done()
 
-			behindCount, branch, err := fetchAndCheckBehind(cd.path)
-			if err != nil || behindCount == 0 {
-				return
+					behindCount, branch, err := fetchAndCheckBehind(cd.path)
+					if err != nil || behindCount == 0 {
+						return
+					}
+
+					mu.Lock()
+					behind = append(behind, gitBehindInfo{serviceName: cd.name, behind: behindCount, branch: branch})
+					mu.Unlock()
+				}(d)
 			}
 
-			mu.Lock()
-			behind = append(behind, gitBehindInfo{serviceName: cd.name, behind: behindCount, branch: branch})
-			mu.Unlock()
-		}(d)
-	}
-
-	wg.Wait()
+			wg.Wait()
+		}).
+		Run()
 
 	if len(behind) == 0 {
 		return nil
@@ -327,9 +277,9 @@ func printBehindWarning(behind []gitBehindInfo) {
 	}
 	parts := make([]string, len(behind))
 	for i, b := range behind {
-		parts[i] = fmt.Sprintf("%s (%s) — %d commit%s behind", b.serviceName, b.branch, b.behind, pluralS(b.behind))
+		parts[i] = fmt.Sprintf("  %s (%s) — %d commit%s behind", b.serviceName, b.branch, b.behind, pluralS(b.behind))
 	}
-	logger.L.Warn(fmt.Sprintf("Local repos behind remote: %s", strings.Join(parts, ", ")))
+	logger.L.Warn("Local repos behind remote:\n" + strings.Join(parts, "\n"))
 }
 
 // fetchAndCheckBehind runs `git fetch` in dir and returns how many commits
@@ -455,15 +405,26 @@ func offerRuntimeCleanup(executor *docker.Executor) {
 		return
 	}
 
-	containerOut, err := executor.Run("container", "prune", "-f")
-	if err != nil {
-		logger.L.Warn(fmt.Sprintf("Container cleanup failed: %v", err))
+	var containerOut, imageOut string
+	var containerErr, imageErr error
+
+	_ = spinner.New().
+		Title("Cleaning up").
+		Action(func() {
+			containerOut, containerErr = executor.Run("container", "prune", "-f")
+			if containerErr != nil {
+				return
+			}
+			imageOut, imageErr = executor.Run("image", "prune", "-af")
+		}).
+		Run()
+
+	if containerErr != nil {
+		logger.L.Warn(fmt.Sprintf("Container cleanup failed: %v", containerErr))
 		return
 	}
-
-	imageOut, err := executor.Run("image", "prune", "-af")
-	if err != nil {
-		logger.L.Warn(fmt.Sprintf("Image cleanup failed: %v", err))
+	if imageErr != nil {
+		logger.L.Warn(fmt.Sprintf("Image cleanup failed: %v", imageErr))
 		return
 	}
 

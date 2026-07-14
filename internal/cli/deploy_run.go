@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"charm.land/huh/v2/spinner"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v3"
 
@@ -473,52 +474,78 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 		return composeData, nil
 	}
 
-	parentDir := filepath.Dir(stackDir)
-
-	for name, def := range svcMap {
+	hasGitRepos := false
+	for _, def := range svcMap {
 		svc, ok := def.(map[string]interface{})
 		if !ok {
 			continue
 		}
-
-		gitURL := giturl.ExtractFromService(svc, name)
-		if !gitURL.IsSet() {
-			continue
-		}
-
-		repoName := giturl.RepoNameFromURL(gitURL.Primary())
-		targetDir := filepath.Join(parentDir, repoName)
-
-		var err error
-		if _, err = os.Stat(targetDir); err == nil {
-			composeData, err = injectBuildContext(composeData, name, targetDir)
-			if err != nil {
-				return nil, fmt.Errorf("service %q inject build context: %w", name, err)
-			}
-			continue
-		}
-
-		cloneErr := giturl.CloneWithFallback(gitURL, targetDir)
-		if cloneErr != nil {
-			return nil, fmt.Errorf("clone repository for service %q: %w", name, cloneErr)
-		}
-
-		makefile := filepath.Join(targetDir, "Makefile")
-		if _, statErr := os.Stat(makefile); statErr == nil {
-			logger.L.Info(fmt.Sprintf("Initializing %s for service %q", repoName, name))
-			initCmd := exec.Command("make", "init")
-			initCmd.Dir = targetDir
-			initOut, initErr := initCmd.CombinedOutput()
-			if initErr != nil {
-				logger.L.Warn(fmt.Sprintf("Init for service %q failed: %s", name, strings.TrimSpace(string(initOut))))
-			}
-		}
-
-		composeData, err = injectBuildContext(composeData, name, targetDir)
-		if err != nil {
-			return nil, fmt.Errorf("service %q inject build context: %w", name, err)
+		if giturl.ExtractFromService(svc, "").IsSet() {
+			hasGitRepos = true
+			break
 		}
 	}
+	if !hasGitRepos {
+		return composeData, nil
+	}
 
-	return composeData, nil
+	var result []byte
+	err := spinner.New().
+		Title("Cloning repositories").
+		ActionWithErr(func(ctx context.Context) error {
+			result = composeData
+			parentDir := filepath.Dir(stackDir)
+
+			for name, def := range svcMap {
+				svc, ok := def.(map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				gitURL := giturl.ExtractFromService(svc, name)
+				if !gitURL.IsSet() {
+					continue
+				}
+
+				repoName := giturl.RepoNameFromURL(gitURL.Primary())
+				targetDir := filepath.Join(parentDir, repoName)
+
+				if _, statErr := os.Stat(targetDir); statErr == nil {
+					var injectErr error
+					result, injectErr = injectBuildContext(result, name, targetDir)
+					if injectErr != nil {
+						return fmt.Errorf("service %q inject build context: %w", name, injectErr)
+					}
+					continue
+				}
+
+				cloneErr := giturl.CloneWithFallback(gitURL, targetDir)
+				if cloneErr != nil {
+					return fmt.Errorf("clone repository for service %q: %w", name, cloneErr)
+				}
+
+				makefile := filepath.Join(targetDir, "Makefile")
+				if _, statErr := os.Stat(makefile); statErr == nil {
+					logger.L.Info(fmt.Sprintf("Initializing %s for service %q", repoName, name))
+					initCmd := exec.Command("make", "init")
+					initCmd.Dir = targetDir
+					initOut, initErr := initCmd.CombinedOutput()
+					if initErr != nil {
+						logger.L.Warn(fmt.Sprintf("Init for service %q failed: %s", name, strings.TrimSpace(string(initOut))))
+					}
+				}
+
+				var injectErr error
+				result, injectErr = injectBuildContext(result, name, targetDir)
+				if injectErr != nil {
+					return fmt.Errorf("service %q inject build context: %w", name, injectErr)
+				}
+			}
+			return nil
+		}).
+		Run()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
+	"charm.land/huh/v2/spinner"
 	"github.com/spf13/cobra"
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
@@ -72,32 +72,15 @@ func runRemove(cmd *cobra.Command, args []string) error {
 
 	logger.L.Info(fmt.Sprintf("Waiting for stack %q services to stop...", cfg.Metadata.Name))
 
-	spinDone := make(chan struct{})
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		frames := []rune{'⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'}
-		i := 0
-		for {
-			select {
-			case <-spinDone:
-				fmt.Print("\r\033[K") // clear the spinner line
-				return
-			default:
-				fmt.Printf("\r  %c Waiting for stack %q to stop...", frames[i%len(frames)], cfg.Metadata.Name)
-				i++
-				time.Sleep(100 * time.Millisecond)
-			}
-		}
-	}()
+	err = spinner.New().
+		Title("Removing stack").
+		ActionWithErr(func(ctx context.Context) error {
+			return docker.WaitForStackRemoval(executor, cfg.Metadata.Name, 60*time.Second, nil)
+		}).
+		Run()
 
-	waitErr := docker.WaitForStackRemoval(executor, cfg.Metadata.Name, 60*time.Second, nil)
-	close(spinDone)
-	wg.Wait()
-
-	if waitErr != nil {
-		logger.L.Warn(waitErr.Error())
+	if err != nil {
+		logger.L.Warn(err.Error())
 	} else {
 		logger.Success(fmt.Sprintf("Stack %q removed", cfg.Metadata.Name))
 	}
