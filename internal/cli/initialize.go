@@ -9,11 +9,13 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/dargstack/dargstack/v4/internal/giturl"
 	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
 var configOnly bool
+var initTarget string
 
 var initCmd = &cobra.Command{
 	Use:     "initialize [name]",
@@ -30,6 +32,7 @@ Without arguments, prompts for a project name.
 With an argument, uses it as the project name directly.
 
 Use ` + "`--configuration-only`" + ` to print a full config template to stdout without creating a project.
+Use ` + "`--target`" + ` to specify the parent directory for the project (default: current directory).
 
 DEPRECATED: passing a Git URL to ` + "`init`" + ` will clone the repository.
 Use ` + "`dargstack clone`" + ` instead.`,
@@ -39,6 +42,7 @@ Use ` + "`dargstack clone`" + ` instead.`,
 
 func init() {
 	initCmd.Flags().BoolVar(&configOnly, "configuration-only", false, "print config template to stdout without creating a project")
+	initCmd.Flags().StringVar(&initTarget, "target", "", "parent directory for the project (default: current directory)")
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
@@ -68,12 +72,40 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("project name is required")
 	}
 
-	if isGitURL(name) {
+	isClone := isGitURL(name)
+	if isClone {
 		logger.L.Warn("Passing a Git URL to `init` is deprecated; use `dargstack clone` instead.")
-		return cloneProject(name)
 	}
 
-	return bootstrapProject(name)
+	target := initTarget
+	if target == "" {
+		if isClone {
+			target = giturl.RepoNameFromURL(name)
+		} else {
+			target = "."
+		}
+	}
+
+	if !noInteraction {
+		promptTitle := "Clone into directory"
+		if !isClone {
+			promptTitle = "Create project in directory"
+		}
+		result, err := prompt.Input(promptTitle, target)
+		if err != nil {
+			return err
+		}
+		target = result
+	}
+
+	if target == "" {
+		return fmt.Errorf("target directory is required")
+	}
+
+	if isClone {
+		return cloneProject(name, target)
+	}
+	return bootstrapProject(name, target)
 }
 
 func isGitURL(s string) bool {
@@ -84,25 +116,26 @@ func isGitURL(s string) bool {
 		strings.HasPrefix(s, "ssh://")
 }
 
-func cloneProject(url string) error {
-	logger.L.Info(fmt.Sprintf("Cloning %s ...", url))
-	gitCmd := exec.Command("git", "clone", url) // #nosec G204 — URL is user-supplied intentionally
+func cloneProject(url, target string) error {
+	logger.L.Info(fmt.Sprintf("Cloning %s into ./%s ...", url, target))
+	gitCmd := exec.Command("git", "clone", url, target) // #nosec G204 — URL is user-supplied intentionally
 	gitCmd.Stdout = os.Stdout
 	gitCmd.Stderr = os.Stderr
 	if err := gitCmd.Run(); err != nil {
 		return fmt.Errorf("git clone: %w", err)
 	}
-	logger.Success("Project cloned. Navigate into the directory and run `dargstack deploy`.")
+	logger.Success(fmt.Sprintf("Project cloned into ./%s. Navigate into the directory and run `dargstack deploy`.", filepath.Base(target)))
 	return nil
 }
 
-func bootstrapProject(name string) error {
-	stackDir := filepath.Join(name, "stack")
-	helloDir := filepath.Join(name, "hello")
+func bootstrapProject(name, target string) error {
+	projectDir := filepath.Join(target, name)
+	stackDir := filepath.Join(projectDir, "stack")
+	helloDir := filepath.Join(projectDir, "hello")
 
-	if _, err := os.Stat(name); err == nil {
+	if _, err := os.Stat(projectDir); err == nil {
 		return hintErr(
-			fmt.Errorf("directory %q already exists", name),
+			fmt.Errorf("directory %q already exists", projectDir),
 			"Choose a different name, or remove the existing directory first.",
 		)
 	}
@@ -181,11 +214,11 @@ func bootstrapProject(name string) error {
 
 	// Write project-level README as a sibling to the stack directory
 	projectReadme := fmt.Sprintf(initReadmeProject, name, name)
-	if err := os.WriteFile(filepath.Join(name, "README.md"), []byte(projectReadme), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectDir, "README.md"), []byte(projectReadme), 0o644); err != nil {
 		return fmt.Errorf("write project README.md: %w", err)
 	}
 
-	logger.Success(fmt.Sprintf("Project %q bootstrapped at ./%s", name, stackDir))
+	logger.Success(fmt.Sprintf("Project %q bootstrapped at %s", name, stackDir))
 	logger.L.Info(fmt.Sprintf("Next steps:\n  cd %s\n  dargstack deploy", stackDir))
 	return nil
 }

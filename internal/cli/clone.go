@@ -4,37 +4,85 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
+	"github.com/dargstack/dargstack/v4/internal/giturl"
 	"github.com/dargstack/dargstack/v4/internal/logger"
+	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
+var cloneTarget string
+
 var cloneCmd = &cobra.Command{
-	Use:   "clone <url>",
+	Use:   "clone [url]",
 	Short: "Clone an existing dargstack project",
 	Long: `Clone an existing dargstack project from a Git URL.
 
 Supports https://, git@, git://, and ssh:// URLs.
-The repository is cloned into the current directory.`,
-	Args: cobra.ExactArgs(1),
+Without arguments, prompts for a Git URL.
+By default, clones into a subdirectory of the current directory named after the repository.
+
+Use --target to specify a different directory for the clone.`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: runClone,
 }
 
+func init() {
+	cloneCmd.Flags().StringVar(&cloneTarget, "target", "", "target directory for the clone (default: inferred from URL)")
+}
+
 func runClone(cmd *cobra.Command, args []string) error {
-	url := args[0]
+	url := ""
+	if len(args) > 0 {
+		url = args[0]
+	}
+
+	if url == "" {
+		if noInteraction {
+			return fmt.Errorf("--no-interaction requires a url argument")
+		}
+
+		var err error
+		url, err = prompt.Input("Git URL", "")
+		if err != nil {
+			return err
+		}
+	}
+
+	if url == "" {
+		return fmt.Errorf("git URL is required")
+	}
 
 	if !isGitURL(url) {
 		return fmt.Errorf("%q does not appear to be a Git URL", url)
 	}
 
-	logger.L.Info(fmt.Sprintf("Cloning %s ...", url))
-	gitCmd := exec.Command("git", "clone", url) // #nosec G204 — URL is user-supplied intentionally
+	target := cloneTarget
+	if target == "" {
+		target = giturl.RepoNameFromURL(url)
+	}
+
+	if !noInteraction {
+		result, err := prompt.Input("Clone into directory", target)
+		if err != nil {
+			return err
+		}
+		target = result
+	}
+
+	if target == "" {
+		return fmt.Errorf("target directory is required")
+	}
+
+	logger.L.Info(fmt.Sprintf("Cloning %s into ./%s ...", url, target))
+	gitCmd := exec.Command("git", "clone", url, target) // #nosec G204 — URL is user-supplied intentionally
 	gitCmd.Stdout = os.Stdout
 	gitCmd.Stderr = os.Stderr
 	if err := gitCmd.Run(); err != nil {
 		return fmt.Errorf("git clone: %w", err)
 	}
-	logger.Success("Project cloned. Navigate into the directory and run `dargstack deploy`.")
+	logger.Success(fmt.Sprintf("Project cloned into ./%s. Navigate into the directory and run `dargstack deploy`.", filepath.Base(target)))
 	return nil
 }
