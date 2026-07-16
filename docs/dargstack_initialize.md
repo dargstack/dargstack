@@ -42,7 +42,7 @@ dargstack initialize [name] [flags]
   -l, --log-level string       log level: error, warn, info, debug (default "info")
   -n, --no-interaction         disable interactive prompts
   -o, --offline                skip fetching remote resources
-  -p, --profiles strings       activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined
+  -p, --profiles strings       activate one or more compose profiles (or set COMPOSE_PROFILES env var); unlabeled services are included unless a 'default' profile is defined
   -s, --services strings       filter to specific services
   -v, --verbose                verbose output
 ```

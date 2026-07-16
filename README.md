@@ -261,6 +261,8 @@ services:
 
 Multiple profiles: `dargstack.profiles: "db,monitoring"` (comma-separated).
 
+Profiles can also be activated via the `COMPOSE_PROFILES` environment variable (comma-separated). The `--profiles` flag takes precedence over `COMPOSE_PROFILES`.
+
 If no profile selection is made and any service declares `default`, only services with `dargstack.profiles: default` are deployed; unlabeled services are excluded.
 If no profile selection is made and no service declares `default`, all services (including unlabeled) are deployed.
 

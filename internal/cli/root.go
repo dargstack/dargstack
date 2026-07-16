@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -44,6 +45,8 @@ var rootCmd = &cobra.Command{
 	Version:      fmt.Sprintf("%s (commit: %s, built: %s)", version.Version, version.Commit, version.Date),
 	SilenceUsage: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		resolveProfiles()
+
 		// Propagate --no-interaction to the prompt package.
 		prompt.NonInteractive = noInteraction
 
@@ -164,6 +167,22 @@ func isSkippedCommand(cmd *cobra.Command) bool {
 
 // isProduction returns true if the active --environment is "production".
 func isProduction() bool { return env == "production" }
+
+// resolveProfiles reads COMPOSE_PROFILES env var and populates the profiles
+// variable when the --profiles flag was not used.
+func resolveProfiles() {
+	if profiles != nil {
+		return
+	}
+	if raw := os.Getenv("COMPOSE_PROFILES"); raw != "" {
+		for _, p := range strings.Split(raw, ",") {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				profiles = append(profiles, p)
+			}
+		}
+	}
+}
 
 // wrapWithBugHint wraps an error with a hint to report bugs or ask for help.
 func wrapWithBugHint(err error) error {
