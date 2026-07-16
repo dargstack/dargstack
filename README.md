@@ -323,7 +323,6 @@ x-dargstack:
 **`template` properties:**
 
 - `template` — Template string, supporting the following tokens:
-
   - `{{secret:<name>}}` (or legacy `{{<name>}}`) — Reference another secret
   - `{{random_string}}`, `{{random_string:<length>}}`, `{{random_string:<length>:<special>}}` — Inline random generation
   - `{{wordlist_word}}` — Inline word generation
@@ -381,6 +380,7 @@ Multiple platforms can coexist in one file. The active platform is auto-detected
 | [dargstack deploy](docs/dargstack_deploy.md)         | Deploy the stack                       |
 | [dargstack document](docs/dargstack_document.md)     | Generate the stack documentation       |
 | [dargstack initialize](docs/dargstack_initialize.md) | Bootstrap a new dargstack project      |
+| [dargstack profiles](docs/dargstack_profiles.md)     | List discovered deploy profiles        |
 | [dargstack remove](docs/dargstack_remove.md)         | Remove the deployed stack              |
 | [dargstack secret](docs/dargstack_secret.md)         | Manage stack secrets                   |
 | [dargstack update](docs/dargstack_update.md)         | Update dargstack to the latest version |

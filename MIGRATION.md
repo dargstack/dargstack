@@ -19,13 +19,7 @@ This guide helps you migrate an existing dargstack v3 (Bash) project to v4 (Go).
 
 ## Step 1 — Install dargstack v4
 
-**Recommended** (verified via Go module proxy):
-
-```bash
-go install github.com/dargstack/dargstack/v4/cmd/dargstack@latest
-```
-
-**Alternative** (binary download with checksum verification):
+**Recommended** (binary download with checksum verification):
 
 ```bash
 ARCHIVE="dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz"
@@ -33,6 +27,12 @@ curl -sfL -o "$ARCHIVE" "https://github.com/dargstack/dargstack/releases/latest/
 curl -sfL https://github.com/dargstack/dargstack/releases/latest/download/checksums.txt | sha256sum -c - --ignore-missing
 tar xzf "$ARCHIVE" && rm "$ARCHIVE"
 sudo mv dargstack /usr/local/bin/
+```
+
+**Alternative** (verified via Go module proxy):
+
+```bash
+go install github.com/dargstack/dargstack/v4/cmd/dargstack@latest
 ```
 
 Remove the old v3 script:
@@ -88,11 +88,13 @@ src/
     production.yml     ← optional spruce overlay
     production.env
     production.sed     ← optional sed patches
+dargstack.env
 ```
 
 ### v4 structure
 
 ```
+artifacts/             ← generated files (gitignored)
 src/
   development/
     <service>/
@@ -102,6 +104,7 @@ src/
     <service>/
       compose.yaml     ← only the differences from development
     .env
+dargstack.yaml         ← structured config
 ```
 
 ### How to split
@@ -316,23 +319,23 @@ dargstack deploy
 
 ## Quick reference: command renames
 
-| v3                                    | v4                                                          |
-| ------------------------------------- | ----------------------------------------------------------- |
-| `dargstack build`                     | `dargstack build`                                           |
-| `dargstack deploy`                    | `dargstack deploy`                                          |
-| `dargstack derive`                    | _(removed — automatic during deploy)_                       |
-| `dargstack redeploy`                  | `dargstack deploy --force`                                          |
-| `dargstack rgen`                      | `dargstack document`                                        |
-| `dargstack rm`                        | `dargstack remove`                                          |
-| `dargstack self-update`               | `dargstack update --self`                                   |
-| `dargstack validate`                  | `dargstack validate`                                        |
-| _(none)_                              | `dargstack audit`                                         |
-| _(none)_                              | `dargstack certify`                                         |
-| _(none)_                              | `dargstack clone`                                         |
-| _(none)_                              | `dargstack initialize`                                            |
-| _(none)_                              | `dargstack inspect`                                         |
-| _(none)_                              | `dargstack profiles`                                        |
-| _(none)_                              | `dargstack secret`                                          |
+| v3                      | v4                                    |
+| ----------------------- | ------------------------------------- |
+| `dargstack build`       | `dargstack build`                     |
+| `dargstack deploy`      | `dargstack deploy`                    |
+| `dargstack derive`      | _(removed — automatic during deploy)_ |
+| `dargstack redeploy`    | `dargstack deploy --force`            |
+| `dargstack rgen`        | `dargstack document`                  |
+| `dargstack rm`          | `dargstack remove`                    |
+| `dargstack self-update` | `dargstack update --self`             |
+| `dargstack validate`    | `dargstack validate`                  |
+| _(none)_                | `dargstack audit`                     |
+| _(none)_                | `dargstack certify`                   |
+| _(none)_                | `dargstack clone`                     |
+| _(none)_                | `dargstack initialize`                |
+| _(none)_                | `dargstack inspect`                   |
+| _(none)_                | `dargstack profiles`                  |
+| _(none)_                | `dargstack secret`                    |
 
 ---
 
