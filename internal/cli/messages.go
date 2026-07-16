@@ -20,7 +20,7 @@ const (
 	TipAddSecretMetadata   = "Tip: Add x-dargstack.secrets entries with typed secret metadata to auto-generate missing secrets."
 
 	// Flag descriptions
-	FlagDescProfiles = "activate one or more compose profiles; unlabeled services are included unless a 'default' profile is defined"
+	FlagDescProfiles = "activate one or more compose profiles (or set COMPOSE_PROFILES env var); unlabeled services are included unless a 'default' profile is defined"
 
 	// Prompt choices
 	ChoiceAutoGenAll  = "Auto-generate this and remaining auto-generatable secrets"

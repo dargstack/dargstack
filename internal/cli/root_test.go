@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log/slog"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/dargstack/dargstack/v4/internal/logger"
@@ -62,6 +63,83 @@ func TestLoggerRespectsLogLevel(t *testing.T) {
 			}
 			if gotStderr != tt.expectStderr {
 				t.Errorf("stderr: got %v, want %v (buf: %q)", gotStderr, tt.expectStderr, errBuf.String())
+			}
+		})
+	}
+}
+
+func TestResolveProfiles(t *testing.T) {
+	tests := []struct {
+		name       string
+		envVar     string
+		flagSet    bool
+		flagValue  []string
+		wantNil    bool
+		wantValues []string
+	}{
+		{
+			name:       "env var populates profiles when flag not set",
+			envVar:     "db,monitoring",
+			flagSet:    false,
+			wantNil:    false,
+			wantValues: []string{"db", "monitoring"},
+		},
+		{
+			name:       "flag overrides env var",
+			envVar:     "db,monitoring",
+			flagSet:    true,
+			flagValue:  []string{"foo"},
+			wantNil:    false,
+			wantValues: []string{"foo"},
+		},
+		{
+			name:       "whitespace and empty entries are trimmed",
+			envVar:     " db , ,monitoring ",
+			flagSet:    false,
+			wantNil:    false,
+			wantValues: []string{"db", "monitoring"},
+		},
+		{
+			name:    "empty env var leaves profiles nil",
+			envVar:  "",
+			flagSet: false,
+			wantNil: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			oldProfiles := profiles
+			defer func() { profiles = oldProfiles }()
+
+			if tt.envVar != "" {
+				t.Setenv("COMPOSE_PROFILES", tt.envVar)
+			} else {
+				t.Setenv("COMPOSE_PROFILES", "")
+			}
+
+			profiles = nil
+			if tt.flagSet {
+				profiles = tt.flagValue
+			}
+
+			resolveProfiles()
+
+			if tt.wantNil {
+				if profiles != nil {
+					t.Errorf("expected profiles to be nil, got %v", profiles)
+				}
+				return
+			}
+
+			if profiles == nil {
+				t.Fatal("expected profiles to be non-nil")
+			}
+
+			got := strings.Join(profiles, ",")
+			want := strings.Join(tt.wantValues, ",")
+			if got != want {
+				t.Errorf("profiles: got %q, want %q", got, want)
 			}
 		})
 	}
