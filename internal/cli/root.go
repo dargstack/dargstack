@@ -11,6 +11,7 @@ import (
 
 	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/logger"
+	"github.com/dargstack/dargstack/v4/internal/platform"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 	"github.com/dargstack/dargstack/v4/internal/update"
 	"github.com/dargstack/dargstack/v4/internal/version"
@@ -23,6 +24,7 @@ var (
 	noInteraction bool
 	offline       bool
 	outputFormat  string
+	platformFlag  string
 	profiles      []string
 	services      []string
 	verbose       bool
@@ -122,6 +124,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "format", "f", "table", "output format for compatible commands: table|json")
 	rootCmd.PersistentFlags().BoolVarP(&noInteraction, "no-interaction", "n", false, "disable interactive prompts")
 	rootCmd.PersistentFlags().BoolVarP(&offline, "offline", "o", false, "skip fetching remote resources")
+	rootCmd.PersistentFlags().StringVar(&platformFlag, "platform", "", "target platform for compose overrides (default: auto-detect)")
 	rootCmd.PersistentFlags().StringSliceVarP(&profiles, "profiles", "p", nil, FlagDescProfiles)
 	rootCmd.PersistentFlags().StringSliceVarP(&services, "services", "s", nil, "filter to specific services")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
@@ -167,6 +170,12 @@ func isSkippedCommand(cmd *cobra.Command) bool {
 
 // isProduction returns true if the active --environment is "production".
 func isProduction() bool { return env == "production" }
+
+// getPlatform returns the target platform for compose overrides.
+// Uses --platform flag if set, otherwise auto-detects via runtime.GOOS.
+func getPlatform() string {
+	return platform.Get(platformFlag)
+}
 
 // resolveProfiles reads COMPOSE_PROFILES env var and populates the profiles
 // variable when the --profiles flag was not used.

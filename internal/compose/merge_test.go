@@ -11,7 +11,7 @@ import (
 )
 
 func TestMergeFilesNoFiles(t *testing.T) {
-	_, err := MergeFiles("")
+	_, err := MergeFiles("", "")
 	if err == nil {
 		t.Fatal("expected error for zero files")
 	}
@@ -29,7 +29,7 @@ func TestMergeFilesSingleFile(t *testing.T) {
 	f := filepath.Join(dir, "base.yaml")
 	writeTestFile(t, f, "services:\n  web:\n    image: nginx\n")
 
-	out, err := MergeFiles("", f)
+	out, err := MergeFiles("", "", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestMergeFilesOverride(t *testing.T) {
 	writeTestFile(t, base, "services:\n  web:\n    image: nginx:1.0\n    environment:\n      DEBUG: \"true\"\n")
 	writeTestFile(t, overlay, "services:\n  web:\n    image: nginx:2.0\n")
 
-	out, err := MergeFiles("", base, overlay)
+	out, err := MergeFiles("", "", base, overlay)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestMergeFilesPruneOperator(t *testing.T) {
 	writeTestFile(t, base, "services:\n  web:\n    image: nginx\n    environment:\n      DEBUG: \"true\"\n")
 	writeTestFile(t, overlay, "services:\n  web:\n    environment:\n      DEBUG: (( prune ))\n")
 
-	out, err := MergeFiles("", base, overlay)
+	out, err := MergeFiles("", "", base, overlay)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestMergeFilesPruneOperator(t *testing.T) {
 }
 
 func TestMergeFileMissing(t *testing.T) {
-	_, err := MergeFiles("", "/nonexistent/file.yaml")
+	_, err := MergeFiles("", "", "/nonexistent/file.yaml")
 	if err == nil {
 		t.Fatal("expected error for missing file")
 	}
@@ -95,7 +95,7 @@ func TestMergeFileInvalidYAML(t *testing.T) {
 	f := filepath.Join(dir, "bad.yaml")
 	writeTestFile(t, f, "{{not valid yaml")
 
-	_, err := MergeFiles("", f)
+	_, err := MergeFiles("", "", f)
 	if err == nil {
 		t.Fatal("expected error for invalid YAML")
 	}
@@ -107,7 +107,7 @@ func TestLoadSingle(t *testing.T) {
 	content := "services:\n  web:\n    image: nginx\n"
 	writeTestFile(t, f, content)
 
-	out, err := LoadSingle("", f)
+	out, err := LoadSingle("", "", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +130,7 @@ func TestLoadSingle(t *testing.T) {
 }
 
 func TestLoadSingleMissing(t *testing.T) {
-	_, err := LoadSingle("", "/nonexistent/compose.yaml")
+	_, err := LoadSingle("", "", "/nonexistent/compose.yaml")
 	if err == nil {
 		t.Fatal("expected error for missing file")
 	}
@@ -141,7 +141,7 @@ func TestLoadSingleInvalidYAML(t *testing.T) {
 	f := filepath.Join(dir, "bad.yaml")
 	writeTestFile(t, f, "{{not valid")
 
-	_, err := LoadSingle("", f)
+	_, err := LoadSingle("", "", f)
 	if err == nil {
 		t.Fatal("expected error for invalid YAML")
 	}
@@ -533,7 +533,7 @@ func TestExpandStackRootInSecrets(t *testing.T) {
 	content := "secrets:\n  my-secret:\n    file: " + StackRootPrefix + "/artifacts/secrets/my.secret\n"
 	writeTestFile(t, f, content)
 
-	out, err := LoadSingle(stackDir, f)
+	out, err := LoadSingle(stackDir, "", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -552,7 +552,7 @@ func TestExpandStackRootInBuildLabel(t *testing.T) {
 	content := "services:\n  api:\n    image: api\n    deploy:\n      labels:\n        - dargstack.development.build=" + StackRootPrefix + "/../api\n"
 	writeTestFile(t, f, content)
 
-	out, err := LoadSingle(stackDir, f)
+	out, err := LoadSingle(stackDir, "", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -570,7 +570,7 @@ func TestExpandStackRootInVolume(t *testing.T) {
 	content := "services:\n  api:\n    image: api\n    volumes:\n      - " + StackRootPrefix + "/../api:/srv/app\n"
 	writeTestFile(t, f, content)
 
-	out, err := LoadSingle(stackDir, f)
+	out, err := LoadSingle(stackDir, "", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -592,7 +592,7 @@ func TestExpandStackRootEmptySuffix(t *testing.T) {
 	content := "services:\n  api:\n    image: api\n    environment:\n      STACK_DIR: \"" + StackRootPrefix + "\"\n"
 	writeTestFile(t, f, content)
 
-	out, err := LoadSingle(stackDir, f)
+	out, err := LoadSingle(stackDir, "", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -609,7 +609,7 @@ func TestExpandStackRootNoExpansion(t *testing.T) {
 
 	writeTestFile(t, f, "services:\n  api:\n    image: nginx\n")
 
-	out, err := LoadSingle(stackDir, f)
+	out, err := LoadSingle(stackDir, "", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -630,7 +630,7 @@ func TestExpandStackRootWithMerge(t *testing.T) {
 	writeTestFile(t, base, baseContent)
 	writeTestFile(t, overlay, overlayContent)
 
-	out, err := MergeFiles(stackDir, base, overlay)
+	out, err := MergeFiles(stackDir, "", base, overlay)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -654,7 +654,7 @@ func TestExpandParentDirInSecret(t *testing.T) {
 	content := "secrets:\n  app-secret:\n    file: " + ParentDirPrefix + "/shared/app.secret\n"
 	writeTestFile(t, f, content)
 
-	out, err := LoadSingle(stackDir, f)
+	out, err := LoadSingle(stackDir, "", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -674,7 +674,7 @@ func TestExpandParentDirInVolume(t *testing.T) {
 	content := "services:\n  api:\n    image: api\n    volumes:\n      - " + ParentDirPrefix + "/api:/srv/app\n"
 	writeTestFile(t, f, content)
 
-	out, err := LoadSingle(stackDir, f)
+	out, err := LoadSingle(stackDir, "", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -682,6 +682,72 @@ func TestExpandParentDirInVolume(t *testing.T) {
 	want := filepath.Join(parentDir, "api")
 	if !strings.Contains(string(out), want) {
 		t.Errorf("expected volume path to contain %q, got:\n%s", want, string(out))
+	}
+}
+
+func TestExtractPlatformOverlayFound(t *testing.T) {
+	doc := map[interface{}]interface{}{
+		"services": map[interface{}]interface{}{
+			"cadvisor": map[interface{}]interface{}{
+				"image": "cadvisor:latest",
+			},
+		},
+		"x-dargstack": map[interface{}]interface{}{
+			"platform": map[interface{}]interface{}{
+				"darwin": map[interface{}]interface{}{
+					"services": map[interface{}]interface{}{
+						"cadvisor": map[interface{}]interface{}{
+							"privileged": false,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	overlay := extractPlatformOverlay(doc, "darwin")
+	if overlay == nil {
+		t.Fatal("expected overlay for darwin, got nil")
+	}
+
+	services, ok := overlay["services"].(map[interface{}]interface{})
+	if !ok {
+		t.Fatal("expected services in overlay")
+	}
+	cadvisor, ok := services["cadvisor"].(map[interface{}]interface{})
+	if !ok {
+		t.Fatal("expected cadvisor in overlay")
+	}
+	if cadvisor["privileged"] != false {
+		t.Errorf("expected privileged=false, got %v", cadvisor["privileged"])
+	}
+}
+
+func TestExtractPlatformOverlayNotFound(t *testing.T) {
+	doc := map[interface{}]interface{}{
+		"services": map[interface{}]interface{}{},
+	}
+
+	overlay := extractPlatformOverlay(doc, "darwin")
+	if overlay != nil {
+		t.Error("expected nil overlay when platform section missing")
+	}
+}
+
+func TestExtractPlatformOverlayWrongPlatform(t *testing.T) {
+	doc := map[interface{}]interface{}{
+		"x-dargstack": map[interface{}]interface{}{
+			"platform": map[interface{}]interface{}{
+				"linux": map[interface{}]interface{}{
+					"services": map[interface{}]interface{}{},
+				},
+			},
+		},
+	}
+
+	overlay := extractPlatformOverlay(doc, "darwin")
+	if overlay != nil {
+		t.Error("expected nil overlay when requesting darwin but only linux defined")
 	}
 }
 
@@ -694,7 +760,7 @@ func TestExpandBothPrefixes(t *testing.T) {
 	content := "services:\n  api:\n    image: api\n    volumes:\n      - " + StackRootPrefix + "/local:/local\n      - " + ParentDirPrefix + "/shared:/shared\n"
 	writeTestFile(t, f, content)
 
-	out, err := LoadSingle(stackDir, f)
+	out, err := LoadSingle(stackDir, "", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -704,5 +770,212 @@ func TestExpandBothPrefixes(t *testing.T) {
 	}
 	if !strings.Contains(string(out), parentDir) {
 		t.Errorf("expected volume path to contain parent dir %q, got:\n%s", parentDir, string(out))
+	}
+}
+
+func TestMergeFilesPlatformOverlay(t *testing.T) {
+	dir := t.TempDir()
+	f := filepath.Join(dir, "compose.yaml")
+
+	content := `services:
+  cadvisor:
+    image: cadvisor:latest
+    volumes:
+      - /:/rootfs:ro
+      - /dev/disk/by-id/:/dev/disk/by-id:ro
+    privileged: true
+x-dargstack:
+  platform:
+    darwin:
+      services:
+        cadvisor:
+          volumes:
+            - (( prune ))
+            - /:/rootfs:ro
+          privileged: false
+`
+	writeTestFile(t, f, content)
+
+	out, err := MergeFiles("", "darwin", f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(out, &doc); err != nil {
+		t.Fatal(err)
+	}
+
+	services, ok := doc["services"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected services map")
+	}
+	cadvisor, ok := services["cadvisor"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected cadvisor service")
+	}
+
+	if cadvisor["privileged"] != false {
+		t.Errorf("expected privileged=false after darwin overlay, got %v", cadvisor["privileged"])
+	}
+
+	volumes, ok := cadvisor["volumes"].([]interface{})
+	if !ok {
+		t.Fatal("expected volumes list")
+	}
+	if len(volumes) != 1 {
+		t.Fatalf("expected 1 volume after prune+override, got %d", len(volumes))
+	}
+	if volumes[0] != "/:/rootfs:ro" {
+		t.Errorf("expected /:/rootfs:ro, got %v", volumes[0])
+	}
+}
+
+func TestLoadSinglePlatformOverlay(t *testing.T) {
+	dir := t.TempDir()
+	f := filepath.Join(dir, "compose.yaml")
+	content := `services:
+    web:
+      image: nginx
+      privileged: true
+x-dargstack:
+    platform:
+      darwin:
+        services:
+          web:
+            privileged: false
+  `
+	writeTestFile(t, f, content)
+	out, err := LoadSingle("", "darwin", f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(out, &doc); err != nil {
+		t.Fatal(err)
+	}
+	services, ok := doc["services"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected services map")
+	}
+	web, ok := services["web"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected web service")
+	}
+	if web["privileged"] != false {
+		t.Errorf("expected privileged=false after darwin overlay, got %v", web["privileged"])
+	}
+}
+
+func TestMergeFilesPlatformNoMatch(t *testing.T) {
+	dir := t.TempDir()
+	f := filepath.Join(dir, "compose.yaml")
+
+	content := `services:
+  cadvisor:
+    image: cadvisor:latest
+    privileged: true
+x-dargstack:
+  platform:
+    darwin:
+      services:
+        cadvisor:
+          privileged: false
+`
+	writeTestFile(t, f, content)
+
+	out, err := MergeFiles("", "linux", f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(string(out), "privileged: true") {
+		t.Error("expected privileged=true when platform doesn't match overlay")
+	}
+}
+
+func TestMergeFilesPlatformEmptyPlatform(t *testing.T) {
+	dir := t.TempDir()
+	f := filepath.Join(dir, "compose.yaml")
+
+	content := `services:
+  web:
+    image: nginx
+    privileged: true
+x-dargstack:
+  platform:
+    darwin:
+      services:
+        web:
+          privileged: false
+`
+	writeTestFile(t, f, content)
+
+	out, err := MergeFiles("", "", f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(string(out), "nginx") {
+		t.Error("expected web service in output")
+	}
+}
+
+func TestMergeFilesPlatformMultipleFiles(t *testing.T) {
+	dir := t.TempDir()
+	base := filepath.Join(dir, "base.yaml")
+	overlay := filepath.Join(dir, "overlay.yaml")
+
+	writeTestFile(t, base, `services:
+  cadvisor:
+    image: cadvisor:latest
+    volumes:
+      - /:/rootfs:ro
+      - /dev/disk/by-id/:/dev/disk/by-id:ro
+    privileged: true
+x-dargstack:
+  platform:
+    darwin:
+      services:
+        cadvisor:
+          privileged: false
+`)
+
+	writeTestFile(t, overlay, `services:
+  cadvisor:
+    volumes:
+      - (( prune ))
+      - /:/rootfs:ro
+`)
+
+	out, err := MergeFiles("", "darwin", base, overlay)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(out, &doc); err != nil {
+		t.Fatal(err)
+	}
+
+	services, ok := doc["services"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected services map")
+	}
+	cadvisor, ok := services["cadvisor"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected cadvisor service")
+	}
+
+	if cadvisor["privileged"] != false {
+		t.Errorf("expected privileged=false from platform overlay, got %v", cadvisor["privileged"])
+	}
+
+	volumes, ok := cadvisor["volumes"].([]interface{})
+	if !ok {
+		t.Fatal("expected volumes list")
+	}
+	if len(volumes) != 1 || volumes[0] != "/:/rootfs:ro" {
+		t.Errorf("expected single volume from file overlay, got %v", volumes)
 	}
 }
