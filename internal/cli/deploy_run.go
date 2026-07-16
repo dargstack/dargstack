@@ -528,6 +528,7 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 
 				makefile := filepath.Join(targetDir, "Makefile")
 				if _, statErr := os.Stat(makefile); statErr == nil {
+					logger.L.Warn(fmt.Sprintf("service %q: running `make init` on cloned repositories is deprecated and will be removed in a future version", name))
 					logger.L.Info(fmt.Sprintf("Initializing %s for service %q", repoName, name))
 					initCmd := exec.Command("make", "init")
 					initCmd.Dir = targetDir
