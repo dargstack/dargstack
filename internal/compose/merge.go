@@ -47,25 +47,61 @@ func PreprocessStackRoot(stackDir string) func([]byte) []byte {
 	}
 }
 
+// extractPlatformOverlay extracts the x-dargstack.platform.<platform> section from
+// a parsed compose document and returns it as a standalone document with its contents
+// promoted to root level. Returns nil if the platform section doesn't exist.
+func extractPlatformOverlay(doc map[interface{}]interface{}, platform string) map[interface{}]interface{} {
+	xds, ok := doc["x-dargstack"]
+	if !ok {
+		return nil
+	}
+	xdsMap, ok := xds.(map[interface{}]interface{})
+	if !ok {
+		return nil
+	}
+
+	platformRaw, ok := xdsMap["platform"]
+	if !ok {
+		return nil
+	}
+	platformMap, ok := platformRaw.(map[interface{}]interface{})
+	if !ok {
+		return nil
+	}
+
+	overlayRaw, ok := platformMap[platform]
+	if !ok {
+		return nil
+	}
+	overlay, ok := overlayRaw.(map[interface{}]interface{})
+	if !ok {
+		return nil
+	}
+
+	return overlay
+}
+
 // MergeFiles merges multiple compose YAML files using spruce.
 // Later files override earlier ones. Spruce operators like (( prune )) are evaluated.
-// stackDir is the stack project root directory containing dargstack.yaml, used for
-// expanding the "~~" and "~~~" prefixes in path values.
-func MergeFiles(stackDir string, paths ...string) ([]byte, error) {
-	return mergeFiles(nil, stackDir, paths...)
+// stackDir is the stack project root directory used for expanding the "~~" and "~~~" prefixes.
+// platform is the target OS (e.g. "darwin", "linux"); if non-empty, x-dargstack.platform.<platform>
+// sections are extracted and merged as higher-priority overlays.
+func MergeFiles(stackDir, platform string, paths ...string) ([]byte, error) {
+	return mergeFiles(nil, stackDir, platform, paths...)
 }
 
 // MergeFilesProduction merges compose YAML files like MergeFiles but strips
 // # dargstack:dev-only markers from each file's raw bytes before YAML parsing.
-// This must be called before the YAML roundtrip, since YAML parsers discard comments.
-func MergeFilesProduction(stackDir string, paths ...string) ([]byte, error) {
-	return mergeFiles(StripDevOnlyMarkers, stackDir, paths...)
+// platform is the target OS for x-dargstack.platform overrides.
+func MergeFilesProduction(stackDir, platform string, paths ...string) ([]byte, error) {
+	return mergeFiles(StripDevOnlyMarkers, stackDir, platform, paths...)
 }
 
 // mergeFiles is the shared implementation for MergeFiles and MergeFilesProduction.
 // preProcess, when non-nil, is applied to each file's raw bytes before YAML parsing.
 // stackDir is the stack project root directory used for expanding the "~~" and "~~~" prefixes.
-func mergeFiles(preProcess func([]byte) []byte, stackDir string, paths ...string) ([]byte, error) {
+// platform is the target OS for x-dargstack.platform overrides.
+func mergeFiles(preProcess func([]byte) []byte, stackDir, platform string, paths ...string) ([]byte, error) {
 	if len(paths) == 0 {
 		return nil, fmt.Errorf("no compose files provided")
 	}
@@ -104,6 +140,14 @@ func mergeFiles(preProcess func([]byte) []byte, stackDir string, paths ...string
 		resolveFilePaths(doc, filepath.Dir(p))
 
 		docs = append(docs, doc)
+
+		// Inject platform-specific overlay as a higher-priority document.
+		if platform != "" {
+			if overlay := extractPlatformOverlay(doc, platform); overlay != nil {
+				resolveFilePaths(overlay, filepath.Dir(p))
+				docs = append(docs, overlay)
+			}
+		}
 	}
 
 	// Spruce deep merge: later documents override earlier ones.
@@ -140,7 +184,8 @@ func mergeFiles(preProcess func([]byte) []byte, stackDir string, paths ...string
 
 // LoadSingle loads a single compose file without merging, resolving relative paths.
 // stackDir is the stack project root directory used for expanding the "~~" and "~~~" prefixes.
-func LoadSingle(stackDir, path string) ([]byte, error) {
+// platform is the target OS for x-dargstack.platform overrides.
+func LoadSingle(stackDir, platform, path string) ([]byte, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", path, err)
@@ -157,6 +202,30 @@ func LoadSingle(stackDir, path string) ([]byte, error) {
 	}
 
 	resolveFilePaths(v2doc, filepath.Dir(path))
+
+	// Apply platform overlay if specified.
+	if platform != "" {
+		if overlay := extractPlatformOverlay(v2doc, platform); overlay != nil {
+			resolveFilePaths(overlay, filepath.Dir(path))
+			merged, err := spruce.Merge(v2doc, overlay)
+			if err != nil {
+				return nil, fmt.Errorf("merge platform overlay %s: %w", path, err)
+			}
+			ev := &spruce.Evaluator{Tree: merged}
+			if err := ev.Run(nil, nil); err != nil {
+				return nil, fmt.Errorf("evaluate platform overlay %s: %w", path, err)
+			}
+			v2out, err := yamlv2.Marshal(ev.Tree)
+			if err != nil {
+				return nil, fmt.Errorf("serialize %s: %w", path, err)
+			}
+			var v3doc interface{}
+			if err := yaml.Unmarshal(v2out, &v3doc); err != nil {
+				return nil, fmt.Errorf("re-parse %s: %w", path, err)
+			}
+			return yaml.Marshal(v3doc)
+		}
+	}
 
 	v2out, err := yamlv2.Marshal(v2doc)
 	if err != nil {

@@ -33,6 +33,7 @@ Contributing? See [CONTRIBUTING.md](CONTRIBUTING.md).
   - [Profiles & Performance](#profiles--performance)
   - [Secret Templating](#secret-templating)
   - [Environment Files](#environment-files)
+  - [Platform Overrides](#platform-overrides)
 - [Commands](#commands)
 
 ---
@@ -331,6 +332,43 @@ x-dargstack:
 ### Environment Files
 
 `.env` files use `KEY=VALUE` format. During deploy, missing values are prompted. Production blocks on missing values.
+
+### Platform Overrides
+
+dargstack is linux-first. When running on macOS, some compose configurations are invalid or undesirable: volume mounts referencing Linux-only paths (`/dev/disk/by-id/`, `/dev/kmsg`), `privileged: true` where not needed, or services like `cadvisor` that depend on Linux kernel features.
+
+Platform overrides live under `x-dargstack.platform.<os>` and use spruce operators to modify the base configuration. Supported platforms: `darwin`, `linux`, `windows`.
+
+```yaml
+services:
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.50.0
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/by-id/:/dev/disk/by-id:ro
+    devices:
+      - /dev/kmsg
+    privileged: true
+
+x-dargstack:
+  platform:
+    darwin:
+      services:
+        cadvisor:
+          volumes:
+            - (( prune ))
+            - /:/rootfs:ro
+            - /var/run:/var/run:ro
+            - /sys:/sys:ro
+          devices:
+            - (( prune ))
+          privileged: false
+```
+
+Multiple platforms can coexist in one file. The active platform is auto-detected via `runtime.GOOS`, or overridden with `--platform darwin`.
 
 ## Commands
 
