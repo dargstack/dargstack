@@ -211,7 +211,11 @@ func generateWithMkcert(certDir string, domains []string) error {
 		return fmt.Errorf("mkcert: %w", err)
 	}
 
-	logger.Success(fmt.Sprintf("TLS certificate generated for %d domain(s)", len(domains)))
+	plural := ""
+	if len(domains) != 1 {
+		plural = "s"
+	}
+	logger.Success(fmt.Sprintf("TLS certificate generated for %d domain%s", len(domains), plural))
 	return nil
 }
 
