@@ -261,6 +261,10 @@ func fetchAndWarnBehind(composeData []byte) []gitBehindInfo {
 		}).
 		Run()
 
+	if len(behind) == 0 && len(dirs) > 0 {
+		logger.Success("All repositories are up to date")
+		return nil
+	}
 	if len(behind) == 0 {
 		return nil
 	}
