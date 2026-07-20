@@ -467,6 +467,59 @@ func TestReadCache_CacheDisabled(t *testing.T) {
 	}
 }
 
+func TestReadCache_StaleAfterUpdate(t *testing.T) {
+	cleanup := testSetup(t)
+	defer cleanup(t)
+
+	// Simulate: user was on 4.6.0, cache recorded 4.7.0 available.
+	// User self-updated to 4.7.0, cache should be treated as stale.
+	currentVersion = func() string { return "4.7.0" }
+	tmpDir := t.TempDir()
+	cacheDirFunc = func() (string, error) { return tmpDir, nil }
+
+	entry := cacheEntry{
+		Available:  true,
+		CheckedAt:  time.Now(),
+		NewVersion: "4.7.0",
+	}
+	data, _ := json.Marshal(entry)
+	path := filepath.Join(tmpDir, cacheFile)
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	result := readCache()
+	if result != nil {
+		t.Errorf("expected nil for stale cache (current version >= cached), got %+v", result)
+	}
+}
+
+func TestReadCache_StaleAfterUpdate_NewerCurrent(t *testing.T) {
+	cleanup := testSetup(t)
+	defer cleanup(t)
+
+	// Current version is newer than cached version.
+	currentVersion = func() string { return "5.0.0" }
+	tmpDir := t.TempDir()
+	cacheDirFunc = func() (string, error) { return tmpDir, nil }
+
+	entry := cacheEntry{
+		Available:  true,
+		CheckedAt:  time.Now(),
+		NewVersion: "4.7.0",
+	}
+	data, _ := json.Marshal(entry)
+	path := filepath.Join(tmpDir, cacheFile)
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	result := readCache()
+	if result != nil {
+		t.Errorf("expected nil for stale cache (current version > cached), got %+v", result)
+	}
+}
+
 func TestWriteAndReadCache(t *testing.T) {
 	cleanup := testSetup(t)
 	defer cleanup(t)

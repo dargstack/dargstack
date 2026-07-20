@@ -259,6 +259,20 @@ func readCache() *CheckResult {
 		return nil
 	}
 
+	// If the cache says an update was available, verify the current version
+	// isn't already at or past that version. This prevents stale cache hits
+	// after a self-update (e.g. user was on 4.6.0, cache says 4.7.0 available,
+	// user updates to 4.7.0, but cache still reports Available=true).
+	if entry.Available && entry.NewVersion != "" {
+		cur, cerr := semver.NewVersion(strings.TrimPrefix(currentVersion(), "v"))
+		cached, cachedErr := semver.NewVersion(entry.NewVersion)
+		if cerr == nil && cachedErr == nil {
+			if cur.GreaterThan(cached) || cur.Equal(cached) {
+				return nil
+			}
+		}
+	}
+
 	return &CheckResult{Available: entry.Available, NewVersion: entry.NewVersion}
 }
 
