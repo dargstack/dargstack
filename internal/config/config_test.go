@@ -322,6 +322,25 @@ func TestCustomDomainOverride(t *testing.T) {
 	}
 }
 
+func TestSchemaFieldIgnored(t *testing.T) {
+	dir := t.TempDir()
+	content := `$schema: "https://dargstack.io/schema/v4/dargstack.json"
+metadata:
+  name: teststack
+`
+	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("should load config with $schema field: %v", err)
+	}
+	if cfg.Metadata.Name != "teststack" {
+		t.Errorf("expected name=teststack, got %s", cfg.Metadata.Name)
+	}
+}
+
 func TestCertificateIncludeExclude(t *testing.T) {
 	dir := t.TempDir()
 	content := `environment:

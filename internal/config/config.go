@@ -56,6 +56,7 @@ func (b *BuildMode) UnmarshalYAML(node *yaml.Node) error {
 }
 
 type Config struct {
+	Schema   string `yaml:"$schema"` // JSON Schema URI — consumed and ignored
 	stackDir string
 
 	Environment EnvironmentConfig `yaml:"environment"`

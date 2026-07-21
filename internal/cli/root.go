@@ -141,6 +141,7 @@ func init() {
 	rootCmd.AddCommand(profilesCmd)
 	rootCmd.AddCommand(rmCmd)
 	rootCmd.AddCommand(secretCmd)
+	rootCmd.AddCommand(schemaCmd)
 	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(validateCmd)
 }
@@ -157,6 +158,7 @@ func isSkippedCommand(cmd *cobra.Command) bool {
 		"help":       true,
 		"init":       true,
 		"initialize": true,
+		"schema":     true,
 		"update":     true,
 	}
 	// Walk up from the leaf command to the first child of root.
