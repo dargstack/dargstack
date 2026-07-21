@@ -3,11 +3,15 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
+	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/resource"
+	"github.com/dargstack/dargstack/v4/internal/schema"
 )
 
 var validateCmd = &cobra.Command{
@@ -16,6 +20,7 @@ var validateCmd = &cobra.Command{
 	Long: `Validate stack resources and configuration.
 
 Checks:
+- dargstack.yaml matches the JSON Schema
 - All secrets files referenced in compose definitions exist
 - All Dockerfile contexts for services with ` + "`dargstack.development.build`" + ` labels are present
 - TLS certificates directory exists for development`,
@@ -25,6 +30,10 @@ Checks:
 func init() {}
 
 func runValidate(cmd *cobra.Command, args []string) error {
+	if err := validateConfigSchema(); err != nil {
+		return err
+	}
+
 	var composeData []byte
 	var err error
 
@@ -58,5 +67,17 @@ func runValidate(cmd *cobra.Command, args []string) error {
 		return errors.New(ErrValidationFailed)
 	}
 
+	return nil
+}
+
+func validateConfigSchema() error {
+	data, err := os.ReadFile(filepath.Join(stackDir, config.ConfigFileName))
+	if err != nil {
+		return fmt.Errorf("read config: %w", err)
+	}
+
+	if err := schema.ValidateYAML(data); err != nil {
+		return fmt.Errorf("dargstack.yaml is invalid:\n%s", err)
+	}
 	return nil
 }

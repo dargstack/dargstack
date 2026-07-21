@@ -9,6 +9,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"go.yaml.in/yaml/v3"
 
+	"github.com/dargstack/dargstack/v4/internal/schema"
 	"github.com/dargstack/dargstack/v4/internal/version"
 )
 
@@ -147,6 +148,10 @@ func Load(stackDir string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", path, err)
+	}
+
+	if err := schema.ValidateYAML(data); err != nil {
+		return nil, fmt.Errorf("schema validation failed for %s:\n%s", path, err)
 	}
 
 	var cfg Config

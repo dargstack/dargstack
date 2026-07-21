@@ -21,7 +21,7 @@ var jsonSchema = `{
       "examples": ["https://dargstack.io/schema/v4/dargstack.json"]
     },
     "metadata": {
-      "type": "object",
+      "type": ["object", "null"],
       "description": "Project metadata and CLI compatibility constraints",
       "properties": {
         "name": {
@@ -34,7 +34,7 @@ var jsonSchema = `{
           "examples": [">=4.0.0 <5.0.0"]
         },
         "source": {
-          "type": "object",
+          "type": ["object", "null"],
           "description": "Optional source repository metadata",
           "properties": {
             "name": {
@@ -48,12 +48,26 @@ var jsonSchema = `{
             }
           },
           "additionalProperties": false
+        },
+        "external_services": {
+          "type": ["object", "null"],
+          "description": "External services consumed by the stack",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string",
+                "description": "Human-readable service description"
+              }
+            },
+            "additionalProperties": false
+          }
         }
       },
       "additionalProperties": false
     },
     "runtime": {
-      "type": "object",
+      "type": ["object", "null"],
       "description": "CLI runtime behavior configuration",
       "properties": {
         "sudo": {
@@ -63,7 +77,7 @@ var jsonSchema = `{
           "default": "auto"
         },
         "build": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "mode": {
               "type": "string",
@@ -75,10 +89,10 @@ var jsonSchema = `{
           "additionalProperties": false
         },
         "deploy": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "volumes": {
-              "type": "object",
+              "type": ["object", "null"],
               "properties": {
                 "prompt": {
                   "type": "boolean",
@@ -95,11 +109,11 @@ var jsonSchema = `{
       "additionalProperties": false
     },
     "environment": {
-      "type": "object",
+      "type": ["object", "null"],
       "description": "Per-environment configuration",
       "properties": {
         "development": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "domain": {
               "type": "string",
@@ -107,7 +121,7 @@ var jsonSchema = `{
               "default": "app.localhost"
             },
             "certificate": {
-              "type": "object",
+              "type": ["object", "null"],
               "properties": {
                 "include": {
                   "type": "array",
@@ -126,7 +140,7 @@ var jsonSchema = `{
           "additionalProperties": false
         },
         "production": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "domain": {
               "type": "string",
