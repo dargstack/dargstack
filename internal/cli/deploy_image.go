@@ -59,6 +59,59 @@ func latestGitTag(branch string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
+// gitWorkingTreeDirty reports whether dir has uncommitted changes to tracked
+// files. Untracked files (e.g. generated artifacts) are ignored — git itself
+// refuses a checkout that would clobber one, so that failure surfaces on its
+// own when it matters.
+func gitWorkingTreeDirty(dir string) (bool, error) {
+	cmd := exec.Command("git", "status", "--porcelain", "--untracked-files=no")
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
+	}
+	return strings.TrimSpace(string(out)) != "", nil
+}
+
+func gitCheckout(dir, ref string) error {
+	if strings.HasPrefix(ref, "-") {
+		return fmt.Errorf("invalid git ref %q", ref)
+	}
+	cmd := exec.Command("git", "checkout", "--detach", ref)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
+}
+
+// checkoutDeployTag resolves the production deploy tag (via resolveDeployTag)
+// and checks it out in stackDir so the compose files that get deployed
+// actually match the tagged release, rather than whatever happened to be on
+// disk. The checkout is left in place (detached at the tag) after deploy.
+func checkoutDeployTag() (string, error) {
+	dirty, err := gitWorkingTreeDirty(stackDir)
+	if err != nil {
+		return "", fmt.Errorf("check git working tree status: %w", err)
+	}
+	if dirty {
+		return "", fmt.Errorf("stack directory has uncommitted changes to tracked files — commit or stash them before deploying to production")
+	}
+
+	tag, err := resolveDeployTag()
+	if err != nil {
+		return "", err
+	}
+
+	if err := gitCheckout(stackDir, tag); err != nil {
+		return "", fmt.Errorf("checkout tag %q: %w", tag, err)
+	}
+	logger.L.Info(fmt.Sprintf("Checked out tag %q for production deploy", tag))
+
+	return tag, nil
+}
+
 // buildTask holds the parameters for a single image build.
 type buildTask struct {
 	name        string
