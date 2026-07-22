@@ -95,6 +95,13 @@ func buildProductionCompose() ([]byte, error) {
 		logger.L.Warn(fmt.Sprintf("Failed to rewrite production bind mounts: %v", remapErr))
 	}
 
+	// Strip development-only labels from production compose.
+	if stripped, stripErr := compose.StripProductionDevelopmentLabels(merged); stripErr == nil {
+		merged = stripped
+	} else {
+		logger.L.Warn(fmt.Sprintf("Failed to strip development labels: %v", stripErr))
+	}
+
 	// Merge env files for production
 	devEnv := cfg.DevEnvFile()
 	prodEnv := cfg.ProdEnvFile()
