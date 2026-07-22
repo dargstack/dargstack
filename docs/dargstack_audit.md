@@ -15,10 +15,9 @@ dargstack audit [timestamp] [flags]
 ### Options
 
 ```
-      --difference           show diff between current and last deployed
-      --environment string   environment to audit (development or production) (default "development")
-  -h, --help                 help for audit
-      --list                 list all past deployments
+      --difference   show diff between current and last deployed
+  -h, --help         help for audit
+      --list         list all past deployments
 ```
 
 ### Options inherited from parent commands
@@ -26,6 +25,7 @@ dargstack audit [timestamp] [flags]
 ```
   -c, --configuration string   path to stack directory (default: auto-detect)
   -d, --dry-run                trace all steps without executing
+  -e, --environment string     environment to operate on: development|production (default "development")
   -f, --format string          output format for compatible commands: table|json (default "table")
   -l, --log-level string       log level: error, warn, info, debug (default "info")
   -n, --no-interaction         disable interactive prompts
