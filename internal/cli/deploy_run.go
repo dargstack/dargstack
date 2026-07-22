@@ -245,15 +245,34 @@ func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun
 		if len(images) > 0 {
 			logger.L.Info(fmt.Sprintf("[dry-run] Would check image accessibility for: %s", strings.Join(images, ", ")))
 		}
-	} else {
-		if len(images) > 0 {
-			unreachable := docker.CheckImagesAccessible(executor, images)
-			if len(unreachable) > 0 {
-				for img := range unreachable {
-					logger.L.Error(fmt.Sprintf("image not accessible: %s", img))
-				}
-				return nil, fmt.Errorf("one or more images are not accessible — fix registry credentials or image references before deploying")
+	} else if len(images) > 0 {
+		if verbose {
+			logger.L.Info(fmt.Sprintf("Checking image accessibility for %d image(s) in parallel: %s", len(images), strings.Join(images, ", ")))
+		}
+
+		var unreachable map[string]error
+		checkImages := func() {
+			unreachable = docker.CheckImagesAccessible(executor, images)
+		}
+
+		if verbose {
+			checkImages()
+		} else {
+			if err := spinner.New().Title("Checking image accessibility").Action(checkImages).Run(); err != nil {
+				return nil, err
 			}
+		}
+
+		if len(unreachable) > 0 {
+			unreachableImages := make([]string, 0, len(unreachable))
+			for img := range unreachable {
+				unreachableImages = append(unreachableImages, img)
+			}
+			sort.Strings(unreachableImages)
+			for _, img := range unreachableImages {
+				logger.L.Error(fmt.Sprintf("image not accessible: %s: %v", img, unreachable[img]))
+			}
+			return nil, fmt.Errorf("one or more images are not accessible — fix registry credentials or image references before deploying")
 		}
 	}
 
