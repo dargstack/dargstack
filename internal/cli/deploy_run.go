@@ -189,7 +189,7 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 	}
 
 	// Fetch build-context repos and warn if behind
-	if !dryRun {
+	if !dryRun && !offline {
 		behindRepos := fetchAndWarnBehind(composeData)
 		printBehindWarning(behindRepos)
 	}
@@ -244,6 +244,10 @@ func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun
 	if dryRun {
 		if len(images) > 0 {
 			logger.L.Info(fmt.Sprintf("[dry-run] Would check image accessibility for: %s", strings.Join(images, ", ")))
+		}
+	} else if offline {
+		if len(images) > 0 {
+			logger.L.Info("Skipping image accessibility check (--offline)")
 		}
 	} else if len(images) > 0 {
 		if verbose {
