@@ -128,6 +128,7 @@ func init() {
 	rootCmd.PersistentFlags().StringSliceVarP(&profiles, "profiles", "p", nil, FlagDescProfiles)
 	rootCmd.PersistentFlags().StringSliceVarP(&services, "services", "s", nil, "filter to specific services")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	_ = rootCmd.PersistentFlags().MarkHidden("verbose")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "info", "log level: error, warn, info, debug")
 
 	rootCmd.AddCommand(auditCmd)
