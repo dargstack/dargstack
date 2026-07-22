@@ -322,13 +322,9 @@ func deployExecute(executor *docker.Executor, composeData []byte, env string, dr
 		logger.L.Info("[dry-run] Would save deployment snapshot to audit log")
 	} else {
 		auditDir := audit.AuditLogDir(stackDir)
-		var auditPath string
 		if snapPath, saveErr := audit.SaveDeployment(auditDir, env, composeData); saveErr == nil {
-			auditPath = snapPath
-			if verbose {
-				logger.L.Info(fmt.Sprintf("Deployment snapshot: %s", auditPath))
-			}
-		} else if verbose {
+			logger.L.Debug(fmt.Sprintf("Deployment snapshot: %s", snapPath))
+		} else {
 			logger.L.Warn(fmt.Sprintf("Failed to save audit snapshot: %v", saveErr))
 		}
 	}
