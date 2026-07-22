@@ -96,10 +96,9 @@ func buildProductionCompose() ([]byte, error) {
 	}
 
 	// Strip development-only labels from production compose.
-	if stripped, stripErr := compose.StripProductionDevelopmentLabels(merged); stripErr == nil {
-		merged = stripped
-	} else {
-		logger.L.Warn(fmt.Sprintf("Failed to strip development labels: %v", stripErr))
+	merged, err = compose.StripProductionDevelopmentLabels(merged)
+	if err != nil {
+		return nil, fmt.Errorf("strip development labels: %w", err)
 	}
 
 	// Merge env files for production
