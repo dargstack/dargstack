@@ -1,25 +1,31 @@
-## dargstack validate
+## dargstack schema
 
-Validate stack resources
+Print the dargstack.yaml JSON Schema
 
 ### Synopsis
 
-Validate stack resources and configuration.
+Print the JSON Schema for dargstack.yaml to stdout.
 
-Checks:
-- dargstack.yaml matches the JSON Schema
-- All secrets files referenced in compose definitions exist
-- All Dockerfile contexts for services with `dargstack.development.build` labels are present
-- TLS certificates directory exists for development
+The schema can be used for IDE autocomplete and validation.
+
+For IDE integration, save the schema locally and configure your editor:
+
+  dargstack schema --save
+
+Then point your editor's YAML language server to the saved file, or add
+a $schema field to your dargstack.yaml:
+
+  $schema: "file:///home/user/.local/share/schemas/dargstack.json"
 
 ```
-dargstack validate [flags]
+dargstack schema [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for validate
+  -h, --help                                                    help for schema
+      --save string[="~/.local/share/schemas/dargstack.json"]   Save schema to a file for IDE integration
 ```
 
 ### Options inherited from parent commands

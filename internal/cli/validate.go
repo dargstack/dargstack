@@ -16,6 +16,7 @@ var validateCmd = &cobra.Command{
 	Long: `Validate stack resources and configuration.
 
 Checks:
+- dargstack.yaml matches the JSON Schema
 - All secrets files referenced in compose definitions exist
 - All Dockerfile contexts for services with ` + "`dargstack.development.build`" + ` labels are present
 - TLS certificates directory exists for development`,

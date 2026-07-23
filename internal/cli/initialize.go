@@ -13,6 +13,7 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/giturl"
 	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
+	"github.com/dargstack/dargstack/v4/internal/schema"
 )
 
 var configOnly bool
@@ -480,6 +481,9 @@ greeting: Hello from production!
 
 func generateConfigTemplate(name string) string {
 	return fmt.Sprintf(`# Dargstack configuration file
+# $schema: "https://dargstack.io/schema/%s/dargstack.json"
+# For IDE validation without a webserver: run "dargstack schema --save"
+# and point your editor at the saved file.
 
 metadata:
   name: %q # optional, defaults to parent directory name
@@ -510,5 +514,5 @@ environment:
     domain: app.localhost # optional, defaults to "app.localhost"
     branch: main # optional, defaults to "main"
     # tag: 1.0.0 # optional, defaults to auto-detection
-`, name, name, name)
+`, schema.SchemaVersion(), name, name, name)
 }

@@ -146,6 +146,7 @@ func init() {
 	rootCmd.AddCommand(profilesCmd)
 	rootCmd.AddCommand(rmCmd)
 	rootCmd.AddCommand(secretCmd)
+	rootCmd.AddCommand(schemaCmd)
 	rootCmd.AddCommand(skillCmd)
 	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(validateCmd)
@@ -180,6 +181,7 @@ func isSkippedCommand(cmd *cobra.Command) bool {
 		"help":       true,
 		"init":       true,
 		"initialize": true,
+		"schema":     true,
 		"skill":      true,
 		"update":     true,
 	}

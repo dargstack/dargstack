@@ -9,6 +9,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"go.yaml.in/yaml/v3"
 
+	"github.com/dargstack/dargstack/v4/internal/schema"
 	"github.com/dargstack/dargstack/v4/internal/version"
 )
 
@@ -90,6 +91,7 @@ func (s *SkillInstallMode) UnmarshalYAML(node *yaml.Node) error {
 }
 
 type Config struct {
+	Schema   string `yaml:"$schema"` // JSON Schema URI — consumed and ignored
 	stackDir string
 
 	Environment EnvironmentConfig `yaml:"environment"`
@@ -208,6 +210,10 @@ func Load(stackDir string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", path, err)
+	}
+
+	if err := schema.ValidateYAML(data); err != nil {
+		return nil, fmt.Errorf("schema validation failed for %s:\n%w", path, err)
 	}
 
 	var cfg Config
