@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/giturl"
 	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
@@ -131,6 +132,15 @@ func cloneProject(url, target string) error {
 		return fmt.Errorf("git clone: %w", err)
 	}
 	logger.Success(fmt.Sprintf("Project cloned into %s", displayTarget))
+
+	stackDir, detectErr := config.DetectStackDirIn(target)
+	if detectErr == nil {
+		projectCfg, cfgErr := config.Load(stackDir)
+		if cfgErr == nil {
+			autoInstallSkill(projectCfg)
+		}
+	}
+
 	logger.L.Info("Run `cd` into the directory and then `dargstack deploy` to start.")
 	return nil
 }
@@ -226,6 +236,12 @@ func bootstrapProject(name, target string) error {
 	}
 
 	logger.Success(fmt.Sprintf("Project %q bootstrapped at %s", name, stackDir))
+
+	projectCfg, cfgErr := config.Load(stackDir)
+	if cfgErr == nil {
+		autoInstallSkill(projectCfg)
+	}
+
 	logger.L.Info(fmt.Sprintf("Next steps:\n  cd %s\n  dargstack deploy", stackDir))
 	return nil
 }
@@ -431,11 +447,11 @@ greeting: Hello from dargstack!
 // initHelloProdCompose is the production overlay for the example hello service.
 // It demonstrates the three most useful Spruce merge operators:
 //   - plain key overwrite (image tag)
-//   - (( purge )) to remove a development-only key
+//   - (( prune )) to remove a development-only key
 //   - (( append )) to extend a list without replacing it
 const initHelloProdCompose = `# Production overrides for the hello service.
 # Spruce operators used here:
-#   (( purge ))  — remove this key from the merged result
+#   (( prune ))  — remove this key from the merged result
 #   (( append )) — append to the list instead of replacing it
 # All other keys simply overwrite the development value.
 
@@ -450,7 +466,7 @@ secrets:
 services:
   hello:
     image: %s/hello:latest   # overwrite: pin to a versioned release tag
-    ports: (( purge ))       # purge: no direct port binding in production (use an ingress)
+    ports: (( prune ))       # purge: no direct port binding in production (use an ingress)
     deploy:
       labels:
         - (( append ))       # append: keep existing dev labels and add new ones

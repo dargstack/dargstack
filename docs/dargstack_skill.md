@@ -1,21 +1,22 @@
-## dargstack update
+## dargstack skill
 
-Update dargstack to the latest version
+Manage the dargstack AI agent skill
 
 ### Synopsis
 
-Downloads and installs the latest release of dargstack. Requires --self flag.
+Manage the dargstack AI agent skill.
 
-```
-dargstack update [flags]
-```
+The skill teaches AI agents about dargstack conventions: project structure,
+spruce operators, secret templating, label semantics, and deploy workflow.
+
+Install the skill globally (~/.agents/skills/dargstack/) or project-local
+(.agents/skills/dargstack/) with --project.
 
 ### Options
 
 ```
-  -h, --help       help for update
-      --no-skill   skip updating the agent skill
-      --self       update dargstack itself
+  -h, --help      help for skill
+      --project   use project-local .agents/skills/ instead of global ~/.agents/skills/
 ```
 
 ### Options inherited from parent commands
@@ -36,4 +37,8 @@ dargstack update [flags]
 ### SEE ALSO
 
 * [dargstack](dargstack.md)	 - Docker stack helper CLI
+* [dargstack skill install](dargstack_skill_install.md)	 - Install the dargstack agent skill
+* [dargstack skill status](dargstack_skill_status.md)	 - Show the status of the installed dargstack agent skill
+* [dargstack skill uninstall](dargstack_skill_uninstall.md)	 - Uninstall the dargstack agent skill
+* [dargstack skill update](dargstack_skill_update.md)	 - Update the dargstack agent skill to the current bundled version
 
