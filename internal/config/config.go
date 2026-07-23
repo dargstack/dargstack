@@ -55,6 +55,40 @@ func (b *BuildMode) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
+type SkillInstallMode string
+
+const (
+	SkillInstallAuto SkillInstallMode = "auto"
+	SkillInstallOnce SkillInstallMode = "once"
+	SkillInstallOff  SkillInstallMode = "off"
+)
+
+func (s *SkillInstallMode) UnmarshalYAML(node *yaml.Node) error {
+	var v interface{}
+	if err := node.Decode(&v); err != nil {
+		return err
+	}
+
+	switch raw := v.(type) {
+	case bool:
+		if raw {
+			*s = SkillInstallAuto
+		} else {
+			*s = SkillInstallOff
+		}
+	case string:
+		switch SkillInstallMode(raw) {
+		case SkillInstallAuto, SkillInstallOnce, SkillInstallOff:
+			*s = SkillInstallMode(raw)
+		default:
+			return fmt.Errorf("invalid skill install mode %q: must be auto, once, or off", raw)
+		}
+	default:
+		return fmt.Errorf("invalid skill install mode: expected bool or string, got %T", v)
+	}
+	return nil
+}
+
 type Config struct {
 	stackDir string
 
@@ -79,9 +113,14 @@ type SourceConfig struct {
 	URL  string `yaml:"url"`
 }
 
+type SkillConfig struct {
+	Install SkillInstallMode `yaml:"install"`
+}
+
 type RuntimeConfig struct {
 	Build  BuildConfig  `yaml:"build"`
 	Deploy DeployConfig `yaml:"deploy"`
+	Skill  SkillConfig  `yaml:"skill"`
 	Sudo   SudoMode     `yaml:"sudo"`
 }
 
@@ -192,6 +231,9 @@ func (c *Config) applyDefaults() {
 	}
 	if c.Environment.Development.Domain == "" {
 		c.Environment.Development.Domain = "app.localhost"
+	}
+	if c.Runtime.Skill.Install == "" {
+		c.Runtime.Skill.Install = SkillInstallAuto
 	}
 }
 
