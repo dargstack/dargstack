@@ -146,6 +146,7 @@ func init() {
 	rootCmd.AddCommand(profilesCmd)
 	rootCmd.AddCommand(rmCmd)
 	rootCmd.AddCommand(secretCmd)
+	rootCmd.AddCommand(skillCmd)
 	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(validateCmd)
 }
@@ -159,6 +160,7 @@ func isUpdateSkippedCommand(cmd *cobra.Command) bool {
 	skipped := map[string]bool{
 		"completion": true,
 		"help":       true,
+		"skill":      true,
 		"update":     true,
 	}
 	for c := cmd; c != nil; c = c.Parent() {
@@ -178,6 +180,7 @@ func isSkippedCommand(cmd *cobra.Command) bool {
 		"help":       true,
 		"init":       true,
 		"initialize": true,
+		"skill":      true,
 		"update":     true,
 	}
 	// Walk up from the leaf command to the first child of root.
