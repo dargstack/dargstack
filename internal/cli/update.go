@@ -7,6 +7,7 @@ import (
 )
 
 var updateSelf bool
+var updateNoSkill bool
 
 var updateCmd = &cobra.Command{
 	Use:   "update",
@@ -17,11 +18,18 @@ var updateCmd = &cobra.Command{
 
 func init() {
 	updateCmd.Flags().BoolVar(&updateSelf, "self", false, "update dargstack itself")
+	updateCmd.Flags().BoolVar(&updateNoSkill, "no-skill", false, "skip updating the agent skill")
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {
 	if !updateSelf {
 		return cmd.Help()
 	}
-	return update.SelfUpdate()
+	if err := update.SelfUpdate(); err != nil {
+		return err
+	}
+	if !updateNoSkill {
+		autoUpdateSkill()
+	}
+	return nil
 }
