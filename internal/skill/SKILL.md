@@ -51,7 +51,7 @@ Service files are deep-merged using [spruce](https://github.com/geofffranks/spru
 
 | Operator | Effect |
 |----------|--------|
-| `(( purge ))` | Remove this key entirely from the merged result |
+| `(( prune ))` | Remove this key entirely from the merged result |
 | `(( append ))` | Append to a list instead of replacing it |
 | `(( merge ))` | Deep merge maps recursively |
 | `(( omit ))` | Skip this key during merge |
@@ -64,7 +64,7 @@ Service files are deep-merged using [spruce](https://github.com/geofffranks/spru
 services:
   api:
     image: ghcr.io/org/api:v1.0.0    # overwrite: pin image tag
-    ports: (( purge ))                # remove direct port binding
+    ports: (( prune ))                # remove direct port binding
     deploy:
       labels:
         - (( append ))                # keep dev labels, add new ones

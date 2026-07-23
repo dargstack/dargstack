@@ -130,9 +130,11 @@ func Install(skillDir string) (updated, userModified bool, err error) {
 		}
 	}
 
-	// Check if already up to date.
+	// Check if already up to date and skill file still exists.
 	if existingMeta != nil && existingMeta.SHA256 == bHash {
-		return false, false, nil
+		if _, statErr := os.Stat(skillPath); statErr == nil {
+			return false, false, nil
+		}
 	}
 
 	// Create directory if needed.
@@ -163,9 +165,7 @@ func Uninstall(skillDir string) error {
 	if meta == nil {
 		return fmt.Errorf("skill is not installed (no metadata found)")
 	}
-	if !IsInstalled(skillDir) {
-		return fmt.Errorf("skill is not installed (missing %s)", skillFileName)
-	}
+	// Allow uninstall to clean up partial installs even if SKILL.md is missing.
 	if err := os.RemoveAll(skillDir); err != nil {
 		return fmt.Errorf("remove skill directory: %w", err)
 	}
@@ -182,8 +182,26 @@ func Update(skillDir string) (bool, error) {
 	if meta == nil {
 		return false, fmt.Errorf("skill is not installed at %s", skillDir)
 	}
-	updated, _, err := Install(skillDir)
-	return updated, err
+
+	updated, userModified, err := Install(skillDir)
+	if err != nil {
+		return false, err
+	}
+	if !userModified {
+		return updated, nil
+	}
+	// Explicit update should overwrite user modifications.
+	bHash := BundledHash()
+	if err := os.MkdirAll(skillDir, 0o755); err != nil {
+		return false, fmt.Errorf("create skill directory: %w", err)
+	}
+	if err := os.WriteFile(SkillFilePath(skillDir), []byte(bundledSkill), 0o644); err != nil {
+		return false, fmt.Errorf("write skill file: %w", err)
+	}
+	if err := WriteMeta(skillDir, BundledVersion(), bHash); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // StatusInfo holds the status of an installed skill.

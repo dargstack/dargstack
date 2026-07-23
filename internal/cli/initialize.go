@@ -447,11 +447,11 @@ greeting: Hello from dargstack!
 // initHelloProdCompose is the production overlay for the example hello service.
 // It demonstrates the three most useful Spruce merge operators:
 //   - plain key overwrite (image tag)
-//   - (( purge )) to remove a development-only key
+//   - (( prune )) to remove a development-only key
 //   - (( append )) to extend a list without replacing it
 const initHelloProdCompose = `# Production overrides for the hello service.
 # Spruce operators used here:
-#   (( purge ))  — remove this key from the merged result
+#   (( prune ))  — remove this key from the merged result
 #   (( append )) — append to the list instead of replacing it
 # All other keys simply overwrite the development value.
 
@@ -466,7 +466,7 @@ secrets:
 services:
   hello:
     image: %s/hello:latest   # overwrite: pin to a versioned release tag
-    ports: (( purge ))       # purge: no direct port binding in production (use an ingress)
+    ports: (( prune ))       # purge: no direct port binding in production (use an ingress)
     deploy:
       labels:
         - (( append ))       # append: keep existing dev labels and add new ones
