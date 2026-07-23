@@ -68,13 +68,17 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		// Start the update check for all commands except meta-commands where
+		// a background network call would be inappropriate.
+		if !offline && !isUpdateSkippedCommand(cmd) {
+			update.BackgroundCheck()
+		}
+
 		// Skip config loading for commands that don't need a stack project.
 		// Walk up to the first subcommand (child of root) to check.
 		if isSkippedCommand(cmd) {
 			return nil
 		}
-
-		update.BackgroundCheck()
 
 		var err error
 		if cfgPath != "" {
@@ -128,6 +132,7 @@ func init() {
 	rootCmd.PersistentFlags().StringSliceVarP(&profiles, "profiles", "p", nil, FlagDescProfiles)
 	rootCmd.PersistentFlags().StringSliceVarP(&services, "services", "s", nil, "filter to specific services")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	_ = rootCmd.PersistentFlags().MarkHidden("verbose")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "info", "log level: error, warn, info, debug")
 
 	rootCmd.AddCommand(auditCmd)
@@ -142,12 +147,30 @@ func init() {
 	rootCmd.AddCommand(rmCmd)
 	rootCmd.AddCommand(secretCmd)
 	rootCmd.AddCommand(schemaCmd)
+	rootCmd.AddCommand(skillCmd)
 	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(validateCmd)
 }
 
 // Root returns the root command for use by external tools such as doc generators.
 func Root() *cobra.Command { return rootCmd }
+
+// isUpdateSkippedCommand returns true for meta-commands where a background
+// network call for an update check would be inappropriate.
+func isUpdateSkippedCommand(cmd *cobra.Command) bool {
+	skipped := map[string]bool{
+		"completion": true,
+		"help":       true,
+		"skill":      true,
+		"update":     true,
+	}
+	for c := cmd; c != nil; c = c.Parent() {
+		if skipped[c.Name()] {
+			return true
+		}
+	}
+	return false
+}
 
 // isSkippedCommand returns true if the command (or its nearest non-root ancestor)
 // is one that doesn't require a stack project directory.
@@ -159,6 +182,7 @@ func isSkippedCommand(cmd *cobra.Command) bool {
 		"init":       true,
 		"initialize": true,
 		"schema":     true,
+		"skill":      true,
 		"update":     true,
 	}
 	// Walk up from the leaf command to the first child of root.

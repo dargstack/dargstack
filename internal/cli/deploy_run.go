@@ -16,6 +16,7 @@ import (
 
 	"github.com/dargstack/dargstack/v4/internal/audit"
 	"github.com/dargstack/dargstack/v4/internal/compose"
+	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/docker"
 	"github.com/dargstack/dargstack/v4/internal/giturl"
 	"github.com/dargstack/dargstack/v4/internal/logger"
@@ -26,6 +27,24 @@ import (
 )
 
 func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *docker.Client, executor *docker.Executor, env string, dryRun bool) error {
+	deployedTag := "unknown"
+	if isProduction() && !dryRun {
+		tag, err := checkoutDeployTag()
+		if err != nil {
+			return fmt.Errorf("resolve and checkout production deploy tag: %w", err)
+		}
+		deployedTag = tag
+
+		// Reload config from the checked-out tag so cfg matches the on-disk state.
+		cfg, err = config.Load(stackDir)
+		if err != nil {
+			return fmt.Errorf("reload config after tag checkout: %w", err)
+		}
+		// Re-apply STACK_DOMAIN from the reloaded config.
+		stackDomain := cfg.Environment.Production.Domain
+		_ = os.Setenv("STACK_DOMAIN", stackDomain)
+	}
+
 	composeData, err := buildComposeData(isProduction())
 	if err != nil {
 		return wrapWithBugHint(err)
@@ -80,7 +99,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		return err
 	}
 
-	if err := deployExecute(executor, composeData, env, dryRun); err != nil {
+	if err := deployExecute(executor, composeData, env, deployedTag, dryRun); err != nil {
 		return err
 	}
 
@@ -189,7 +208,7 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 	}
 
 	// Fetch build-context repos and warn if behind
-	if !dryRun {
+	if !dryRun && !offline {
 		behindRepos := fetchAndWarnBehind(composeData)
 		printBehindWarning(behindRepos)
 	}
@@ -237,37 +256,57 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 	return composeData, nil
 }
 
-// deployPreDeployChecks validates production image accessibility and strips
-// development labels before deployment.
+// deployPreDeployChecks validates production image accessibility.
 func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun bool) ([]byte, error) {
 	images := compose.ExtractServiceImages(composeData)
-	if dryRun {
+	switch {
+	case dryRun:
 		if len(images) > 0 {
 			logger.L.Info(fmt.Sprintf("[dry-run] Would check image accessibility for: %s", strings.Join(images, ", ")))
 		}
-	} else {
+	case offline:
 		if len(images) > 0 {
-			unreachable := docker.CheckImagesAccessible(executor, images)
-			if len(unreachable) > 0 {
-				for img := range unreachable {
-					logger.L.Error(fmt.Sprintf("image not accessible: %s", img))
-				}
-				return nil, fmt.Errorf("one or more images are not accessible — fix registry credentials or image references before deploying")
+			logger.L.Info("Skipping image accessibility check (--offline)")
+		}
+	case len(images) > 0:
+		if verbose {
+			logger.L.Info(fmt.Sprintf("Checking image accessibility for %d image(s) in parallel: %s", len(images), strings.Join(images, ", ")))
+		}
+
+		var unreachable map[string]error
+		checkImages := func() {
+			unreachable = docker.CheckImagesAccessible(executor, images)
+		}
+
+		if verbose {
+			checkImages()
+		} else {
+			if err := spinner.New().Title("Checking image accessibility").Action(checkImages).Run(); err != nil {
+				return nil, err
 			}
+		}
+
+		if len(unreachable) > 0 {
+			unreachableImages := make([]string, 0, len(unreachable))
+			for img := range unreachable {
+				unreachableImages = append(unreachableImages, img)
+			}
+			sort.Strings(unreachableImages)
+			for _, img := range unreachableImages {
+				logger.L.Error(fmt.Sprintf("image not accessible: %s: %v", img, unreachable[img]))
+			}
+			return nil, fmt.Errorf("one or more images are not accessible — fix registry credentials or image references before deploying")
 		}
 	}
 
-	var err error
-	composeData, err = compose.StripProductionDevelopmentLabels(composeData)
-	if err != nil {
-		return nil, wrapWithBugHint(err)
-	}
 	return composeData, nil
 }
 
 // deployExecute prints deploy messaging, saves the audit snapshot, and
-// runs docker stack deploy.
-func deployExecute(executor *docker.Executor, composeData []byte, env string, dryRun bool) error {
+// runs docker stack deploy. tag is the production deploy tag already
+// resolved (and checked out) by the caller; it is "unknown" on dry runs and
+// in development, where no checkout happens.
+func deployExecute(executor *docker.Executor, composeData []byte, env, tag string, dryRun bool) error {
 	if isProduction() {
 		if cfg.Environment.Production.Domain == "app.localhost" {
 			prefix := ""
@@ -275,15 +314,6 @@ func deployExecute(executor *docker.Executor, composeData []byte, env string, dr
 				prefix = "[dry-run] "
 			}
 			logger.L.Warn(prefix + "STACK_DOMAIN is still set to default \"app.localhost\" — set domain in dargstack.yaml for production")
-		}
-		tag := "unknown"
-		if !dryRun {
-			resolvedTag, tagErr := resolveDeployTag()
-			if tagErr != nil {
-				logger.L.Warn(fmt.Sprintf("Deploy tag resolution failed: %v", tagErr))
-			} else {
-				tag = resolvedTag
-			}
 		}
 		if dryRun {
 			logger.L.Info(fmt.Sprintf("[dry-run] Would deploy production stack %q (tag: %s)", cfg.Metadata.Name, tag))
@@ -303,13 +333,9 @@ func deployExecute(executor *docker.Executor, composeData []byte, env string, dr
 		logger.L.Info("[dry-run] Would save deployment snapshot to audit log")
 	} else {
 		auditDir := audit.AuditLogDir(stackDir)
-		var auditPath string
 		if snapPath, saveErr := audit.SaveDeployment(auditDir, env, composeData); saveErr == nil {
-			auditPath = snapPath
-			if verbose {
-				logger.L.Info(fmt.Sprintf("Deployment snapshot: %s", auditPath))
-			}
-		} else if verbose {
+			logger.L.Debug(fmt.Sprintf("Deployment snapshot: %s", snapPath))
+		} else {
 			logger.L.Warn(fmt.Sprintf("Failed to save audit snapshot: %v", saveErr))
 		}
 	}

@@ -344,13 +344,13 @@ metadata:
 func TestCertificateIncludeExclude(t *testing.T) {
 	dir := t.TempDir()
 	content := `environment:
-  development:
-    certificate:
-      exclude:
-        - admin.app.localhost
-      include:
-        - foo.example.com
-        - bar.local
+   development:
+     certificate:
+       exclude:
+         - admin.app.localhost
+       include:
+         - foo.example.com
+         - bar.local
 `
 	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
@@ -369,5 +369,143 @@ func TestCertificateIncludeExclude(t *testing.T) {
 	}
 	if len(cfg.Environment.Development.Certificate.Include) != 2 {
 		t.Fatalf("expected 2 include, got %d", len(cfg.Environment.Development.Certificate.Include))
+	}
+}
+
+func TestDetectStackDirIn(t *testing.T) {
+	dir := t.TempDir()
+	subDir := filepath.Join(dir, "stack", "src", "development")
+	if err := os.MkdirAll(subDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "stack", ConfigFileName), []byte(""), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	found, err := DetectStackDirIn(subDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := filepath.Join(dir, "stack")
+	resolvedFound, _ := filepath.EvalSymlinks(found)
+	resolvedExpected, _ := filepath.EvalSymlinks(expected)
+	if resolvedFound != resolvedExpected {
+		t.Errorf("expected %s, got %s", resolvedExpected, resolvedFound)
+	}
+}
+
+func TestDetectStackDirInNotFound(t *testing.T) {
+	dir := t.TempDir()
+	_, err := DetectStackDirIn(dir)
+	if err == nil {
+		t.Fatal("expected error when config not found")
+	}
+}
+
+func TestSkillInstallModeUnmarshal(t *testing.T) {
+	tests := []struct {
+		name    string
+		yaml    string
+		want    SkillInstallMode
+		wantErr bool
+	}{
+		{"bool true", "runtime:\n  skill:\n    install: true\n", SkillInstallAuto, false},
+		{"bool false", "runtime:\n  skill:\n    install: false\n", SkillInstallOff, false},
+		{"string auto", "runtime:\n  skill:\n    install: auto\n", SkillInstallAuto, false},
+		{"string once", "runtime:\n  skill:\n    install: once\n", SkillInstallOnce, false},
+		{"string off", "runtime:\n  skill:\n    install: off\n", SkillInstallOff, false},
+		{"invalid string", "runtime:\n  skill:\n    install: invalid\n", "", true},
+		{"default", "", SkillInstallAuto, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(tt.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := Load(dir)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.Runtime.Skill.Install != tt.want {
+				t.Errorf("expected %q, got %q", tt.want, cfg.Runtime.Skill.Install)
+			}
+		})
+	}
+}
+
+func TestGlobalConfigLoad(t *testing.T) {
+	// Test with nonexistent file — should return defaults.
+	origHome := os.Getenv("HOME")
+	defer func() { _ = os.Setenv("HOME", origHome) }()
+
+	tmp := t.TempDir()
+	_ = os.Setenv("HOME", tmp)
+
+	cfg, err := LoadGlobalConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Runtime.Skill.Install != SkillInstallAuto {
+		t.Errorf("expected default auto, got %q", cfg.Runtime.Skill.Install)
+	}
+}
+
+func TestGlobalConfigLoadWithFile(t *testing.T) {
+	origHome := os.Getenv("HOME")
+	defer func() { _ = os.Setenv("HOME", origHome) }()
+
+	tmp := t.TempDir()
+	_ = os.Setenv("HOME", tmp)
+
+	configDir := filepath.Join(tmp, ".config", "dargstack")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	content := "runtime:\n  skill:\n    install: once\n"
+	if err := os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := LoadGlobalConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Runtime.Skill.Install != SkillInstallOnce {
+		t.Errorf("expected once, got %q", cfg.Runtime.Skill.Install)
+	}
+}
+
+func TestEffectiveSkillInstall(t *testing.T) {
+	global := &GlobalConfig{}
+	global.applyDefaults()
+	project := &Config{}
+	project.applyDefaults()
+
+	// Both defaults — should return auto.
+	if EffectiveSkillInstall(global, project) != SkillInstallAuto {
+		t.Error("expected auto when both are defaults")
+	}
+
+	// Global is once, project is default — should return once.
+	global.Runtime.Skill.Install = SkillInstallOnce
+	project.Runtime.Skill.Install = SkillInstallAuto
+	if EffectiveSkillInstall(global, project) != SkillInstallOnce {
+		t.Error("expected once when global is once and project is default")
+	}
+
+	// Global is auto, project is off — project wins.
+	global.Runtime.Skill.Install = SkillInstallAuto
+	project.Runtime.Skill.Install = SkillInstallOff
+	if EffectiveSkillInstall(global, project) != SkillInstallOff {
+		t.Error("expected off when project overrides global")
 	}
 }

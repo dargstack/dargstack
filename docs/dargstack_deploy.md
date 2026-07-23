@@ -13,6 +13,8 @@ By default, deploys to the development environment. This includes:
 - Validating all stack resources
 
 Use `--environment production` to deploy to production, which:
+- Checks out the latest git tag on `environment.production.branch` (or the tag from `--tag`/`environment.production.tag`) in the stack directory before building the compose files
+- Blocks deployment if there are uncommitted changes to tracked files in the stack directory
 - Requires all environment variables and secrets to be set
 - Blocks deployment if default insecure secrets are present
 - Includes production-only services
@@ -43,7 +45,6 @@ dargstack deploy [flags]
       --platform string        target platform for compose overrides (default: auto-detect)
   -p, --profiles strings       activate one or more compose profiles (or set COMPOSE_PROFILES env var); unlabeled services are included unless a 'default' profile is defined
   -s, --services strings       filter to specific services
-  -v, --verbose                verbose output
 ```
 
 ### SEE ALSO

@@ -20,7 +20,6 @@ dargstack - simplified, approachable Docker Swarm stack management.
       --platform string        target platform for compose overrides (default: auto-detect)
   -p, --profiles strings       activate one or more compose profiles (or set COMPOSE_PROFILES env var); unlabeled services are included unless a 'default' profile is defined
   -s, --services strings       filter to specific services
-  -v, --verbose                verbose output
 ```
 
 ### SEE ALSO
@@ -36,6 +35,7 @@ dargstack - simplified, approachable Docker Swarm stack management.
 * [dargstack remove](dargstack_remove.md)	 - Remove the deployed stack
 * [dargstack schema](dargstack_schema.md)	 - Print the dargstack.yaml JSON Schema
 * [dargstack secret](dargstack_secret.md)	 - Manage stack secrets
+* [dargstack skill](dargstack_skill.md)	 - Manage the dargstack AI agent skill
 * [dargstack update](dargstack_update.md)	 - Update dargstack to the latest version
 * [dargstack validate](dargstack_validate.md)	 - Validate stack resources
 

@@ -1,26 +1,15 @@
-## dargstack clone
+## dargstack skill update
 
-Clone an existing dargstack project
-
-### Synopsis
-
-Clone an existing dargstack project from a Git URL.
-
-Supports https://, git@, git://, and ssh:// URLs.
-Without arguments, prompts for a Git URL.
-By default, clones into a subdirectory of the current directory named after the repository.
-
-Use --target to specify a different directory for the clone.
+Update the dargstack agent skill to the current bundled version
 
 ```
-dargstack clone [url] [flags]
+dargstack skill update [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help            help for clone
-      --target string   target directory for the clone (default: inferred from URL)
+  -h, --help   help for update
 ```
 
 ### Options inherited from parent commands
@@ -35,10 +24,11 @@ dargstack clone [url] [flags]
   -o, --offline                skip fetching remote resources
       --platform string        target platform for compose overrides (default: auto-detect)
   -p, --profiles strings       activate one or more compose profiles (or set COMPOSE_PROFILES env var); unlabeled services are included unless a 'default' profile is defined
+      --project                use project-local .agents/skills/ instead of global ~/.agents/skills/
   -s, --services strings       filter to specific services
 ```
 
 ### SEE ALSO
 
-* [dargstack](dargstack.md)	 - Docker stack helper CLI
+* [dargstack skill](dargstack_skill.md)	 - Manage the dargstack AI agent skill
 

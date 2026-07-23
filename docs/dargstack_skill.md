@@ -1,26 +1,22 @@
-## dargstack clone
+## dargstack skill
 
-Clone an existing dargstack project
+Manage the dargstack AI agent skill
 
 ### Synopsis
 
-Clone an existing dargstack project from a Git URL.
+Manage the dargstack AI agent skill.
 
-Supports https://, git@, git://, and ssh:// URLs.
-Without arguments, prompts for a Git URL.
-By default, clones into a subdirectory of the current directory named after the repository.
+The skill teaches AI agents about dargstack conventions: project structure,
+spruce operators, secret templating, label semantics, and deploy workflow.
 
-Use --target to specify a different directory for the clone.
-
-```
-dargstack clone [url] [flags]
-```
+Install the skill globally (~/.agents/skills/dargstack/) or project-local
+(.agents/skills/dargstack/) with --project.
 
 ### Options
 
 ```
-  -h, --help            help for clone
-      --target string   target directory for the clone (default: inferred from URL)
+  -h, --help      help for skill
+      --project   use project-local .agents/skills/ instead of global ~/.agents/skills/
 ```
 
 ### Options inherited from parent commands
@@ -41,4 +37,8 @@ dargstack clone [url] [flags]
 ### SEE ALSO
 
 * [dargstack](dargstack.md)	 - Docker stack helper CLI
+* [dargstack skill install](dargstack_skill_install.md)	 - Install the dargstack agent skill
+* [dargstack skill status](dargstack_skill_status.md)	 - Show the status of the installed dargstack agent skill
+* [dargstack skill uninstall](dargstack_skill_uninstall.md)	 - Uninstall the dargstack agent skill
+* [dargstack skill update](dargstack_skill_update.md)	 - Update the dargstack agent skill to the current bundled version
 

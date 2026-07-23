@@ -231,6 +231,125 @@ func TestGitFetchTagsNoRemote(t *testing.T) {
 	}
 }
 
+func TestGitWorkingTreeDirtyClean(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+
+	dirty, err := gitWorkingTreeDirty(dir)
+	if err != nil {
+		t.Fatalf("gitWorkingTreeDirty failed: %v", err)
+	}
+	if dirty {
+		t.Error("expected clean working tree")
+	}
+}
+
+func TestGitWorkingTreeDirtyIgnoresUntracked(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+
+	if err := os.WriteFile(filepath.Join(dir, "untracked.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	dirty, err := gitWorkingTreeDirty(dir)
+	if err != nil {
+		t.Fatalf("gitWorkingTreeDirty failed: %v", err)
+	}
+	if dirty {
+		t.Error("expected untracked files to be ignored")
+	}
+}
+
+func TestGitWorkingTreeDirtyDetectsModifiedTracked(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("changed"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	dirty, err := gitWorkingTreeDirty(dir)
+	if err != nil {
+		t.Fatalf("gitWorkingTreeDirty failed: %v", err)
+	}
+	if !dirty {
+		t.Error("expected modified tracked file to be reported as dirty")
+	}
+}
+
+func TestCheckoutDeployTagChecksOutTag(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v1.0.0")
+
+	// Second commit after the tag so main and v1.0.0 diverge.
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+
+	origDeployTag := deployTag
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	deployTag = "v1.0.0"
+	offline = true
+	cfg = &config.Config{}
+	stackDir = dir
+
+	tag, err := checkoutDeployTag()
+	if err != nil {
+		t.Fatalf("checkoutDeployTag failed: %v", err)
+	}
+	if tag != "v1.0.0" {
+		t.Errorf("expected v1.0.0, got %s", tag)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "file.txt")); !os.IsNotExist(err) {
+		t.Error("expected working tree to reflect v1.0.0, but file.txt from the later commit is present")
+	}
+}
+
+func TestCheckoutDeployTagRejectsDirtyTree(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v1.0.0")
+
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("changed"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	origDeployTag := deployTag
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	deployTag = "v1.0.0"
+	offline = true
+	cfg = &config.Config{}
+	stackDir = dir
+
+	_, err := checkoutDeployTag()
+	if err == nil {
+		t.Fatal("expected error for dirty working tree")
+	}
+}
+
 func TestExtractDargstackBuildContext(t *testing.T) {
 	tests := []struct {
 		name     string
