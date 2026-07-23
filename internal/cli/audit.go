@@ -16,7 +16,6 @@ import (
 
 var (
 	auditDiff bool
-	auditEnv  string
 	auditList bool
 )
 
@@ -31,7 +30,6 @@ Without arguments, shows the latest deployment.`,
 
 func init() {
 	auditCmd.Flags().BoolVar(&auditDiff, "difference", false, "show diff between current and last deployed")
-	auditCmd.Flags().StringVar(&auditEnv, "environment", "development", "environment to audit (development or production)")
 	auditCmd.Flags().BoolVar(&auditList, "list", false, "list all past deployments")
 }
 
@@ -48,7 +46,7 @@ func runAudit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Show latest deployment
-	dep, err := audit.LatestDeployment(auditDir, auditEnv)
+	dep, err := audit.LatestDeployment(auditDir, env)
 	if err != nil {
 		logger.L.Info("No previous deployments found — run `dargstack deploy` first to create a deployment snapshot.")
 		return nil

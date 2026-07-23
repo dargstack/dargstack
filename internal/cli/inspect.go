@@ -22,6 +22,5 @@ var inspectCmd = &cobra.Command{
 
 func init() {
 	inspectCmd.Flags().BoolVar(&auditDiff, "difference", false, "show diff between current and last deployed")
-	inspectCmd.Flags().StringVar(&auditEnv, "environment", "development", "environment to audit (development or production)")
 	inspectCmd.Flags().BoolVar(&auditList, "list", false, "list all past deployments")
 }

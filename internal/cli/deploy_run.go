@@ -237,8 +237,7 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 	return composeData, nil
 }
 
-// deployPreDeployChecks validates production image accessibility and strips
-// development labels before deployment.
+// deployPreDeployChecks validates production image accessibility.
 func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun bool) ([]byte, error) {
 	images := compose.ExtractServiceImages(composeData)
 	if dryRun {
@@ -276,11 +275,6 @@ func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun
 		}
 	}
 
-	var err error
-	composeData, err = compose.StripProductionDevelopmentLabels(composeData)
-	if err != nil {
-		return nil, wrapWithBugHint(err)
-	}
 	return composeData, nil
 }
 

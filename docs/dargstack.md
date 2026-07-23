@@ -20,7 +20,6 @@ dargstack - simplified, approachable Docker Swarm stack management.
       --platform string        target platform for compose overrides (default: auto-detect)
   -p, --profiles strings       activate one or more compose profiles (or set COMPOSE_PROFILES env var); unlabeled services are included unless a 'default' profile is defined
   -s, --services strings       filter to specific services
-  -v, --verbose                verbose output
 ```
 
 ### SEE ALSO
