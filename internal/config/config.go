@@ -179,6 +179,29 @@ func DetectStackDir() (string, error) {
 	}
 }
 
+// DetectStackDirIn searches for dargstack.yaml starting from the given
+// directory, walking up to its root. Unlike DetectStackDir, it does not
+// use the current working directory.
+func DetectStackDirIn(startDir string) (string, error) {
+	dir, err := filepath.Abs(startDir)
+	if err != nil {
+		return "", fmt.Errorf("resolve directory: %w", err)
+	}
+
+	for {
+		candidate := filepath.Join(dir, ConfigFileName)
+		if _, err := os.Stat(candidate); err == nil {
+			return dir, nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", fmt.Errorf("%s not found in %s or any parent", ConfigFileName, startDir)
+		}
+		dir = parent
+	}
+}
+
 func Load(stackDir string) (*Config, error) {
 	path := filepath.Join(stackDir, ConfigFileName)
 

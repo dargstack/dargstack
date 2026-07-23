@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/giturl"
 	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/prompt"
@@ -131,6 +132,15 @@ func cloneProject(url, target string) error {
 		return fmt.Errorf("git clone: %w", err)
 	}
 	logger.Success(fmt.Sprintf("Project cloned into %s", displayTarget))
+
+	stackDir, detectErr := config.DetectStackDirIn(target)
+	if detectErr == nil {
+		projectCfg, cfgErr := config.Load(stackDir)
+		if cfgErr == nil {
+			autoInstallSkill(projectCfg)
+		}
+	}
+
 	logger.L.Info("Run `cd` into the directory and then `dargstack deploy` to start.")
 	return nil
 }
@@ -226,6 +236,12 @@ func bootstrapProject(name, target string) error {
 	}
 
 	logger.Success(fmt.Sprintf("Project %q bootstrapped at %s", name, stackDir))
+
+	projectCfg, cfgErr := config.Load(stackDir)
+	if cfgErr == nil {
+		autoInstallSkill(projectCfg)
+	}
+
 	logger.L.Info(fmt.Sprintf("Next steps:\n  cd %s\n  dargstack deploy", stackDir))
 	return nil
 }

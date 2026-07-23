@@ -325,13 +325,13 @@ func TestCustomDomainOverride(t *testing.T) {
 func TestCertificateIncludeExclude(t *testing.T) {
 	dir := t.TempDir()
 	content := `environment:
-  development:
-    certificate:
-      exclude:
-        - admin.app.localhost
-      include:
-        - foo.example.com
-        - bar.local
+   development:
+     certificate:
+       exclude:
+         - admin.app.localhost
+       include:
+         - foo.example.com
+         - bar.local
 `
 	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
@@ -350,6 +350,36 @@ func TestCertificateIncludeExclude(t *testing.T) {
 	}
 	if len(cfg.Environment.Development.Certificate.Include) != 2 {
 		t.Fatalf("expected 2 include, got %d", len(cfg.Environment.Development.Certificate.Include))
+	}
+}
+
+func TestDetectStackDirIn(t *testing.T) {
+	dir := t.TempDir()
+	subDir := filepath.Join(dir, "stack", "src", "development")
+	if err := os.MkdirAll(subDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "stack", ConfigFileName), []byte(""), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	found, err := DetectStackDirIn(subDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := filepath.Join(dir, "stack")
+	resolvedFound, _ := filepath.EvalSymlinks(found)
+	resolvedExpected, _ := filepath.EvalSymlinks(expected)
+	if resolvedFound != resolvedExpected {
+		t.Errorf("expected %s, got %s", resolvedExpected, resolvedFound)
+	}
+}
+
+func TestDetectStackDirInNotFound(t *testing.T) {
+	dir := t.TempDir()
+	_, err := DetectStackDirIn(dir)
+	if err == nil {
+		t.Fatal("expected error when config not found")
 	}
 }
 
