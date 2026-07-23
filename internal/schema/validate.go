@@ -56,13 +56,20 @@ type SchemaError struct {
 func (e *SchemaError) Error() string { return e.detail }
 
 func formatErrors(errs error, prefix string) string {
-	var lines []string
-	agg := errs.(*jsonschema.ValidationError)
-	lines = appendValidationErrors(lines, agg, prefix)
-	for _, sub := range agg.Causes {
-		lines = appendValidationErrors(lines, sub, prefix)
+	ve, ok := errs.(*jsonschema.ValidationError)
+	if !ok {
+		return errs.Error()
 	}
+	lines := flattenValidationErrors(nil, ve, prefix)
 	return strings.Join(lines, "\n")
+}
+
+func flattenValidationErrors(lines []string, err *jsonschema.ValidationError, prefix string) []string {
+	lines = appendValidationErrors(lines, err, prefix)
+	for _, sub := range err.Causes {
+		lines = flattenValidationErrors(lines, sub, prefix)
+	}
+	return lines
 }
 
 func appendValidationErrors(lines []string, err *jsonschema.ValidationError, prefix string) []string {
@@ -70,7 +77,12 @@ func appendValidationErrors(lines []string, err *jsonschema.ValidationError, pre
 	if err.InstanceLocation != "" {
 		loc = prefix + err.InstanceLocation
 	}
-	msg := strings.TrimPrefix(err.Message, err.InstanceLocation)
-	lines = append(lines, fmt.Sprintf("%s: %s", strings.TrimPrefix(loc, "/"), strings.TrimSpace(msg)))
+	msg := strings.TrimSpace(strings.TrimPrefix(err.Message, err.InstanceLocation))
+	loc = strings.TrimPrefix(loc, "/")
+	if loc == "" {
+		lines = append(lines, msg)
+		return lines
+	}
+	lines = append(lines, fmt.Sprintf("%s: %s", loc, msg))
 	return lines
 }

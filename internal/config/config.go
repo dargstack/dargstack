@@ -151,7 +151,7 @@ func Load(stackDir string) (*Config, error) {
 	}
 
 	if err := schema.ValidateYAML(data); err != nil {
-		return nil, fmt.Errorf("schema validation failed for %s:\n%s", path, err)
+		return nil, fmt.Errorf("schema validation failed for %s:\n%w", path, err)
 	}
 
 	var cfg Config

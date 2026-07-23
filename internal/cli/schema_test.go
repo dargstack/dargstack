@@ -9,7 +9,12 @@ import (
 )
 
 func TestSchemaCommandOutput(t *testing.T) {
+	oldSave := schemaSave
+	schemaSave = ""
+	t.Cleanup(func() { schemaSave = oldSave })
+
 	cmd := schemaCmd
+	_ = cmd.Flags().Set("save", "")
 	buf := new(bytes.Buffer)
 	cmd.SetOut(buf)
 	cmd.SetErr(buf)
@@ -32,6 +37,13 @@ func TestSchemaCommandOutput(t *testing.T) {
 }
 
 func TestSchemaSave(t *testing.T) {
+	oldSave := schemaSave
+	schemaSave = ""
+	t.Cleanup(func() {
+		schemaSave = oldSave
+		_ = schemaCmd.Flags().Set("save", "")
+	})
+
 	dir := t.TempDir()
 	savePath := filepath.Join(dir, "schema.json")
 
@@ -40,7 +52,7 @@ func TestSchemaSave(t *testing.T) {
 	cmd.SetOut(buf)
 	cmd.SetErr(buf)
 
-	err := cmd.ParseFlags([]string{"--save", savePath})
+	err := cmd.Flags().Set("save", savePath)
 	if err != nil {
 		t.Fatalf("parse flags failed: %v", err)
 	}

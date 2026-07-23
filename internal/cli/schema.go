@@ -32,7 +32,16 @@ a $schema field to your dargstack.yaml:
 }
 
 func init() {
-	schemaCmd.Flags().StringVar(&schemaSave, "save", "", "Save schema to a file for IDE integration (default: ~/.local/share/schemas/dargstack.json)")
+	displayPath := "~/.local/share/schemas/dargstack.json"
+	defaultPath := ""
+	if home, err := os.UserHomeDir(); err == nil {
+		defaultPath = filepath.Join(home, ".local", "share", "schemas", "dargstack.json")
+		displayPath = defaultPath
+	}
+	schemaCmd.Flags().StringVar(&schemaSave, "save", "", fmt.Sprintf("Save schema to a file for IDE integration (default: %s)", displayPath))
+	if f := schemaCmd.Flags().Lookup("save"); f != nil && defaultPath != "" {
+		f.NoOptDefVal = defaultPath // allow `--save` without an explicit value
+	}
 }
 
 func runSchema(cmd *cobra.Command, _ []string) error {
@@ -51,13 +60,15 @@ func runSchema(cmd *cobra.Command, _ []string) error {
 		if err != nil {
 			return fmt.Errorf("create file: %w", err)
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		enc := json.NewEncoder(f)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(v); err != nil {
 			return err
 		}
-		fmt.Fprintln(cmd.ErrOrStderr(), "Schema saved to", schemaSave)
+		if _, err := fmt.Fprintln(cmd.ErrOrStderr(), "Schema saved to", schemaSave); err != nil {
+			return err
+		}
 		return nil
 	}
 
