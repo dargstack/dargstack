@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -32,16 +33,22 @@ a $schema field to your dargstack.yaml:
 }
 
 func init() {
-	displayPath := "~/.local/share/schemas/dargstack.json"
-	defaultPath := ""
-	if home, err := os.UserHomeDir(); err == nil {
-		defaultPath = filepath.Join(home, ".local", "share", "schemas", "dargstack.json")
-		displayPath = defaultPath
+	schemaCmd.Flags().StringVar(&schemaSave, "save", "", "Save schema to a file for IDE integration")
+	if f := schemaCmd.Flags().Lookup("save"); f != nil {
+		f.NoOptDefVal = "~/.local/share/schemas/dargstack.json" // allow `--save` without an explicit value
 	}
-	schemaCmd.Flags().StringVar(&schemaSave, "save", "", fmt.Sprintf("Save schema to a file for IDE integration (default: %s)", displayPath))
-	if f := schemaCmd.Flags().Lookup("save"); f != nil && defaultPath != "" {
-		f.NoOptDefVal = defaultPath // allow `--save` without an explicit value
+}
+
+func resolveSavePath(p string) string {
+	if p == "" {
+		return ""
 	}
+	if strings.HasPrefix(p, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, p[2:])
+		}
+	}
+	return p
 }
 
 func runSchema(cmd *cobra.Command, _ []string) error {
@@ -53,6 +60,7 @@ func runSchema(cmd *cobra.Command, _ []string) error {
 	}
 
 	if schemaSave != "" {
+		schemaSave = resolveSavePath(schemaSave)
 		if err := os.MkdirAll(filepath.Dir(schemaSave), 0o755); err != nil {
 			return fmt.Errorf("create directory: %w", err)
 		}

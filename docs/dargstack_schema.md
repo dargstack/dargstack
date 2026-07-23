@@ -24,8 +24,8 @@ dargstack schema [flags]
 ### Options
 
 ```
-  -h, --help          help for schema
-      --save string   Save schema to a file for IDE integration (default: ~/.local/share/schemas/dargstack.json)
+  -h, --help                                                    help for schema
+      --save string[="~/.local/share/schemas/dargstack.json"]   Save schema to a file for IDE integration
 ```
 
 ### Options inherited from parent commands
@@ -41,7 +41,6 @@ dargstack schema [flags]
       --platform string        target platform for compose overrides (default: auto-detect)
   -p, --profiles strings       activate one or more compose profiles (or set COMPOSE_PROFILES env var); unlabeled services are included unless a 'default' profile is defined
   -s, --services strings       filter to specific services
-  -v, --verbose                verbose output
 ```
 
 ### SEE ALSO
