@@ -104,6 +104,20 @@ var jsonSchema = `{
             }
           },
           "additionalProperties": false
+        },
+        "skill": {
+          "type": ["object", "null"],
+          "properties": {
+            "install": {
+              "oneOf": [
+                { "type": "boolean" },
+                { "type": "string", "enum": ["auto", "once", "off"] }
+              ],
+              "description": "Whether to automatically install the dargstack agent skill",
+              "default": true
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
