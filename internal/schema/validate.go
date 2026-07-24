@@ -5,13 +5,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"go.yaml.in/yaml/v3"
 )
 
 var compiledSchema = func() *jsonschema.Schema {
 	c := jsonschema.NewCompiler()
-	if err := c.AddResource("schema", strings.NewReader(Schema())); err != nil {
+	var schemaDoc any
+	if err := json.Unmarshal([]byte(Schema()), &schemaDoc); err != nil {
+		panic(fmt.Sprintf("parse schema: %v", err))
+	}
+	if err := c.AddResource("schema", schemaDoc); err != nil {
 		panic(fmt.Sprintf("load schema: %v", err))
 	}
 	s, err := c.Compile("schema")
@@ -60,24 +64,27 @@ func formatErrors(errs error, prefix string) string {
 	if !ok {
 		return errs.Error()
 	}
-	lines := flattenValidationErrors(nil, ve, prefix)
+	lines := flattenOutputUnits(nil, ve.DetailedOutput().Errors, prefix)
 	return strings.Join(lines, "\n")
 }
 
-func flattenValidationErrors(lines []string, err *jsonschema.ValidationError, prefix string) []string {
-	lines = appendValidationErrors(lines, err, prefix)
-	for _, sub := range err.Causes {
-		lines = flattenValidationErrors(lines, sub, prefix)
+func flattenOutputUnits(lines []string, units []jsonschema.OutputUnit, prefix string) []string {
+	for _, unit := range units {
+		lines = appendOutputUnit(lines, &unit, prefix)
+		lines = flattenOutputUnits(lines, unit.Errors, prefix)
 	}
 	return lines
 }
 
-func appendValidationErrors(lines []string, err *jsonschema.ValidationError, prefix string) []string {
-	loc := prefix
-	if err.InstanceLocation != "" {
-		loc = prefix + err.InstanceLocation
+func appendOutputUnit(lines []string, unit *jsonschema.OutputUnit, prefix string) []string {
+	if unit.Error == nil {
+		return lines
 	}
-	msg := strings.TrimSpace(strings.TrimPrefix(err.Message, err.InstanceLocation))
+	loc := prefix
+	if unit.InstanceLocation != "" {
+		loc = prefix + unit.InstanceLocation
+	}
+	msg := unit.Error.String()
 	loc = strings.TrimPrefix(loc, "/")
 	if loc == "" {
 		lines = append(lines, msg)
