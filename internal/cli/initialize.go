@@ -186,12 +186,16 @@ func bootstrapProject(name, target string) error {
 		return fmt.Errorf("write artifacts/README.md: %w", err)
 	}
 
-	for _, envFile := range []string{
-		filepath.Join(stackDir, "src", "development", ".env"),
-		filepath.Join(stackDir, "src", "production", ".env"),
+	// Create .env.template (tracked) and .gitignore (ignores .env with real values).
+	for _, dir := range []string{
+		filepath.Join(stackDir, "src", "development"),
+		filepath.Join(stackDir, "src", "production"),
 	} {
-		if err := os.WriteFile(envFile, []byte("# Add environment variables here (KEY=VALUE)\n"), 0o644); err != nil {
-			return fmt.Errorf("write %s: %w", envFile, err)
+		if err := os.WriteFile(filepath.Join(dir, ".env.template"), []byte("# Add environment variables here (KEY=VALUE)\n"), 0o644); err != nil {
+			return fmt.Errorf("write %s: %w", dir+"/.env.template", err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte(".env\n"), 0o644); err != nil {
+			return fmt.Errorf("write %s: %w", dir+"/.gitignore", err)
 		}
 	}
 

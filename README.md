@@ -121,13 +121,13 @@ example/
 │   │   │   │   ├── configuration.toml  # File-based volume mount
 │   │   │   │   ├── key.secret          # Secret used by the service
 │   │   │   │   └── ...
-│   │   │   └── .env                    # Environment variables
+│   │   │   └── .env.template       # Environment variable keys (tracked)
 │   │   └── production/
 │   │       ├── api/
 │   │       │   ├── compose.yaml        # YAML deep-merge override
 │   │       │   ├── configuration.toml  # File-based override
 │   │       │   └── ...
-│   │       └── .env                    # Key-based override
+│   │       └── .env.template       # Key-based override (tracked)
 │   └── dargstack.yaml                  # Project configuration
 └── ...
 ```
@@ -330,7 +330,7 @@ x-dargstack:
 
 ### Environment Files
 
-`.env` files use `KEY=VALUE` format. During deploy, missing values are prompted. Production blocks on missing values.
+`.env.template` files (tracked in version control) define the keys your stack needs. On first deploy, dargstack copies each `.env.template` to `.env` (gitignored), which holds actual values. During deploy, missing values are prompted. Production blocks on missing values.
 
 ### Platform Overrides
 

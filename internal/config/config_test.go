@@ -225,7 +225,9 @@ func TestPathHelpers(t *testing.T) {
 		{"CertificatesDir", cfg.CertificatesDir(), filepath.Join(resolved, "artifacts", "certificates")},
 		{"SecretsDir", cfg.SecretsDir(), filepath.Join(resolved, "artifacts", "secrets")},
 		{"DevEnvFile", cfg.DevEnvFile(), filepath.Join(resolved, "src", "development", ".env")},
+		{"DevEnvTemplate", cfg.DevEnvTemplate(), filepath.Join(resolved, "src", "development", ".env.template")},
 		{"ProdEnvFile", cfg.ProdEnvFile(), filepath.Join(resolved, "src", "production", ".env")},
+		{"ProdEnvTemplate", cfg.ProdEnvTemplate(), filepath.Join(resolved, "src", "production", ".env.template")},
 	}
 
 	for _, tt := range tests {

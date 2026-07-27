@@ -223,14 +223,18 @@ ending in `# dargstack:dev-only` is stripped before production deployment.
 ### Environment files
 
 v3 concatenated `src/development/stack.env` and `src/production/production.env`
-into `src/production/stack.env` during `derive`. v4 uses independent `.env`
-files per environment:
+into `src/production/stack.env` during `derive`. v4 uses `.env.template` files
+(tracked in version control) per environment, with corresponding `.env` files
+(gitignored) holding actual values:
 
-- `src/development/.env` — development variables
-- `src/production/.env` — production overrides (key=value pairs that override development values)
+- `src/development/.env.template` — development variable keys (tracked)
+- `src/development/.env` — development values (gitignored, auto-created from template)
+- `src/production/.env.template` — production override keys (tracked)
+- `src/production/.env` — production values (gitignored, auto-created from template)
 
-Rename `src/development/stack.env` → `src/development/.env` and
-`src/production/production.env` → `src/production/.env`.
+Rename `src/development/stack.env` to `src/development/.env.template` and
+`src/production/production.env` to `src/production/.env.template`. Add `.env` to
+`src/development/.gitignore` and `src/production/.gitignore`.
 
 ---
 

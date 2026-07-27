@@ -8,6 +8,29 @@ import (
 	"strings"
 )
 
+// EnsureEnvFile copies templatePath to envPath if envPath does not exist.
+// If templatePath does not exist, it creates envPath with a minimal placeholder comment.
+func EnsureEnvFile(envPath, templatePath string) error {
+	_, err := os.Stat(envPath)
+	if err == nil {
+		return nil
+	}
+	if !os.IsNotExist(err) {
+		return fmt.Errorf("stat env file %s: %w", envPath, err)
+	}
+
+	data, err := os.ReadFile(templatePath)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("read env template %s: %w", templatePath, err)
+	}
+
+	if os.IsNotExist(err) {
+		data = []byte("# Add environment variables here (KEY=VALUE)\n")
+	}
+
+	return os.WriteFile(envPath, data, 0o644)
+}
+
 // MergeEnvFiles merges .env files from development and production.
 // Production values override development values. Returns merged content.
 func MergeEnvFiles(devEnv, prodEnv string) ([]byte, error) {

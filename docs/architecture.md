@@ -38,7 +38,7 @@ Understanding these decisions will help you make changes that align with dargsta
 
 6. **Service directories** — each service lives in its own directory under `src/{development,production}/<service-name>/` containing a `compose.yaml` plus co-located resources (secrets, configs, Dockerfiles). Each `compose.yaml` is a full, valid Docker Compose document. Relative `file:` paths and `build.context` are resolved to absolute paths during merge.
 
-7. **Environment file merging** — dev `.env` and prod `.env` are merged for production (prod values override). Missing values are prompted; production blocks on missing values.
+7. **Environment file merging** — dev `.env` and prod `.env` are merged for production (prod values override). `.env` is gitignored; `.env.template` is tracked and copied to `.env` on first deploy. Missing values are prompted; production blocks on missing values.
 
 8. **STACK_DOMAIN** — defaults to `app.localhost`; configurable. TLS cert covers all discovered subdomains.
 
