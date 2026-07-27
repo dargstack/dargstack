@@ -979,3 +979,62 @@ x-dargstack:
 		t.Errorf("expected single volume from file overlay, got %v", volumes)
 	}
 }
+
+func TestEnsureEnvFileCreatesFromTemplate(t *testing.T) {
+	dir := t.TempDir()
+	envPath := filepath.Join(dir, ".env")
+	templatePath := filepath.Join(dir, ".env.template")
+
+	writeTestFile(t, templatePath, "FOO=bar\nBAZ=qux\n")
+
+	if err := EnsureEnvFile(envPath, templatePath); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "FOO=bar\nBAZ=qux\n" {
+		t.Errorf("expected template contents, got %q", string(data))
+	}
+}
+
+func TestEnsureEnvFileNoOpWhenEnvExists(t *testing.T) {
+	dir := t.TempDir()
+	envPath := filepath.Join(dir, ".env")
+	templatePath := filepath.Join(dir, ".env.template")
+
+	writeTestFile(t, envPath, "EXISTING=value\n")
+	writeTestFile(t, templatePath, "FOO=bar\n")
+
+	if err := EnsureEnvFile(envPath, templatePath); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "EXISTING=value\n" {
+		t.Errorf("expected existing contents preserved, got %q", string(data))
+	}
+}
+
+func TestEnsureEnvFileCreatesDefaultTemplateWhenTemplateMissing(t *testing.T) {
+	dir := t.TempDir()
+	envPath := filepath.Join(dir, ".env")
+	templatePath := filepath.Join(dir, ".env.template")
+
+	if err := EnsureEnvFile(envPath, templatePath); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "KEY=VALUE") {
+		t.Errorf("expected default template, got %q", string(data))
+	}
+}

@@ -21,12 +21,12 @@ project/
 │   │   │   │   ├── compose.yaml    # full Docker Compose document
 │   │   │   │   ├── config.yaml     # file-based config volume
 │   │   │   │   └── *.secret        # secret files
-│   │   │   └── .env                # environment variables
+│   │   │   └── .env.template       # environment variable keys (tracked)
 │   │   └── production/             # production overrides (differences only)
 │   │       ├── <service>/
 │   │       │   ├── compose.yaml    # spruce deep-merge override
 │   │       │   └── config.yaml     # replaces development config
-│   │       └── .env                # extends development env vars
+│   │       └── .env.template       # extends development env vars (tracked)
 │   └── artifacts/                  # generated outputs
 │       ├── audit-log/              # deployment snapshots (gitignored)
 │       ├── certificates/           # TLS certificates (gitignored)

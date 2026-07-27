@@ -45,6 +45,18 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		_ = os.Setenv("STACK_DOMAIN", stackDomain)
 	}
 
+	// Ensure .env files exist (copied from .env.template if missing).
+	// Done after production checkout so the template matches the deployed revision.
+	// Skipped in dry-run mode to avoid side effects.
+	if !dryRun {
+		if err := compose.EnsureEnvFile(cfg.DevEnvFile(), cfg.DevEnvTemplate()); err != nil {
+			return fmt.Errorf("ensure dev env file: %w", err)
+		}
+		if err := compose.EnsureEnvFile(cfg.ProdEnvFile(), cfg.ProdEnvTemplate()); err != nil {
+			return fmt.Errorf("ensure prod env file: %w", err)
+		}
+	}
+
 	composeData, err := buildComposeData(isProduction())
 	if err != nil {
 		return wrapWithBugHint(err)

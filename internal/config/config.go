@@ -302,12 +302,18 @@ func (c *Config) ArtifactsDir() string { return filepath.Join(c.stackDir, "artif
 func (c *Config) CertificatesDir() string {
 	return filepath.Join(c.stackDir, "artifacts", "certificates")
 }
-func (c *Config) DevDir() string      { return filepath.Join(c.stackDir, "src", "development") }
-func (c *Config) DevEnvFile() string  { return filepath.Join(c.stackDir, "src", "development", ".env") }
+func (c *Config) DevDir() string     { return filepath.Join(c.stackDir, "src", "development") }
+func (c *Config) DevEnvFile() string { return filepath.Join(c.stackDir, "src", "development", ".env") }
+func (c *Config) DevEnvTemplate() string {
+	return filepath.Join(c.stackDir, "src", "development", ".env.template")
+}
 func (c *Config) ProdDir() string     { return filepath.Join(c.stackDir, "src", "production") }
 func (c *Config) ProdEnvFile() string { return filepath.Join(c.stackDir, "src", "production", ".env") }
-func (c *Config) SecretsDir() string  { return filepath.Join(c.stackDir, "artifacts", "secrets") }
-func (c *Config) StackDir() string    { return c.stackDir }
+func (c *Config) ProdEnvTemplate() string {
+	return filepath.Join(c.stackDir, "src", "production", ".env.template")
+}
+func (c *Config) SecretsDir() string { return filepath.Join(c.stackDir, "artifacts", "secrets") }
+func (c *Config) StackDir() string   { return c.stackDir }
 
 // CollectServiceFiles returns the paths to compose.yaml files in the given
 // directory. It includes the shared compose.yaml at the directory root if it
