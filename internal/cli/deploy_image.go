@@ -90,18 +90,25 @@ func gitCheckout(dir, ref string) error {
 // and checks it out in stackDir so the compose files that get deployed
 // actually match the tagged release, rather than whatever happened to be on
 // disk. The checkout is left in place (detached at the tag) after deploy.
+// When offline, it only resolves the tag from local state without checking
+// out — the working tree is left as-is.
 func checkoutDeployTag() (string, error) {
+	tag, err := resolveDeployTag()
+	if err != nil {
+		return "", err
+	}
+
+	if offline {
+		logger.L.Info(fmt.Sprintf("Using local tag %q for production deploy (--offline)", tag))
+		return tag, nil
+	}
+
 	dirty, err := gitWorkingTreeDirty(stackDir)
 	if err != nil {
 		return "", fmt.Errorf("check git working tree status: %w", err)
 	}
 	if dirty {
 		return "", fmt.Errorf("stack directory has uncommitted changes to tracked files — commit or stash them before deploying to production")
-	}
-
-	tag, err := resolveDeployTag()
-	if err != nil {
-		return "", err
 	}
 
 	if err := gitCheckout(stackDir, tag); err != nil {

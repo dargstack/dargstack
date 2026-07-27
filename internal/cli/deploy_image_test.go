@@ -302,7 +302,7 @@ func TestCheckoutDeployTagChecksOutTag(t *testing.T) {
 	}()
 
 	deployTag = "v1.0.0"
-	offline = true
+	offline = false
 	cfg = &config.Config{}
 	stackDir = dir
 
@@ -316,6 +316,41 @@ func TestCheckoutDeployTagChecksOutTag(t *testing.T) {
 
 	if _, err := os.Stat(filepath.Join(dir, "file.txt")); !os.IsNotExist(err) {
 		t.Error("expected working tree to reflect v1.0.0, but file.txt from the later commit is present")
+	}
+}
+
+func TestCheckoutDeployTagSkipsCheckoutWhenOffline(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v1.0.0")
+
+	// Dirty the tree — should NOT error when offline
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("changed"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	origDeployTag := deployTag
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	deployTag = "v1.0.0"
+	offline = true
+	cfg = &config.Config{}
+	stackDir = dir
+
+	tag, err := checkoutDeployTag()
+	if err != nil {
+		t.Fatalf("checkoutDeployTag should not error when offline: %v", err)
+	}
+	if tag != "v1.0.0" {
+		t.Errorf("expected v1.0.0, got %s", tag)
 	}
 }
 
@@ -340,7 +375,7 @@ func TestCheckoutDeployTagRejectsDirtyTree(t *testing.T) {
 	}()
 
 	deployTag = "v1.0.0"
-	offline = true
+	offline = false
 	cfg = &config.Config{}
 	stackDir = dir
 
