@@ -38,6 +38,19 @@ func setupGitRepo(t *testing.T, dir string) {
 	runGit(t, dir, "commit", "-m", "initial")
 }
 
+// setupGitRepoWithOrigin creates a working repo with a bare origin remote
+// and fetches it so refs/remotes/origin/main exists locally.
+func setupGitRepoWithOrigin(t *testing.T, workDir string) {
+	t.Helper()
+	bareDir := t.TempDir()
+	runGit(t, bareDir, "init", "--bare")
+
+	setupGitRepo(t, workDir)
+	runGit(t, workDir, "remote", "add", "origin", bareDir)
+	runGit(t, workDir, "push", "-u", "origin", "main")
+	runGit(t, workDir, "fetch", "origin", "--tags")
+}
+
 func TestLatestGitTag(t *testing.T) {
 	dir := t.TempDir()
 	setupGitRepo(t, dir)
@@ -80,6 +93,43 @@ func TestLatestGitTagNoTags(t *testing.T) {
 	_, err := latestGitTag("main")
 	if err == nil {
 		t.Fatal("expected error when no tags exist")
+	}
+}
+
+func TestLatestGitTagPrefersOrigin(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepoWithOrigin(t, dir)
+
+	// Create a tag that's only on the local repo at first.
+	runGit(t, dir, "tag", "v1.0.0")
+
+	// Push main, then add a newer tag and push it so origin has v2.0.0.
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+	runGit(t, dir, "tag", "v2.0.0")
+	runGit(t, dir, "push", "origin", "main", "--tags")
+
+	// Make local diverge with a newer tag that is *not* pushed, to verify we
+	// prefer origin/<branch> over the local branch.
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("y"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "local only")
+	runGit(t, dir, "tag", "v3.0.0")
+	origStackDir := stackDir
+	stackDir = dir
+	defer func() { stackDir = origStackDir }()
+
+	tag, err := latestGitTag("main")
+	if err != nil {
+		t.Fatalf("latestGitTag failed: %v", err)
+	}
+	if tag != "v2.0.0" {
+		t.Errorf("expected origin tag v2.0.0, got %s", tag)
 	}
 }
 
@@ -200,7 +250,7 @@ func TestResolveDeployTagLiteralLatest(t *testing.T) {
 	}
 }
 
-func TestGitFetchTagsSuccess(t *testing.T) {
+func TestGitFetchOriginErrorsWithoutRemote(t *testing.T) {
 	dir := t.TempDir()
 	setupGitRepo(t, dir)
 
@@ -208,23 +258,9 @@ func TestGitFetchTagsSuccess(t *testing.T) {
 	stackDir = dir
 	defer func() { stackDir = origStackDir }()
 
-	err := gitFetchTags()
+	err := gitFetchOrigin()
 	if err == nil {
 		t.Fatal("expected error: no remote 'origin' configured")
-	}
-}
-
-func TestGitFetchTagsNoRemote(t *testing.T) {
-	dir := t.TempDir()
-	setupGitRepo(t, dir)
-
-	origStackDir := stackDir
-	stackDir = dir
-	defer func() { stackDir = origStackDir }()
-
-	err := gitFetchTags()
-	if err == nil {
-		t.Fatal("expected error when no origin remote exists")
 	}
 	if !strings.Contains(err.Error(), "origin") {
 		t.Errorf("expected error mentioning origin, got: %v", err)

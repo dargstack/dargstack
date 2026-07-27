@@ -243,7 +243,7 @@ environment:
   production:
     branch: main # optional, defaults to "main"
     domain: app.localhost # optional, defaults to "app.localhost"
-    tag: latest # optional, `latest` | string
+    tag: v1.0.0 # optional, pin to a specific tag; unset to auto-detect latest
 ```
 
 ### Profiles & Performance
