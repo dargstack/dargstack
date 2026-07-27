@@ -28,8 +28,8 @@ func resolveDeployTag() (string, error) {
 		return cfg.Environment.Production.Tag, nil
 	}
 	if !offline {
-		if err := gitFetchTags(); err != nil {
-			logger.L.Warn(fmt.Sprintf("Failed to fetch remote tags: %v", err))
+		if err := gitFetchOrigin(); err != nil {
+			logger.L.Warn(fmt.Sprintf("Failed to fetch from origin: %v", err))
 		}
 	}
 	tag, err := latestGitTag(cfg.Environment.Production.Branch)
@@ -39,8 +39,8 @@ func resolveDeployTag() (string, error) {
 	return tag, nil
 }
 
-func gitFetchTags() error {
-	cmd := exec.Command("git", "fetch", "--tags", "origin")
+func gitFetchOrigin() error {
+	cmd := exec.Command("git", "fetch", "origin")
 	cmd.Dir = stackDir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -50,13 +50,19 @@ func gitFetchTags() error {
 }
 
 func latestGitTag(branch string) (string, error) {
-	cmd := exec.Command("git", "describe", "--tags", "--abbrev=0", branch)
-	cmd.Dir = stackDir
-	out, err := cmd.Output()
-	if err != nil {
-		return "", err
+	// Try origin/branch first (most up-to-date after a fetch), then fall back
+	// to the local branch ref for freshly initialized repos or offline mode.
+	var lastErr error
+	for _, ref := range []string{"origin/" + branch, branch} {
+		cmd := exec.Command("git", "describe", "--tags", "--abbrev=0", "--", ref)
+		cmd.Dir = stackDir
+		out, err := cmd.CombinedOutput()
+		if err == nil {
+			return strings.TrimSpace(string(out)), nil
+		}
+		lastErr = fmt.Errorf("git describe %s: %s", ref, strings.TrimSpace(string(out)))
 	}
-	return strings.TrimSpace(string(out)), nil
+	return "", fmt.Errorf("find latest tag: %w", lastErr)
 }
 
 // gitWorkingTreeDirty reports whether dir has uncommitted changes to tracked
