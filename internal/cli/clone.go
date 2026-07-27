@@ -83,9 +83,10 @@ func runClone(cmd *cobra.Command, args []string) error {
 	}
 
 	logger.L.Info(fmt.Sprintf("Cloning %s into %s ...", url, displayTarget))
-	gitCmd := exec.Command("git", "clone", url, target) // #nosec G204 — URL is user-supplied intentionally
+	gitCmd := exec.Command("git", "clone", "--quiet", url, target) // #nosec G204 — URL is user-supplied intentionally
 	gitCmd.Stdout = os.Stdout
 	gitCmd.Stderr = os.Stderr
+	gitCmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
 	if err := gitCmd.Run(); err != nil {
 		return fmt.Errorf("git clone: %w", err)
 	}
