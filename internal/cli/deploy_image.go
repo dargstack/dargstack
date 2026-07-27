@@ -218,7 +218,7 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 		wg.Wait()
 	}
 
-	if !verbose {
+	if !verbose && !noInteraction {
 		err := spinner.New().
 			Title("Building images").
 			Action(func() {
@@ -301,31 +301,37 @@ func fetchAndWarnBehind(composeData []byte) []gitBehindInfo {
 	}
 
 	var behind []gitBehindInfo
-	_ = spinner.New().
-		Title("Checking repositories for updates").
-		Action(func() {
-			var wg sync.WaitGroup
-			var mu sync.Mutex
+	checkAction := func() {
+		var wg sync.WaitGroup
+		var mu sync.Mutex
 
-			for _, d := range dirs {
-				wg.Add(1)
-				go func(cd contextDir) {
-					defer wg.Done()
+		for _, d := range dirs {
+			wg.Add(1)
+			go func(cd contextDir) {
+				defer wg.Done()
 
-					behindCount, branch, err := fetchAndCheckBehind(cd.path)
-					if err != nil || behindCount == 0 {
-						return
-					}
+				behindCount, branch, err := fetchAndCheckBehind(cd.path)
+				if err != nil || behindCount == 0 {
+					return
+				}
 
-					mu.Lock()
-					behind = append(behind, gitBehindInfo{serviceName: cd.name, behind: behindCount, branch: branch})
-					mu.Unlock()
-				}(d)
-			}
+				mu.Lock()
+				behind = append(behind, gitBehindInfo{serviceName: cd.name, behind: behindCount, branch: branch})
+				mu.Unlock()
+			}(d)
+		}
 
-			wg.Wait()
-		}).
-		Run()
+		wg.Wait()
+	}
+
+	if !noInteraction {
+		_ = spinner.New().
+			Title("Checking repositories for updates").
+			Action(checkAction).
+			Run()
+	} else {
+		checkAction()
+	}
 
 	if len(behind) == 0 && len(dirs) > 0 {
 		logger.Success("All repositories are up to date")

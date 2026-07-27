@@ -72,12 +72,16 @@ func runRemove(cmd *cobra.Command, args []string) error {
 
 	logger.L.Info(fmt.Sprintf("Waiting for stack %q services to stop...", cfg.Metadata.Name))
 
-	err = spinner.New().
-		Title("Removing stack").
-		ActionWithErr(func(ctx context.Context) error {
-			return docker.WaitForStackRemoval(executor, cfg.Metadata.Name, 60*time.Second, nil)
-		}).
-		Run()
+	if noInteraction {
+		err = docker.WaitForStackRemoval(executor, cfg.Metadata.Name, 60*time.Second, nil)
+	} else {
+		err = spinner.New().
+			Title("Removing stack").
+			ActionWithErr(func(ctx context.Context) error {
+				return docker.WaitForStackRemoval(executor, cfg.Metadata.Name, 60*time.Second, nil)
+			}).
+			Run()
+	}
 
 	if err != nil {
 		logger.L.Warn(err.Error())

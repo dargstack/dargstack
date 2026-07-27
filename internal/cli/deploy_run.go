@@ -530,59 +530,70 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 	}
 
 	var result []byte
-	err := spinner.New().
-		Title("Cloning repositories").
-		ActionWithErr(func(ctx context.Context) error {
-			result = composeData
-			parentDir := filepath.Dir(stackDir)
+	cloneRepos := func() error {
+		result = composeData
+		parentDir := filepath.Dir(stackDir)
 
-			for name, def := range svcMap {
-				svc, ok := def.(map[string]interface{})
-				if !ok {
-					continue
-				}
+		for name, def := range svcMap {
+			svc, ok := def.(map[string]interface{})
+			if !ok {
+				continue
+			}
 
-				gitURL := giturl.ExtractFromService(svc, name)
-				if !gitURL.IsSet() {
-					continue
-				}
+			gitURL := giturl.ExtractFromService(svc, name)
+			if !gitURL.IsSet() {
+				continue
+			}
 
-				repoName := giturl.RepoNameFromURL(gitURL.Primary())
-				targetDir := filepath.Join(parentDir, repoName)
+			repoName := giturl.RepoNameFromURL(gitURL.Primary())
+			targetDir := filepath.Join(parentDir, repoName)
 
-				if _, statErr := os.Stat(targetDir); statErr == nil {
-					var injectErr error
-					result, injectErr = injectBuildContext(result, name, targetDir)
-					if injectErr != nil {
-						return fmt.Errorf("service %q inject build context: %w", name, injectErr)
-					}
-					continue
-				}
-
-				cloneErr := giturl.CloneWithFallback(gitURL, targetDir)
-				if cloneErr != nil {
-					return fmt.Errorf("clone repository for service %q: %w", name, cloneErr)
-				}
-
-				makefile := filepath.Join(targetDir, "Makefile")
-				if _, statErr := os.Stat(makefile); statErr == nil {
-					logger.L.Warn(fmt.Sprintf("service %q: running `make init` on cloned repositories is deprecated and will be removed in a future version", name))
-					logger.L.Info(fmt.Sprintf("Initializing %s for service %q", repoName, name))
-					initCmd := exec.Command("make", "init")
-					initCmd.Dir = targetDir
-					initOut, initErr := initCmd.CombinedOutput()
-					if initErr != nil {
-						logger.L.Warn(fmt.Sprintf("Init for service %q failed: %s", name, strings.TrimSpace(string(initOut))))
-					}
-				}
-
+			if _, statErr := os.Stat(targetDir); statErr == nil {
 				var injectErr error
 				result, injectErr = injectBuildContext(result, name, targetDir)
 				if injectErr != nil {
 					return fmt.Errorf("service %q inject build context: %w", name, injectErr)
 				}
+				continue
 			}
-			return nil
+
+			cloneErr := giturl.CloneWithFallback(gitURL, targetDir)
+			if cloneErr != nil {
+				return fmt.Errorf("clone repository for service %q: %w", name, cloneErr)
+			}
+
+			makefile := filepath.Join(targetDir, "Makefile")
+			if _, statErr := os.Stat(makefile); statErr == nil {
+				logger.L.Warn(fmt.Sprintf("service %q: running `make init` on cloned repositories is deprecated and will be removed in a future version", name))
+				logger.L.Info(fmt.Sprintf("Initializing %s for service %q", repoName, name))
+				initCmd := exec.Command("make", "init")
+				initCmd.Dir = targetDir
+				initOut, initErr := initCmd.CombinedOutput()
+				if initErr != nil {
+					logger.L.Warn(fmt.Sprintf("Init for service %q failed: %s", name, strings.TrimSpace(string(initOut))))
+				}
+			}
+
+			var injectErr error
+			result, injectErr = injectBuildContext(result, name, targetDir)
+			if injectErr != nil {
+				return fmt.Errorf("service %q inject build context: %w", name, injectErr)
+			}
+		}
+		return nil
+	}
+
+	if noInteraction {
+		if err := cloneRepos(); err != nil {
+			return nil, err
+		}
+		return result, nil
+	}
+
+	err := spinner.New().
+		Title("Cloning repositories").
+		ActionWithErr(func(ctx context.Context) error {
+			return cloneRepos()
 		}).
 		Run()
 	if err != nil {
