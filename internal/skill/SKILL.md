@@ -139,6 +139,7 @@ Services can belong to profiles via `dargstack.profiles` label. Deploy with `--p
 - Unlabeled services are always deployed unless any service declares `default`
 - If `default` is declared, only `default`-labeled services deploy by default
 - Explicit `--profiles` only deploys matching services; use `--profiles unlabeled` to include unlabeled ones
+- A service belongs to multiple profiles via one comma-separated label value, e.g. `dargstack.profiles=default,backend`
 
 ## Deploy Workflow
 
