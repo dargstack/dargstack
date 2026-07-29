@@ -507,7 +507,7 @@ func TestCheckoutDeployTagSkipsCheckoutWhenOffline(t *testing.T) {
 		t.Fatal(err)
 	}
 
-origDeployTag := deployTag
+	origDeployTag := deployTag
 	origDeployMajor := deployMajor
 	origOffline := offline
 	origCfg := cfg
@@ -780,7 +780,7 @@ func TestExtractDargstackBuildContext(t *testing.T) {
 	}
 }
 
-func TestResolveDeployTagBlocksMajorUpgrade(t *testing.T) {
+func TestResolveDeployTagAutoResolveStaysOnCurrentMajor(t *testing.T) {
 	dir := t.TempDir()
 	setupGitRepo(t, dir)
 
