@@ -268,6 +268,21 @@ func (c *Config) applyDefaults() {
 
 var validStackName = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9_.-]*[a-zA-Z0-9])?$`)
 
+// IncompatibleVersionError indicates the running CLI version does not
+// satisfy the project's compatibility constraint. Callers can use
+// errors.As to detect this case and, e.g., offer to self-update.
+type IncompatibleVersionError struct {
+	CLIVersion    string
+	Compatibility string
+}
+
+func (e *IncompatibleVersionError) Error() string {
+	return fmt.Sprintf(
+		"cli version %s does not satisfy project compatibility range %s — please update dargstack",
+		e.CLIVersion, e.Compatibility,
+	)
+}
+
 func (c *Config) validate() error {
 	if !validStackName.MatchString(c.Metadata.Name) {
 		return fmt.Errorf("invalid stack name %q: must be alphanumeric with hyphens/underscores/dots", c.Metadata.Name)
@@ -290,10 +305,7 @@ func (c *Config) validate() error {
 	}
 
 	if !constraint.Check(v) {
-		return fmt.Errorf(
-			"cli version %s does not satisfy project compatibility range %s — please update dargstack",
-			version.Version, c.Metadata.Compatibility,
-		)
+		return &IncompatibleVersionError{CLIVersion: version.Version, Compatibility: c.Metadata.Compatibility}
 	}
 	return nil
 }
