@@ -421,6 +421,41 @@ func TestCheckoutDeployTagRejectsDirtyTree(t *testing.T) {
 	}
 }
 
+func TestParseMajorVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		tag     string
+		want    int
+		wantErr bool
+	}{
+		{"prefixed minor", "v1.2.3", 1, false},
+		{"unprefixed minor", "1.2.3", 1, false},
+		{"prefixed zero", "v0.9.0", 0, false},
+		{"multi-digit major", "v10.0.0", 10, false},
+		{"unprefixed multi-digit", "10.0.0", 10, false},
+		{"prefixed zero unprefixed", "0.1.0", 0, false},
+		{"non-semver", "latest", 0, true},
+		{"non-numeric", "vabc", 0, true},
+		{"empty", "", 0, true},
+		{"only prefix", "v", 0, true},
+		{"major only", "v1", 1, false},
+		{"major only unprefixed", "1", 1, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseMajorVersion(tt.tag)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseMajorVersion(%q) error = %v, wantErr %v", tt.tag, err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("parseMajorVersion(%q) = %d, want %d", tt.tag, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestExtractDargstackBuildContext(t *testing.T) {
 	tests := []struct {
 		name     string

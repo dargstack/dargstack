@@ -20,6 +20,16 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
+func parseMajorVersion(tag string) (int, error) {
+	tag = strings.TrimPrefix(tag, "v")
+	parts := strings.SplitN(tag, ".", 2)
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, fmt.Errorf("parse major version from %q: %w", tag, err)
+	}
+	return major, nil
+}
+
 func resolveDeployTag() (string, error) {
 	if deployTag != "" {
 		return deployTag, nil
