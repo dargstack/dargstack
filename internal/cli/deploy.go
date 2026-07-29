@@ -16,6 +16,7 @@ import (
 var (
 	deployAll   bool
 	deployTag   string
+	deployMajor bool
 	forceDeploy bool
 )
 
@@ -43,6 +44,7 @@ func init() {
 	deployCmd.Flags().BoolVarP(&deployAll, "all", "a", false, "deploy the full stack ignoring --profiles and --services filters")
 	deployCmd.Flags().BoolVar(&forceDeploy, "force", false, "remove the running stack before deploying")
 	deployCmd.Flags().StringVarP(&deployTag, "tag", "t", "", "deploy a specific git tag (production only)")
+	deployCmd.Flags().BoolVar(&deployMajor, "major", false, "allow major version change (production only)")
 }
 
 func runDeploy(cmd *cobra.Command, _ []string) error {
