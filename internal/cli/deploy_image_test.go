@@ -253,15 +253,25 @@ func TestLatestGitTagNoFilterReturnsAbsoluteLatest(t *testing.T) {
 }
 
 func TestResolveDeployTagExplicitFlag(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v2.0.0")
+
 	origDeployTag := deployTag
+	origDeployMajor := deployMajor
 	origOffline := offline
+	origStackDir := stackDir
 	defer func() {
 		deployTag = origDeployTag
+		deployMajor = origDeployMajor
 		offline = origOffline
+		stackDir = origStackDir
 	}()
 
 	deployTag = "v2.0.0"
+	deployMajor = false
 	offline = false
+	stackDir = dir
 
 	tag, err := resolveDeployTag()
 	if err != nil {
@@ -273,16 +283,25 @@ func TestResolveDeployTagExplicitFlag(t *testing.T) {
 }
 
 func TestResolveDeployTagPinnedConfig(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v3.0.0")
+
 	origDeployTag := deployTag
+	origDeployMajor := deployMajor
 	origOffline := offline
 	origCfg := cfg
+	origStackDir := stackDir
 	defer func() {
 		deployTag = origDeployTag
+		deployMajor = origDeployMajor
 		offline = origOffline
 		cfg = origCfg
+		stackDir = origStackDir
 	}()
 
 	deployTag = ""
+	deployMajor = false
 	offline = false
 	cfg = &config.Config{
 		Environment: config.EnvironmentConfig{
@@ -292,6 +311,7 @@ func TestResolveDeployTagPinnedConfig(t *testing.T) {
 			},
 		},
 	}
+	stackDir = dir
 
 	tag, err := resolveDeployTag()
 	if err != nil {
@@ -446,17 +466,20 @@ func TestCheckoutDeployTagChecksOutTag(t *testing.T) {
 	runGit(t, dir, "commit", "-m", "second")
 
 	origDeployTag := deployTag
+	origDeployMajor := deployMajor
 	origOffline := offline
 	origCfg := cfg
 	origStackDir := stackDir
 	defer func() {
 		deployTag = origDeployTag
+		deployMajor = origDeployMajor
 		offline = origOffline
 		cfg = origCfg
 		stackDir = origStackDir
 	}()
 
 	deployTag = "v1.0.0"
+	deployMajor = true
 	offline = false
 	cfg = &config.Config{}
 	stackDir = dir
@@ -484,18 +507,21 @@ func TestCheckoutDeployTagSkipsCheckoutWhenOffline(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	origDeployTag := deployTag
+origDeployTag := deployTag
+	origDeployMajor := deployMajor
 	origOffline := offline
 	origCfg := cfg
 	origStackDir := stackDir
 	defer func() {
 		deployTag = origDeployTag
+		deployMajor = origDeployMajor
 		offline = origOffline
 		cfg = origCfg
 		stackDir = origStackDir
 	}()
 
 	deployTag = "v1.0.0"
+	deployMajor = true
 	offline = true
 	cfg = &config.Config{}
 	stackDir = dir
@@ -519,17 +545,20 @@ func TestCheckoutDeployTagRejectsDirtyTree(t *testing.T) {
 	}
 
 	origDeployTag := deployTag
+	origDeployMajor := deployMajor
 	origOffline := offline
 	origCfg := cfg
 	origStackDir := stackDir
 	defer func() {
 		deployTag = origDeployTag
+		deployMajor = origDeployMajor
 		offline = origOffline
 		cfg = origCfg
 		stackDir = origStackDir
 	}()
 
 	deployTag = "v1.0.0"
+	deployMajor = false
 	offline = false
 	cfg = &config.Config{}
 	stackDir = dir
@@ -748,5 +777,487 @@ func TestExtractDargstackBuildContext(t *testing.T) {
 				t.Errorf("expected %q, got %q", tt.expected, result)
 			}
 		})
+	}
+}
+
+func TestResolveDeployTagBlocksMajorUpgrade(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+
+	runGit(t, dir, "tag", "v2.0.0")
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+	runGit(t, dir, "tag", "v2.1.0")
+
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("2"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "third")
+	runGit(t, dir, "tag", "v3.0.0")
+
+	// Checkout v2.1.0 (simulating current deployed version)
+	runGit(t, dir, "checkout", "--detach", "v2.1.0")
+
+	origDeployTag := deployTag
+	origDeployMajor := deployMajor
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		deployMajor = origDeployMajor
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	deployTag = ""
+	deployMajor = false
+	offline = true
+	cfg = &config.Config{
+		Environment: config.EnvironmentConfig{
+			Production: config.ProdConfig{
+				Tag:    "",
+				Branch: "main",
+			},
+		},
+	}
+	stackDir = dir
+
+	// Auto-resolve without --major should stay on current major (v2), not jump to v3.
+	tag, err := resolveDeployTag()
+	if err != nil {
+		t.Fatalf("resolveDeployTag failed: %v", err)
+	}
+	if tag != "v2.1.0" {
+		t.Errorf("expected v2.1.0 (latest v2, not v3), got %s", tag)
+	}
+}
+
+func TestResolveDeployTagAllowsMajorWithFlag(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+
+	runGit(t, dir, "tag", "v2.0.0")
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+	runGit(t, dir, "tag", "v2.1.0")
+
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("2"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "third")
+	runGit(t, dir, "tag", "v3.0.0")
+
+	runGit(t, dir, "checkout", "--detach", "v2.1.0")
+
+	origDeployTag := deployTag
+	origDeployMajor := deployMajor
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		deployMajor = origDeployMajor
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	deployTag = ""
+	deployMajor = true
+	offline = true
+	cfg = &config.Config{
+		Environment: config.EnvironmentConfig{
+			Production: config.ProdConfig{
+				Tag:    "",
+				Branch: "main",
+			},
+		},
+	}
+	stackDir = dir
+
+	tag, err := resolveDeployTag()
+	if err != nil {
+		t.Fatalf("resolveDeployTag failed: %v", err)
+	}
+	if tag != "v3.0.0" {
+		t.Errorf("expected v3.0.0, got %s", tag)
+	}
+}
+
+func TestResolveDeployTagAllowsSameMajor(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+
+	runGit(t, dir, "tag", "v2.0.0")
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+	runGit(t, dir, "tag", "v2.1.0")
+
+	runGit(t, dir, "checkout", "--detach", "v2.0.0")
+
+	origDeployTag := deployTag
+	origDeployMajor := deployMajor
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		deployMajor = origDeployMajor
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	deployTag = ""
+	deployMajor = false
+	offline = true
+	cfg = &config.Config{
+		Environment: config.EnvironmentConfig{
+			Production: config.ProdConfig{
+				Tag:    "",
+				Branch: "main",
+			},
+		},
+	}
+	stackDir = dir
+
+	tag, err := resolveDeployTag()
+	if err != nil {
+		t.Fatalf("resolveDeployTag failed: %v", err)
+	}
+	if tag != "v2.1.0" {
+		t.Errorf("expected v2.1.0, got %s", tag)
+	}
+}
+
+func TestResolveDeployTagExplicitTagBlocksMajorChange(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v2.0.0")
+
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+	runGit(t, dir, "tag", "v3.0.0")
+
+	// Detach at v2.0.0 so HEAD is at the v2 tag
+	runGit(t, dir, "checkout", "--detach", "v2.0.0")
+
+	origDeployTag := deployTag
+	origDeployMajor := deployMajor
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		deployMajor = origDeployMajor
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	deployTag = "v3.0.0"
+	deployMajor = false
+	offline = true
+	cfg = &config.Config{}
+	stackDir = dir
+
+	_, err := resolveDeployTag()
+	if err == nil {
+		t.Fatal("expected error: explicit --tag with major change without --major")
+	}
+}
+
+func TestResolveDeployTagExplicitTagAllowsMajorWithFlag(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v2.0.0")
+
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+	runGit(t, dir, "tag", "v3.0.0")
+
+	// Detach at v2.0.0 so HEAD is at the v2 tag
+	runGit(t, dir, "checkout", "--detach", "v2.0.0")
+
+	origDeployTag := deployTag
+	origDeployMajor := deployMajor
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		deployMajor = origDeployMajor
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	deployTag = "v3.0.0"
+	deployMajor = true
+	offline = true
+	cfg = &config.Config{}
+	stackDir = dir
+
+	tag, err := resolveDeployTag()
+	if err != nil {
+		t.Fatalf("resolveDeployTag failed: %v", err)
+	}
+	if tag != "v3.0.0" {
+		t.Errorf("expected v3.0.0, got %s", tag)
+	}
+}
+
+func TestResolveDeployTagBlocksMultiStepMajor(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+
+	runGit(t, dir, "tag", "v2.0.0")
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+	runGit(t, dir, "tag", "v4.0.0")
+
+	// Detach at v2.0.0 so HEAD is at the v2 tag
+	runGit(t, dir, "checkout", "--detach", "v2.0.0")
+
+	origDeployTag := deployTag
+	origDeployMajor := deployMajor
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		deployMajor = origDeployMajor
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	deployTag = "v4.0.0"
+	deployMajor = true
+	offline = true
+	cfg = &config.Config{}
+	stackDir = dir
+
+	_, err := resolveDeployTag()
+	if err == nil {
+		t.Fatal("expected error: multi-step major jump even with --major")
+	}
+	if !strings.Contains(err.Error(), "skips") {
+		t.Errorf("expected error mentioning 'skips', got: %v", err)
+	}
+}
+
+func TestResolveDeployTagBlocksUndeterminedCurrentMajor(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v1.0.0")
+
+	// Make another commit so HEAD is past the tag (undetermined current)
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+
+	origDeployTag := deployTag
+	origDeployMajor := deployMajor
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		deployMajor = origDeployMajor
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	deployTag = "v1.0.0"
+	deployMajor = false
+	offline = true
+	cfg = &config.Config{}
+	stackDir = dir
+
+	_, err := resolveDeployTag()
+	if err == nil {
+		t.Fatal("expected error: undetermined current major without --major")
+	}
+}
+
+func TestResolveDeployTagAllowsUndeterminedWithMajorFlag(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v1.0.0")
+
+	// Make another commit so HEAD is past the tag (undetermined current)
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+
+	origDeployTag := deployTag
+	origDeployMajor := deployMajor
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		deployMajor = origDeployMajor
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	deployTag = "v1.0.0"
+	deployMajor = true
+	offline = true
+	cfg = &config.Config{}
+	stackDir = dir
+
+	tag, err := resolveDeployTag()
+	if err != nil {
+		t.Fatalf("resolveDeployTag failed: %v", err)
+	}
+	if tag != "v1.0.0" {
+		t.Errorf("expected v1.0.0, got %s", tag)
+	}
+}
+
+func TestResolveDeployTagAutoNoMajorTagExists(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v2.0.0")
+	runGit(t, dir, "checkout", "--detach", "v2.0.0")
+
+	origDeployTag := deployTag
+	origDeployMajor := deployMajor
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		deployMajor = origDeployMajor
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	deployTag = ""
+	deployMajor = true
+	offline = true
+	cfg = &config.Config{
+		Environment: config.EnvironmentConfig{
+			Production: config.ProdConfig{
+				Tag:    "",
+				Branch: "main",
+			},
+		},
+	}
+	stackDir = dir
+
+	_, err := resolveDeployTag()
+	if err == nil {
+		t.Fatal("expected error: no v3 tag exists")
+	}
+}
+
+func TestResolveDeployTagAllowsDowngradeWithMajor(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+
+	runGit(t, dir, "tag", "v1.0.0")
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+	runGit(t, dir, "tag", "v2.0.0")
+
+	runGit(t, dir, "checkout", "--detach", "v2.0.0")
+
+	origDeployTag := deployTag
+	origDeployMajor := deployMajor
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		deployMajor = origDeployMajor
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	deployTag = "v1.0.0"
+	deployMajor = true
+	offline = true
+	cfg = &config.Config{}
+	stackDir = dir
+
+	tag, err := resolveDeployTag()
+	if err != nil {
+		t.Fatalf("resolveDeployTag failed: %v", err)
+	}
+	if tag != "v1.0.0" {
+		t.Errorf("expected v1.0.0, got %s", tag)
+	}
+}
+
+func TestResolveDeployTagNonSemverTagBypassesGuard(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v2.0.0")
+	runGit(t, dir, "checkout", "--detach", "v2.0.0")
+
+	origDeployTag := deployTag
+	origDeployMajor := deployMajor
+	origOffline := offline
+	origCfg := cfg
+	origStackDir := stackDir
+	defer func() {
+		deployTag = origDeployTag
+		deployMajor = origDeployMajor
+		offline = origOffline
+		cfg = origCfg
+		stackDir = origStackDir
+	}()
+
+	// "latest" isn't semver — the guard can't compute a major for it, so it
+	// should deploy as given, with no --major required.
+	deployTag = "latest"
+	deployMajor = false
+	offline = true
+	cfg = &config.Config{}
+	stackDir = dir
+
+	tag, err := resolveDeployTag()
+	if err != nil {
+		t.Fatalf("resolveDeployTag failed: %v", err)
+	}
+	if tag != "latest" {
+		t.Errorf("expected literal 'latest', got %s", tag)
 	}
 }
