@@ -1,9 +1,12 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/dargstack/dargstack/v4/internal/version"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -161,6 +164,34 @@ func TestBuildModeInvalid(t *testing.T) {
 	_, err := Load(dir)
 	if err == nil {
 		t.Fatal("expected error for invalid build mode")
+	}
+}
+
+func TestIncompatibleVersion(t *testing.T) {
+	oldVersion := version.Version
+	version.Version = "1.0.0"
+	defer func() { version.Version = oldVersion }()
+
+	dir := t.TempDir()
+	content := "metadata:\n  compatibility: \">=2.0.0 <3.0.0\"\n"
+	if err := os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := Load(dir)
+	if err == nil {
+		t.Fatal("expected incompatible version error")
+	}
+
+	var incompatErr *IncompatibleVersionError
+	if !errors.As(err, &incompatErr) {
+		t.Fatalf("expected *IncompatibleVersionError, got %T: %v", err, err)
+	}
+	if incompatErr.CLIVersion != "1.0.0" {
+		t.Errorf("expected CLIVersion=1.0.0, got %s", incompatErr.CLIVersion)
+	}
+	if incompatErr.Compatibility != ">=2.0.0 <3.0.0" {
+		t.Errorf("expected Compatibility=>=2.0.0 <3.0.0, got %s", incompatErr.Compatibility)
 	}
 }
 

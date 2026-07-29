@@ -2,11 +2,13 @@ package cli
 
 import (
 	"bytes"
+	"errors"
 	"log/slog"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/logger"
 )
 
@@ -63,6 +65,90 @@ func TestLoggerRespectsLogLevel(t *testing.T) {
 			}
 			if gotStderr != tt.expectStderr {
 				t.Errorf("stderr: got %v, want %v (buf: %q)", gotStderr, tt.expectStderr, errBuf.String())
+			}
+		})
+	}
+}
+
+func TestResolveVersionIncompatibility(t *testing.T) {
+	incompatErr := &config.IncompatibleVersionError{CLIVersion: "1.0.0", Compatibility: ">=2.0.0 <3.0.0"}
+	otherErr := errors.New("some other error")
+
+	tests := []struct {
+		name             string
+		err              error
+		offline          bool
+		confirmResult    bool
+		selfUpdateErr    error
+		wantUpdateCalled bool
+		wantErrIs        error // expect the returned error to wrap/equal this
+		wantErrMsg       string
+	}{
+		{
+			name:      "non-incompatibility error passes through untouched",
+			err:       otherErr,
+			wantErrIs: otherErr,
+		},
+		{
+			name:      "offline skips prompt and self-update",
+			err:       incompatErr,
+			offline:   true,
+			wantErrIs: incompatErr,
+		},
+		{
+			name:          "user declines the prompt",
+			err:           incompatErr,
+			confirmResult: false,
+			wantErrIs:     incompatErr,
+		},
+		{
+			name:             "user accepts and self-update succeeds",
+			err:              incompatErr,
+			confirmResult:    true,
+			selfUpdateErr:    nil,
+			wantUpdateCalled: true,
+			wantErrMsg:       "please re-run the command",
+		},
+		{
+			name:             "user accepts but self-update fails",
+			err:              incompatErr,
+			confirmResult:    true,
+			selfUpdateErr:    errors.New("network unreachable"),
+			wantUpdateCalled: true,
+			wantErrIs:        incompatErr,
+			wantErrMsg:       "network unreachable",
+		},
+	}
+
+	oldOffline := offline
+	oldConfirm := confirmFunc
+	oldSelfUpdate := selfUpdateFunc
+	defer func() {
+		offline = oldOffline
+		confirmFunc = oldConfirm
+		selfUpdateFunc = oldSelfUpdate
+	}()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			offline = tt.offline
+			confirmFunc = func(string, bool) (bool, error) { return tt.confirmResult, nil }
+			called := false
+			selfUpdateFunc = func() error {
+				called = true
+				return tt.selfUpdateErr
+			}
+
+			got := resolveVersionIncompatibility(tt.err)
+
+			if called != tt.wantUpdateCalled {
+				t.Errorf("selfUpdateFunc called=%v, want %v", called, tt.wantUpdateCalled)
+			}
+			if tt.wantErrIs != nil && !errors.Is(got, tt.wantErrIs) {
+				t.Errorf("expected error to wrap %v, got %v", tt.wantErrIs, got)
+			}
+			if tt.wantErrMsg != "" && (got == nil || !strings.Contains(got.Error(), tt.wantErrMsg)) {
+				t.Errorf("expected error to contain %q, got %v", tt.wantErrMsg, got)
 			}
 		})
 	}

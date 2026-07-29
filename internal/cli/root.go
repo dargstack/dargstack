@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -16,6 +17,12 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/update"
 	"github.com/dargstack/dargstack/v4/internal/version"
 )
+
+// selfUpdateFunc performs a self-update; overridden in tests.
+var selfUpdateFunc = update.SelfUpdate
+
+// confirmFunc asks the user a yes/no question; overridden in tests.
+var confirmFunc = prompt.Confirm
 
 var (
 	cfgPath       string
@@ -99,7 +106,7 @@ var rootCmd = &cobra.Command{
 
 		cfg, err = config.Load(stackDir)
 		if err != nil {
-			return err
+			return resolveVersionIncompatibility(err)
 		}
 
 		// Set STACK_DOMAIN if not already set — use the domain matching the
@@ -192,6 +199,31 @@ func isSkippedCommand(cmd *cobra.Command) bool {
 		}
 	}
 	return false
+}
+
+// resolveVersionIncompatibility offers to self-update when the CLI version
+// does not satisfy the project's compatibility constraint, then asks the
+// user to re-run the command against the new binary. Returns the original
+// error unchanged when no update was offered or performed (offline mode,
+// non-interactive mode, user declined, or the update itself failed).
+func resolveVersionIncompatibility(err error) error {
+	if offline {
+		return err
+	}
+	var incompatErr *config.IncompatibleVersionError
+	if !errors.As(err, &incompatErr) {
+		return err
+	}
+
+	ok, _ := confirmFunc(fmt.Sprintf("%s Update dargstack now?", incompatErr.Error()), false)
+	if !ok {
+		return err
+	}
+
+	if updErr := selfUpdateFunc(); updErr != nil {
+		return fmt.Errorf("%w (self-update failed: %v)", err, updErr)
+	}
+	return errors.New("dargstack was updated — please re-run the command")
 }
 
 // isProduction returns true if the active --environment is "production".
