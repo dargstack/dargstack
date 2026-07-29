@@ -38,19 +38,6 @@ func setupGitRepo(t *testing.T, dir string) {
 	runGit(t, dir, "commit", "-m", "initial")
 }
 
-// setupGitRepoWithOrigin creates a working repo with a bare origin remote
-// and fetches it so refs/remotes/origin/main exists locally.
-func setupGitRepoWithOrigin(t *testing.T, workDir string) {
-	t.Helper()
-	bareDir := t.TempDir()
-	runGit(t, bareDir, "init", "--bare")
-
-	setupGitRepo(t, workDir)
-	runGit(t, workDir, "remote", "add", "origin", bareDir)
-	runGit(t, workDir, "push", "-u", "origin", "main")
-	runGit(t, workDir, "fetch", "origin", "--tags")
-}
-
 func TestLatestGitTag(t *testing.T) {
 	dir := t.TempDir()
 	setupGitRepo(t, dir)
@@ -73,7 +60,7 @@ func TestLatestGitTag(t *testing.T) {
 	stackDir = dir
 	defer func() { stackDir = origStackDir }()
 
-	tag, err := latestGitTag("main")
+	tag, err := latestGitTag(1)
 	if err != nil {
 		t.Fatalf("latestGitTag failed: %v", err)
 	}
@@ -90,46 +77,178 @@ func TestLatestGitTagNoTags(t *testing.T) {
 	stackDir = dir
 	defer func() { stackDir = origStackDir }()
 
-	_, err := latestGitTag("main")
+	_, err := latestGitTag(1)
 	if err == nil {
 		t.Fatal("expected error when no tags exist")
 	}
 }
 
-func TestLatestGitTagPrefersOrigin(t *testing.T) {
+func TestLatestGitTagFiltersByMajor(t *testing.T) {
 	dir := t.TempDir()
-	setupGitRepoWithOrigin(t, dir)
+	setupGitRepo(t, dir)
 
-	// Create a tag that's only on the local repo at first.
 	runGit(t, dir, "tag", "v1.0.0")
-
-	// Push main, then add a newer tag and push it so origin has v2.0.0.
-	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("1"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	runGit(t, dir, "add", ".")
 	runGit(t, dir, "commit", "-m", "second")
-	runGit(t, dir, "tag", "v2.0.0")
-	runGit(t, dir, "push", "origin", "main", "--tags")
+	runGit(t, dir, "tag", "v1.1.0")
 
-	// Make local diverge with a newer tag that is *not* pushed, to verify we
-	// prefer origin/<branch> over the local branch.
-	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("y"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("2"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	runGit(t, dir, "add", ".")
-	runGit(t, dir, "commit", "-m", "local only")
-	runGit(t, dir, "tag", "v3.0.0")
+	runGit(t, dir, "commit", "-m", "third")
+	runGit(t, dir, "tag", "v2.0.0")
+
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("3"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "fourth")
+	runGit(t, dir, "tag", "v2.1.0")
+
 	origStackDir := stackDir
 	stackDir = dir
 	defer func() { stackDir = origStackDir }()
 
-	tag, err := latestGitTag("main")
+	tag, err := latestGitTag(1)
 	if err != nil {
 		t.Fatalf("latestGitTag failed: %v", err)
 	}
-	if tag != "v2.0.0" {
-		t.Errorf("expected origin tag v2.0.0, got %s", tag)
+	if tag != "v1.1.0" {
+		t.Errorf("latestGitTag(1) = %q, want v1.1.0", tag)
+	}
+
+	tag, err = latestGitTag(2)
+	if err != nil {
+		t.Fatalf("latestGitTag failed: %v", err)
+	}
+	if tag != "v2.1.0" {
+		t.Errorf("latestGitTag(2) = %q, want v2.1.0", tag)
+	}
+}
+
+func TestLatestGitTagNoMatchingMajor(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v1.0.0")
+
+	origStackDir := stackDir
+	stackDir = dir
+	defer func() { stackDir = origStackDir }()
+
+	_, err := latestGitTag(2)
+	if err == nil {
+		t.Fatal("expected error when no tags match target major")
+	}
+}
+
+func TestLatestGitTagMixedPrefixes(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+
+	runGit(t, dir, "tag", "v1.0.0")
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+	runGit(t, dir, "tag", "1.1.0")
+
+	origStackDir := stackDir
+	stackDir = dir
+	defer func() { stackDir = origStackDir }()
+
+	tag, err := latestGitTag(1)
+	if err != nil {
+		t.Fatalf("latestGitTag failed: %v", err)
+	}
+	if tag != "1.1.0" {
+		t.Errorf("latestGitTag(1) = %q, want 1.1.0 (1.1.0 is the later version despite no 'v' prefix)", tag)
+	}
+}
+
+// TestLatestGitTagNumericMinorOrdering guards against lexicographic
+// comparison: "v2.10.0" must outrank "v2.9.0" numerically, not sort before
+// it because '1' < '9' as characters.
+func TestLatestGitTagNumericMinorOrdering(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+
+	runGit(t, dir, "tag", "v2.9.0")
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+	runGit(t, dir, "tag", "v2.10.0")
+
+	origStackDir := stackDir
+	stackDir = dir
+	defer func() { stackDir = origStackDir }()
+
+	tag, err := latestGitTag(2)
+	if err != nil {
+		t.Fatalf("latestGitTag failed: %v", err)
+	}
+	if tag != "v2.10.0" {
+		t.Errorf("latestGitTag(2) = %q, want v2.10.0 (numeric compare, not lexicographic)", tag)
+	}
+}
+
+// TestLatestGitTagIgnoresReachability documents the intentional drop of
+// branch-ancestry filtering: a tag reachable only from a side branch that
+// was never merged into the production branch is still eligible.
+func TestLatestGitTagIgnoresReachability(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+
+	runGit(t, dir, "checkout", "-b", "other")
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "never merged into main")
+	runGit(t, dir, "tag", "v1.5.0")
+	runGit(t, dir, "checkout", "main")
+
+	origStackDir := stackDir
+	stackDir = dir
+	defer func() { stackDir = origStackDir }()
+
+	tag, err := latestGitTag(1)
+	if err != nil {
+		t.Fatalf("latestGitTag failed: %v", err)
+	}
+	if tag != "v1.5.0" {
+		t.Errorf("latestGitTag(1) = %q, want v1.5.0 (tag selection is not branch-scoped)", tag)
+	}
+}
+
+func TestLatestGitTagNoFilterReturnsAbsoluteLatest(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+
+	runGit(t, dir, "tag", "v1.0.0")
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+	runGit(t, dir, "tag", "v3.0.0")
+
+	origStackDir := stackDir
+	stackDir = dir
+	defer func() { stackDir = origStackDir }()
+
+	tag, err := latestGitTag(-1)
+	if err != nil {
+		t.Fatalf("latestGitTag failed: %v", err)
+	}
+	if tag != "v3.0.0" {
+		t.Errorf("latestGitTag(-1) = %q, want v3.0.0 (no major filter, highest overall)", tag)
 	}
 }
 

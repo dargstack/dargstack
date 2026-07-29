@@ -52,9 +52,9 @@ func resolveDeployTag() (string, error) {
 			logger.L.Warn(fmt.Sprintf("Failed to fetch from origin: %v", err))
 		}
 	}
-	tag, err := latestGitTag(cfg.Environment.Production.Branch)
+	tag, err := latestGitTag(-1)
 	if err != nil {
-		return "", fmt.Errorf("resolve deploy tag from branch %q: %w — use --tag to set explicitly", cfg.Environment.Production.Branch, err)
+		return "", fmt.Errorf("resolve deploy tag: %w — use --tag to set explicitly", err)
 	}
 	return tag, nil
 }
@@ -69,20 +69,65 @@ func gitFetchOrigin() error {
 	return nil
 }
 
-func latestGitTag(branch string) (string, error) {
-	// Try origin/branch first (most up-to-date after a fetch), then fall back
-	// to the local branch ref for freshly initialized repos or offline mode.
-	var lastErr error
-	for _, ref := range []string{"origin/" + branch, branch} {
-		cmd := exec.Command("git", "describe", "--tags", "--abbrev=0", "--", ref)
-		cmd.Dir = stackDir
-		out, err := cmd.CombinedOutput()
-		if err == nil {
-			return strings.TrimSpace(string(out)), nil
-		}
-		lastErr = fmt.Errorf("git describe %s: %s", ref, strings.TrimSpace(string(out)))
+func latestGitTag(targetMajor int) (string, error) {
+	cmd := exec.Command("git", "tag", "--list")
+	cmd.Dir = stackDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("list git tags: %s", strings.TrimSpace(string(out)))
 	}
-	return "", fmt.Errorf("find latest tag: %w", lastErr)
+
+	var candidates []string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if line == "" {
+			continue
+		}
+		major, parseErr := parseMajorVersion(line)
+		if parseErr != nil {
+			continue
+		}
+		if targetMajor >= 0 && major != targetMajor {
+			continue
+		}
+		candidates = append(candidates, line)
+	}
+
+	if len(candidates) == 0 {
+		if targetMajor >= 0 {
+			return "", fmt.Errorf("no tag found matching major %d", targetMajor)
+		}
+		return "", fmt.Errorf("no tags found in repository")
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		return compareSemver(candidates[i], candidates[j]) > 0
+	})
+
+	return candidates[0], nil
+}
+
+// compareSemver compares two tags by their dot-separated numeric segments,
+// ignoring an optional "v" prefix on either side. A plain string or git
+// version-sort comparison gets this wrong in two ways: it buckets "v"
+// prefixed and bare-digit tags separately regardless of actual version, and
+// it compares multi-digit segments lexicographically (making "v2.10.0" sort
+// below "v2.9.0" because '1' < '9').
+func compareSemver(a, b string) int {
+	as := strings.Split(strings.TrimPrefix(a, "v"), ".")
+	bs := strings.Split(strings.TrimPrefix(b, "v"), ".")
+	for i := 0; i < len(as) || i < len(bs); i++ {
+		var an, bn int
+		if i < len(as) {
+			an, _ = strconv.Atoi(as[i])
+		}
+		if i < len(bs) {
+			bn, _ = strconv.Atoi(bs[i])
+		}
+		if an != bn {
+			return an - bn
+		}
+	}
+	return 0
 }
 
 // gitWorkingTreeDirty reports whether dir has uncommitted changes to tracked
