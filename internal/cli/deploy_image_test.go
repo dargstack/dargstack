@@ -456,6 +456,61 @@ func TestParseMajorVersion(t *testing.T) {
 	}
 }
 
+func TestCurrentTagAtTaggedCommit(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v1.0.0")
+
+	origStackDir := stackDir
+	stackDir = dir
+	defer func() { stackDir = origStackDir }()
+
+	tag := currentTag()
+	if tag != "v1.0.0" {
+		t.Errorf("currentTag = %q, want %q", tag, "v1.0.0")
+	}
+}
+
+func TestCurrentTagOnBranch(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v1.0.0")
+
+	// Make another commit so HEAD is past the tag
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+
+	origStackDir := stackDir
+	stackDir = dir
+	defer func() { stackDir = origStackDir }()
+
+	tag := currentTag()
+	if tag != "" {
+		t.Errorf("currentTag = %q, want empty (HEAD not at a tag)", tag)
+	}
+}
+
+func TestCurrentTagDetachedAtTag(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+	runGit(t, dir, "tag", "v1.0.0")
+
+	// Detach at tag
+	runGit(t, dir, "checkout", "--detach", "v1.0.0")
+
+	origStackDir := stackDir
+	stackDir = dir
+	defer func() { stackDir = origStackDir }()
+
+	tag := currentTag()
+	if tag != "v1.0.0" {
+		t.Errorf("currentTag = %q, want %q", tag, "v1.0.0")
+	}
+}
+
 func TestExtractDargstackBuildContext(t *testing.T) {
 	tests := []struct {
 		name     string

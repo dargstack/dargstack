@@ -30,6 +30,16 @@ func parseMajorVersion(tag string) (int, error) {
 	return major, nil
 }
 
+func currentTag() string {
+	cmd := exec.Command("git", "describe", "--tags", "--exact-match", "HEAD")
+	cmd.Dir = stackDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
 func resolveDeployTag() (string, error) {
 	if deployTag != "" {
 		return deployTag, nil
