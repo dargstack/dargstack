@@ -20,23 +20,116 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
+func parseMajorVersion(tag string) (int, error) {
+	tag = strings.TrimPrefix(tag, "v")
+	parts := strings.SplitN(tag, ".", 2)
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, fmt.Errorf("parse major version from %q: %w", tag, err)
+	}
+	return major, nil
+}
+
+func currentTag() string {
+	cmd := exec.Command("git", "describe", "--tags", "--exact-match", "HEAD")
+	cmd.Dir = stackDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
 func resolveDeployTag() (string, error) {
+	current := currentTag()
+	currentMajor, majorErr := parseMajorVersion(current)
+	currentDetermined := current != "" && majorErr == nil
+
+	var targetTag string
 	if deployTag != "" {
-		return deployTag, nil
+		targetTag = deployTag
+	} else if cfg.Environment.Production.Tag != "" {
+		targetTag = cfg.Environment.Production.Tag
 	}
-	if cfg.Environment.Production.Tag != "" {
-		return cfg.Environment.Production.Tag, nil
+
+	if targetTag != "" {
+		targetMajor, err := parseMajorVersion(targetTag)
+		if err != nil {
+			// Non-semver tag (e.g. "latest") — no major to guard on, deploy as-is.
+			return targetTag, nil
+		}
+
+		if !currentDetermined {
+			if !deployMajor {
+				return "", fmt.Errorf("current major version could not be determined (no tagged commit checked out at HEAD) — pass --major to confirm this deploy")
+			}
+			return targetTag, nil
+		}
+
+		if targetMajor == currentMajor {
+			return targetTag, nil
+		}
+
+		if !deployMajor {
+			return "", fmt.Errorf("deploying %s changes the major version from %s (v%d -> v%d) — use --major to confirm", targetTag, current, currentMajor, targetMajor)
+		}
+
+		if abs(targetMajor-currentMajor) > 1 {
+			nextMajor := currentMajor + signInt(targetMajor-currentMajor)
+			return "", fmt.Errorf("deploying %s skips major version v%d (currently on %s) — deploy v%d first", targetTag, nextMajor, current, nextMajor)
+		}
+
+		return targetTag, nil
 	}
+
+	// Auto-resolution
 	if !offline {
 		if err := gitFetchOrigin(); err != nil {
 			logger.L.Warn(fmt.Sprintf("Failed to fetch from origin: %v", err))
 		}
 	}
-	tag, err := latestGitTag(cfg.Environment.Production.Branch)
+
+	if !currentDetermined {
+		if !deployMajor {
+			return "", fmt.Errorf("current major version could not be determined (no tagged commit checked out at HEAD) — pass --major to confirm this deploy")
+		}
+		tag, err := latestGitTag(-1)
+		if err != nil {
+			return "", fmt.Errorf("resolve deploy tag from branch %q: %w", cfg.Environment.Production.Branch, err)
+		}
+		return tag, nil
+	}
+
+	targetMajor := currentMajor
+	if deployMajor {
+		targetMajor = currentMajor + 1
+	}
+
+	tag, err := latestGitTag(targetMajor)
 	if err != nil {
+		if deployMajor {
+			return "", fmt.Errorf("no v%d.x.x tag found — version v%d has not been released yet", targetMajor, targetMajor)
+		}
 		return "", fmt.Errorf("resolve deploy tag from branch %q: %w — use --tag to set explicitly", cfg.Environment.Production.Branch, err)
 	}
 	return tag, nil
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func signInt(x int) int {
+	if x > 0 {
+		return 1
+	}
+	if x < 0 {
+		return -1
+	}
+	return 0
 }
 
 func gitFetchOrigin() error {
@@ -49,20 +142,65 @@ func gitFetchOrigin() error {
 	return nil
 }
 
-func latestGitTag(branch string) (string, error) {
-	// Try origin/branch first (most up-to-date after a fetch), then fall back
-	// to the local branch ref for freshly initialized repos or offline mode.
-	var lastErr error
-	for _, ref := range []string{"origin/" + branch, branch} {
-		cmd := exec.Command("git", "describe", "--tags", "--abbrev=0", "--", ref)
-		cmd.Dir = stackDir
-		out, err := cmd.CombinedOutput()
-		if err == nil {
-			return strings.TrimSpace(string(out)), nil
-		}
-		lastErr = fmt.Errorf("git describe %s: %s", ref, strings.TrimSpace(string(out)))
+func latestGitTag(targetMajor int) (string, error) {
+	cmd := exec.Command("git", "tag", "--list")
+	cmd.Dir = stackDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("list git tags: %s", strings.TrimSpace(string(out)))
 	}
-	return "", fmt.Errorf("find latest tag: %w", lastErr)
+
+	var candidates []string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if line == "" {
+			continue
+		}
+		major, parseErr := parseMajorVersion(line)
+		if parseErr != nil {
+			continue
+		}
+		if targetMajor >= 0 && major != targetMajor {
+			continue
+		}
+		candidates = append(candidates, line)
+	}
+
+	if len(candidates) == 0 {
+		if targetMajor >= 0 {
+			return "", fmt.Errorf("no tag found matching major %d", targetMajor)
+		}
+		return "", fmt.Errorf("no tags found in repository")
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		return compareSemver(candidates[i], candidates[j]) > 0
+	})
+
+	return candidates[0], nil
+}
+
+// compareSemver compares two tags by their dot-separated numeric segments,
+// ignoring an optional "v" prefix on either side. A plain string or git
+// version-sort comparison gets this wrong in two ways: it buckets "v"
+// prefixed and bare-digit tags separately regardless of actual version, and
+// it compares multi-digit segments lexicographically (making "v2.10.0" sort
+// below "v2.9.0" because '1' < '9').
+func compareSemver(a, b string) int {
+	as := strings.Split(strings.TrimPrefix(a, "v"), ".")
+	bs := strings.Split(strings.TrimPrefix(b, "v"), ".")
+	for i := 0; i < len(as) || i < len(bs); i++ {
+		var an, bn int
+		if i < len(as) {
+			an, _ = strconv.Atoi(as[i])
+		}
+		if i < len(bs) {
+			bn, _ = strconv.Atoi(bs[i])
+		}
+		if an != bn {
+			return an - bn
+		}
+	}
+	return 0
 }
 
 // gitWorkingTreeDirty reports whether dir has uncommitted changes to tracked

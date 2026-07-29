@@ -18,6 +18,7 @@ Use `--environment production` to deploy to production, which:
 - Requires all environment variables and secrets to be set
 - Blocks deployment if default insecure secrets are present
 - Includes production-only services
+- Blocks major version changes unless `--major` is passed (single major step only; non-semver tags bypass this check)
 
 ```
 dargstack deploy [flags]
@@ -29,6 +30,7 @@ dargstack deploy [flags]
   -a, --all          deploy the full stack ignoring --profiles and --services filters
       --force        remove the running stack before deploying
   -h, --help         help for deploy
+      --major        allow major version change (production only)
   -t, --tag string   deploy a specific git tag (production only)
 ```
 

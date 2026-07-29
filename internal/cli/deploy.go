@@ -16,6 +16,7 @@ import (
 var (
 	deployAll   bool
 	deployTag   string
+	deployMajor bool
 	forceDeploy bool
 )
 
@@ -35,7 +36,8 @@ Use ` + "`--environment production`" + ` to deploy to production, which:
 - Blocks deployment if there are uncommitted changes to tracked files in the stack directory
 - Requires all environment variables and secrets to be set
 - Blocks deployment if default insecure secrets are present
-- Includes production-only services`,
+- Includes production-only services
+- Blocks major version changes unless ` + "`--major`" + ` is passed (single major step only; non-semver tags bypass this check)`,
 	RunE: runDeploy,
 }
 
@@ -43,6 +45,7 @@ func init() {
 	deployCmd.Flags().BoolVarP(&deployAll, "all", "a", false, "deploy the full stack ignoring --profiles and --services filters")
 	deployCmd.Flags().BoolVar(&forceDeploy, "force", false, "remove the running stack before deploying")
 	deployCmd.Flags().StringVarP(&deployTag, "tag", "t", "", "deploy a specific git tag (production only)")
+	deployCmd.Flags().BoolVar(&deployMajor, "major", false, "allow major version change (production only)")
 }
 
 func runDeploy(cmd *cobra.Command, _ []string) error {
