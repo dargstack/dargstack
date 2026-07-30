@@ -21,13 +21,17 @@ This guide helps you migrate an existing dargstack v3 (Bash) project to v4 (Go).
 
 **Recommended** (binary download with checksum verification):
 
+On Windows, run this in a POSIX shell (WSL, Git Bash, or Cygwin); it won't work in `cmd.exe` or native PowerShell.
+
 ```bash
 ARCHIVE="dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz"
 curl -sfL -o "$ARCHIVE" "https://github.com/dargstack/dargstack/releases/latest/download/$ARCHIVE"
 curl -sfL https://github.com/dargstack/dargstack/releases/latest/download/checksums.txt | sha256sum -c - --ignore-missing
 tar xzf "$ARCHIVE" && rm "$ARCHIVE"
-sudo mv dargstack /usr/local/bin/
+mkdir -p "$HOME/.local/bin" && mv dargstack "$HOME/.local/bin/"
 ```
+
+Ensure `$HOME/.local/bin` is on your `PATH`.
 
 **Alternative** (verified via Go module proxy):
 
@@ -38,7 +42,7 @@ go install github.com/dargstack/dargstack/v4/cmd/dargstack@latest
 Remove the old v3 script:
 
 ```bash
-sudo rm /usr/local/bin/dargstack   # or wherever you installed it
+sudo rm ~/scripts/dargstack
 ```
 
 ---
