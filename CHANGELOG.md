@@ -1,3 +1,5 @@
+## [4.12.1](https://github.com/dargstack/dargstack/compare/v4.12.0...v4.12.1) (2026-08-07)
+
 ## [4.12.0](https://github.com/dargstack/dargstack/compare/v4.11.0...v4.12.0) (2026-07-29)
 
 ## [4.11.0](https://github.com/dargstack/dargstack/compare/v4.10.0...v4.11.0) (2026-07-29)
