@@ -8,9 +8,11 @@ import (
 
 // StackDeploy deploys a stack from compose YAML data.
 func StackDeploy(exec *Executor, stackName string, composeData []byte) error {
-	// docker stack deploy -c - <stack_name>
-	// Feed compose data via stdin
-	err := exec.RunWithStdin(composeData, "stack", "deploy", "-c", "-", stackName)
+	// docker stack deploy --with-registry-auth -c - <stack_name>
+	// Feed compose data via stdin. --with-registry-auth propagates the
+	// manager's registry credentials to other swarm nodes so they can pull
+	// private images; harmless on single-node swarms.
+	err := exec.RunWithStdin(composeData, "stack", "deploy", "--with-registry-auth", "-c", "-", stackName)
 	if err != nil {
 		return fmt.Errorf("deploy stack %q: %w", stackName, err)
 	}
