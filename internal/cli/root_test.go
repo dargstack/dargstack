@@ -154,6 +154,67 @@ func TestResolveVersionIncompatibility(t *testing.T) {
 	}
 }
 
+func TestApplyStackDomainDefault(t *testing.T) {
+	tests := []struct {
+		name                string
+		env                 string
+		stackDomainExplicit bool
+		wantDomain          string
+	}{
+		{
+			name:       "development uses development domain",
+			env:        "development",
+			wantDomain: "dev.example.com",
+		},
+		{
+			name:       "production uses production domain",
+			env:        "production",
+			wantDomain: "prod.example.com",
+		},
+		{
+			name:                "explicit STACK_DOMAIN is preserved",
+			env:                 "production",
+			stackDomainExplicit: true,
+			wantDomain:          "user-provided.example.com",
+		},
+	}
+
+	oldCfg := cfg
+	oldEnv := env
+	oldStackDomainExplicit := stackDomainExplicit
+	defer func() {
+		cfg = oldCfg
+		env = oldEnv
+		stackDomainExplicit = oldStackDomainExplicit
+	}()
+
+	cfg = &config.Config{
+		Environment: config.EnvironmentConfig{
+			Development: config.DevConfig{Domain: "dev.example.com"},
+			Production:  config.ProdConfig{Domain: "prod.example.com"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env = tt.env
+			stackDomainExplicit = tt.stackDomainExplicit
+			if tt.stackDomainExplicit {
+				t.Setenv("STACK_DOMAIN", "user-provided.example.com")
+			} else {
+				t.Setenv("STACK_DOMAIN", "")
+				_ = os.Unsetenv("STACK_DOMAIN")
+			}
+
+			applyStackDomainDefault()
+
+			if got := os.Getenv("STACK_DOMAIN"); got != tt.wantDomain {
+				t.Errorf("STACK_DOMAIN: got %q, want %q", got, tt.wantDomain)
+			}
+		})
+	}
+}
+
 func TestResolveProfiles(t *testing.T) {
 	tests := []struct {
 		name       string
