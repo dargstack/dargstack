@@ -38,6 +38,11 @@ var (
 
 	cfg      *config.Config
 	stackDir string
+
+	// stackDomainExplicit records whether STACK_DOMAIN was set in the
+	// environment before dargstack ran, so applyStackDomainDefault never
+	// overrides a user-supplied value.
+	stackDomainExplicit bool
 )
 
 const (
@@ -104,21 +109,14 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		stackDomainExplicit = os.Getenv("STACK_DOMAIN") != ""
+
 		cfg, err = config.Load(stackDir)
 		if err != nil {
 			return resolveVersionIncompatibility(err)
 		}
 
-		// Set STACK_DOMAIN if not already set — use the domain matching the
-		// active --environment. Production commands use the production domain;
-		// development commands use the development domain.
-		if os.Getenv("STACK_DOMAIN") == "" {
-			domain := cfg.Environment.Development.Domain
-			if env == "production" {
-				domain = cfg.Environment.Production.Domain
-			}
-			_ = os.Setenv("STACK_DOMAIN", domain)
-		}
+		applyStackDomainDefault()
 
 		return nil
 	},
@@ -126,6 +124,24 @@ var rootCmd = &cobra.Command{
 		result := update.CollectBackgroundCheck()
 		update.PrintUpdateNotice(result)
 	},
+}
+
+// applyStackDomainDefault sets STACK_DOMAIN from cfg unless the user
+// explicitly set it in the environment. It uses the domain matching the
+// active --environment: production commands use the production domain,
+// development commands use the development domain. Called once from
+// PersistentPreRunE, and again by production deploy after checkoutDeployTag
+// reloads cfg, so the env var reflects whichever dargstack.yaml is actually
+// on disk.
+func applyStackDomainDefault() {
+	if stackDomainExplicit {
+		return
+	}
+	domain := cfg.Environment.Development.Domain
+	if env == "production" {
+		domain = cfg.Environment.Production.Domain
+	}
+	_ = os.Setenv("STACK_DOMAIN", domain)
 }
 
 func init() {

@@ -40,9 +40,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		if err != nil {
 			return fmt.Errorf("reload config after tag checkout: %w", err)
 		}
-		// Re-apply STACK_DOMAIN from the reloaded config.
-		stackDomain := cfg.Environment.Production.Domain
-		_ = os.Setenv("STACK_DOMAIN", stackDomain)
+		applyStackDomainDefault()
 	}
 
 	// Ensure .env files exist (copied from .env.template if missing).
