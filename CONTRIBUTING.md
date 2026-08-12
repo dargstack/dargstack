@@ -41,6 +41,14 @@ Pull requests should:
 - Error strings should not be capitalized (per Go conventions).
 - Check all error return values (enforced by `errcheck`).
 
+## Terminal Output & Color
+
+All colored/styled terminal output goes through `internal/logger` (backed by `lipgloss`), never raw ANSI escape codes (`\033[...`). Raw escapes bypass `NO_COLOR` and non-TTY detection, which lipgloss handles automatically.
+
+- **Semantic status** (error/warning/info/success) — use `logger.L.Error/Warn/Info/Debug` for structured log messages, or `logger.Style{Err,Warn,Info,OK}.Render(...)` / `logger.Success(...)` for one-off lines printed outside the logger (e.g. `fmt.Fprintln(os.Stderr, logger.StyleWarn.Render(...))`). Pick the style by meaning: `StyleErr` for failures, `StyleWarn` for things needing attention, `StyleInfo` for "nothing to do" / general info, `StyleOK`/`Success` for a completed action.
+- **Non-semantic coloring** (e.g. distinguishing concurrent output streams by identity rather than severity) should still render through `lipgloss.NewStyle().Foreground(lipgloss.Color(...))` rather than hand-rolled escape sequences, so it still degrades correctly under `NO_COLOR`/non-TTY.
+- **Leave plain**: tabular/report output (e.g. `secret list`, `audit` reports), raw passthrough of external tool/process output, and anything piped for machine consumption. Don't colorize these — it would break alignment and scriptability.
+
 ## Testing
 
 - Tests live alongside source files as `*_test.go`.

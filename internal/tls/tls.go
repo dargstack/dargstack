@@ -42,15 +42,15 @@ func EnsureCertificates(certDir string, domains []string) error {
 		if !needsRegen {
 			return nil
 		}
-		fmt.Printf("Regenerating TLS certificate: %s\n", reason)
+		fmt.Println(logger.StyleInfo.Render(fmt.Sprintf("Regenerating TLS certificate: %s", reason)))
 	}
 
 	if hasMkcert() {
 		return generateWithMkcert(certDir, domains)
 	}
 
-	fmt.Println("mkcert not found - generating self-signed certificate")
-	fmt.Println("  Install mkcert for browser-trusted local certificates: https://github.com/FiloSottile/mkcert")
+	fmt.Println(logger.StyleInfo.Render("mkcert not found - generating self-signed certificate"))
+	fmt.Println(logger.StyleInfo.Render("  Install mkcert for browser-trusted local certificates: https://github.com/FiloSottile/mkcert"))
 	return generateSelfSigned(certFile, keyFile, domains)
 }
 

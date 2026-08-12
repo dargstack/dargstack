@@ -8,36 +8,42 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+
+	"charm.land/lipgloss/v2"
+
+	"github.com/dargstack/dargstack/v4/internal/logger"
 )
 
-// ANSI color codes for build labels. Indexed by hash(label) % len.
-var buildColors = []string{
-	"\033[38;5;81m",  // blue
-	"\033[38;5;118m", // green
-	"\033[38;5;209m", // yellow
-	"\033[38;5;219m", // cyan
-	"\033[38;5;161m", // magenta
-	"\033[38;5;166m", // red
-	"\033[38;5;72m",  // teal
-	"\033[38;5;203m", // orange
+// buildLabelColors are ANSI 256-color codes used to distinguish concurrent
+// build streams by label identity (not severity). Indexed by hash(label) % len.
+// Rendered through lipgloss so NO_COLOR / non-TTY output degrades automatically,
+// same as the severity styles in internal/logger.
+var buildLabelColors = []string{
+	"81",  // blue
+	"118", // green
+	"209", // yellow
+	"219", // cyan
+	"161", // magenta
+	"166", // red
+	"72",  // teal
+	"203", // orange
 }
-
-const resetColor = "\033[0m"
 
 // labelWriter wraps an io.Writer, prepending a color-coded "[label] " prefix
 // to each line. Safe for concurrent use.
 type labelWriter struct {
 	mu     sync.Mutex
 	w      io.Writer
-	prefix string // includes color codes, e.g. "\033[38;5;81m[api]\033[0m "
+	prefix string // pre-rendered "[label] " including color codes
 }
 
 func newLabelWriter(w io.Writer, label string) *labelWriter {
 	h := hashString(label)
-	color := buildColors[h%uint32(len(buildColors))]
+	code := buildLabelColors[h%uint32(len(buildLabelColors))]
+	style := lipgloss.NewStyle().Foreground(lipgloss.Color(code))
 	return &labelWriter{
 		w:      w,
-		prefix: color + "[" + label + "]" + resetColor + " ",
+		prefix: style.Render("["+label+"]") + " ",
 	}
 }
 
@@ -130,7 +136,7 @@ func needsSudo(binary string) bool {
 		}
 		// Credentials may have expired. Fall back to interactive sudo so the
 		// user can authenticate once rather than getting a silent permission error.
-		fmt.Fprintln(os.Stderr, "sudo: Docker requires elevated privileges on this system. Please authenticate to continue.")
+		fmt.Fprintln(os.Stderr, logger.StyleWarn.Render("sudo: Docker requires elevated privileges on this system. Please authenticate to continue."))
 		sudoI := exec.Command("sudo", binary, "info")
 		sudoI.Stdin = os.Stdin
 		sudoI.Stdout = nil
@@ -153,7 +159,7 @@ func prewarmSudo() error {
 		return nil
 	}
 	// Credentials not cached — a password prompt is about to appear.
-	fmt.Fprintln(os.Stderr, "sudo: Docker requires elevated privileges on this system. Please authenticate to continue.")
+	fmt.Fprintln(os.Stderr, logger.StyleWarn.Render("sudo: Docker requires elevated privileges on this system. Please authenticate to continue."))
 	cmd := exec.Command("sudo", "-v")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
