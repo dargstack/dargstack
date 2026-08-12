@@ -141,7 +141,7 @@ func SelfUpdate() error {
 	}
 
 	if !latest.GreaterThan(current.String()) {
-		fmt.Printf("Already at latest version %s\n", currentVersion())
+		fmt.Println(logger.StyleInfo.Render(fmt.Sprintf("Already at latest version %s", currentVersion())))
 		return nil
 	}
 
@@ -157,7 +157,7 @@ func SelfUpdate() error {
 		return fmt.Errorf("update: %w", err)
 	}
 
-	fmt.Printf("Updated to %s\n", latest.Version())
+	logger.Success(fmt.Sprintf("Updated to %s", latest.Version()))
 	return nil
 }
 

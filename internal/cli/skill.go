@@ -75,7 +75,7 @@ func runSkillInstall(_ *cobra.Command, _ []string) error {
 		if !filepath.IsAbs(skillDir) {
 			displayDir = "./" + skillDir
 		}
-		fmt.Printf("Skill already installed at %s (user-modified)\n", displayDir)
+		fmt.Println(logger.StyleInfo.Render(fmt.Sprintf("Skill already installed at %s (user-modified)", displayDir)))
 		return nil
 	}
 
@@ -92,7 +92,7 @@ func runSkillInstall(_ *cobra.Command, _ []string) error {
 	if !filepath.IsAbs(skillDir) {
 		displayDir = "./" + skillDir
 	}
-	fmt.Printf("Skill already installed at %s (up to date)\n", displayDir)
+	fmt.Println(logger.StyleInfo.Render(fmt.Sprintf("Skill already installed at %s (up to date)", displayDir)))
 	return nil
 }
 
@@ -124,7 +124,7 @@ func runSkillUpdate(_ *cobra.Command, _ []string) error {
 	if updated {
 		logger.Success("Skill updated")
 	} else {
-		fmt.Println("Skill is already up to date")
+		fmt.Println(logger.StyleInfo.Render("Skill is already up to date"))
 	}
 	return nil
 }
