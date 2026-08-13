@@ -1,12 +1,7 @@
 package cli
 
 import (
-	"crypto/ecdsa"
-	"crypto/ed25519"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"os"
 	"sort"
@@ -59,6 +54,10 @@ Reads secret templates from the compose file and generates values for any
 missing secrets. Auto-generatable types (random_string, wordlist_word,
 private_key, insecure_default, template) are created automatically.
 Third-party secrets require manual values.
+
+Also derives x-dargstack.configs values (currently public_key, which derives
+a public key from a private_key secret) and writes them as plain Docker
+configs, since a public key is not itself a secret.
 
 In production mode (--environment production), validates that third-party secrets do not
 hold placeholder values and blocks if they do.
@@ -270,7 +269,7 @@ func runSecretShowKeys(targetName string) error {
 			continue
 		}
 
-		pub, keyType, deriveErr := derivePublicKeyPEM(data)
+		pub, keyType, deriveErr := secret.DerivePublicKeyPEM(data)
 		if deriveErr != nil {
 			logger.L.Warn(fmt.Sprintf("Cannot derive public key for %s: %v", name, deriveErr))
 			continue
@@ -309,9 +308,18 @@ func runSecretGenerate(_ *cobra.Command, _ []string) error {
 	}
 	logger.L.Info(filterMsg)
 
-	if issues, err, allSet := secretSetupFlow(composeData, isProduction(), false); err != nil {
+	issues, err, allSet := secretSetupFlow(composeData, isProduction(), false)
+	if err != nil {
 		return err
-	} else if len(issues) > 0 {
+	}
+
+	configIssues, err := configSetupFlow(composeData)
+	if err != nil {
+		return err
+	}
+	issues = append(issues, configIssues...)
+
+	if len(issues) > 0 {
 		printIssues(issues)
 	} else if allSet {
 		logger.Success("Secret generation complete. Run `dargstack deploy` to deploy.")
@@ -409,47 +417,4 @@ func runSecretStatus(_ *cobra.Command, _ []string) error {
 
 	logger.Success(fmt.Sprintf("All %d secret(s) are set", set))
 	return nil
-}
-
-// derivePublicKeyPEM reads a PEM-encoded private key and returns the public key
-// as a PEM string together with a human-readable algorithm label.
-func derivePublicKeyPEM(data []byte) (pubPEM, keyType string, err error) {
-	block, _ := pem.Decode(data)
-	if block == nil {
-		return "", "", fmt.Errorf("no PEM block found")
-	}
-
-	var privKey interface{}
-	switch block.Type {
-	case "EC PRIVATE KEY":
-		privKey, err = x509.ParseECPrivateKey(block.Bytes)
-	default:
-		privKey, err = x509.ParsePKCS8PrivateKey(block.Bytes)
-	}
-	if err != nil {
-		return "", "", fmt.Errorf("parse private key: %w", err)
-	}
-
-	var pub interface{}
-	switch k := privKey.(type) {
-	case ed25519.PrivateKey:
-		pub = k.Public()
-		keyType = "ed25519"
-	case *rsa.PrivateKey:
-		pub = &k.PublicKey
-		keyType = fmt.Sprintf("rsa-%d", k.N.BitLen())
-	case *ecdsa.PrivateKey:
-		pub = &k.PublicKey
-		keyType = fmt.Sprintf("ecdsa-p%d", k.Curve.Params().BitSize)
-	default:
-		return "", "", fmt.Errorf("unsupported key type %T", privKey)
-	}
-
-	der, marshalErr := x509.MarshalPKIXPublicKey(pub)
-	if marshalErr != nil {
-		return "", "", fmt.Errorf("marshal public key: %w", marshalErr)
-	}
-
-	pubPEM = strings.TrimSpace(string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})))
-	return pubPEM, keyType, nil
 }

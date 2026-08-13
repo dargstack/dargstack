@@ -1,15 +1,9 @@
 package secret
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
-
-	"github.com/dargstack/dargstack/v4/internal/compose"
-
-	"go.yaml.in/yaml/v3"
 )
 
 // Template defines secret metadata from x-dargstack.secrets in compose.
@@ -20,6 +14,7 @@ type Template struct {
 	KeyType           string `yaml:"key_type"`           // private_key: "ed25519" (default), "rsa", "ecdsa"
 	Length            int    `yaml:"length"`             // >0 enables secret generation
 	SpecialCharacters *bool  `yaml:"special_characters"` // nil = use default (true), false = opt-out
+	Source            string `yaml:"source"`             // public_key: name of the private_key secret to derive from
 	Template          string `yaml:"template"`           // template with {{secret_name}} references
 	ThirdParty        bool   `yaml:"third_party"`
 	Type              string `yaml:"type"`
@@ -29,6 +24,7 @@ const (
 	TypeRandomString    = "random_string"
 	TypeWordlistWord    = "wordlist_word"
 	TypePrivateKey      = "private_key"
+	TypePublicKey       = "public_key"
 	TypeThirdParty      = "third_party"
 	TypeTemplate        = "template"
 	TypeInsecureDefault = "insecure_default"
@@ -43,109 +39,19 @@ var templateTokenRegex = regexp.MustCompile(`\{\{([^}]+)\}\}`)
 
 // ExtractTemplates extracts x-dargstack.secrets from compose data.
 func ExtractTemplates(composeData []byte) (map[string]Template, error) {
-	var doc map[string]interface{}
-	if err := yaml.Unmarshal(composeData, &doc); err != nil {
-		return nil, fmt.Errorf("%s: %w", compose.ErrParseCompose, err)
-	}
-
-	result := make(map[string]Template)
-
-	raw, ok := doc["x-dargstack"]
-	if !ok {
-		return result, nil
-	}
-
-	ext, ok := raw.(map[string]interface{})
-	if !ok {
-		return result, nil
-	}
-
-	secretsRaw, ok := ext["secrets"]
-	if !ok {
-		return result, nil
-	}
-
-	secretsMap, ok := secretsRaw.(map[string]interface{})
-	if !ok {
-		return result, nil
-	}
-
-	for name, def := range secretsMap {
-		// Re-marshal and unmarshal through yaml for clean parsing
-		data, err := yaml.Marshal(def)
-		if err != nil {
-			return nil, fmt.Errorf("secret %q: marshal definition: %w", name, err)
-		}
-		var tmpl Template
-		if err := yaml.Unmarshal(data, &tmpl); err != nil {
-			return nil, fmt.Errorf("secret %q: parse definition: %w", name, err)
-		}
-		normalizeTemplate(&tmpl)
-		result[name] = tmpl
-	}
-
-	return result, nil
+	return extractDargstackSection(composeData, "secrets", "secret")
 }
 
 // ExtractSecretPaths extracts file: paths from the top-level secrets section of compose data.
 func ExtractSecretPaths(composeData []byte) map[string]string {
-	var doc map[string]interface{}
-	if err := yaml.Unmarshal(composeData, &doc); err != nil {
-		return nil
-	}
-
-	secrets, ok := doc["secrets"].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	paths := make(map[string]string)
-	for name, def := range secrets {
-		defMap, ok := def.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		if filePath, ok := defMap["file"].(string); ok {
-			paths[name] = filePath
-		}
-	}
-	return paths
+	return extractResourcePaths(composeData, "secrets")
 }
 
 // RewriteSecretFilePaths rewrites every secrets.NAME.file: entry in composeData to
 // point to secretsDir/NAME (flat hierarchy). The returned bytes are the modified compose
 // document; all existing file: values are replaced regardless of their original path.
 func RewriteSecretFilePaths(composeData []byte, secretsDir string) ([]byte, error) {
-	var doc map[string]interface{}
-	if err := yaml.Unmarshal(composeData, &doc); err != nil {
-		return nil, fmt.Errorf("parse compose for secret path rewrite: %w", err)
-	}
-
-	secretsRaw, ok := doc["secrets"]
-	if !ok {
-		return composeData, nil
-	}
-	secretsMap, ok := secretsRaw.(map[string]interface{})
-	if !ok {
-		return composeData, nil
-	}
-
-	for name, def := range secretsMap {
-		defMap, ok := def.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		if _, hasFile := defMap["file"]; hasFile {
-			defMap["file"] = filepath.Join(secretsDir, name)
-			secretsMap[name] = defMap
-		}
-	}
-
-	out, err := yaml.Marshal(doc)
-	if err != nil {
-		return nil, fmt.Errorf("serialize compose after secret path rewrite: %w", err)
-	}
-	return out, nil
+	return rewriteResourceFilePaths(composeData, secretsDir, "secrets", "secret")
 }
 
 // ReadSecretValues reads existing secret values from their compose-declared file paths.
@@ -168,19 +74,7 @@ func ReadSecretValues(secretPaths map[string]string) map[string]string {
 
 // WriteSecrets writes resolved secret values to their compose-declared file paths.
 func WriteSecrets(secretPaths, values map[string]string) error {
-	for name, value := range values {
-		path, ok := secretPaths[name]
-		if !ok {
-			continue
-		}
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			return err
-		}
-		if err := os.WriteFile(path, []byte(value+"\n"), 0o600); err != nil {
-			return fmt.Errorf("write secret %s: %w", name, err)
-		}
-	}
-	return nil
+	return writeResourceFiles(secretPaths, values, 0o600, "secret")
 }
 
 // SecretFileExists returns true if the secret file exists (regardless of content).
@@ -246,6 +140,8 @@ func normalizeTemplate(t *Template) {
 		t.Type = TypeWordlistWord
 	case "private_key":
 		t.Type = TypePrivateKey
+	case "public_key":
+		t.Type = TypePublicKey
 	case "third_party":
 		t.Type = TypeThirdParty
 	case "insecure_default":
@@ -256,6 +152,8 @@ func normalizeTemplate(t *Template) {
 		switch {
 		case t.KeyType != "" || t.KeySize > 0:
 			t.Type = TypePrivateKey
+		case t.Source != "":
+			t.Type = TypePublicKey
 		case t.ThirdParty:
 			t.Type = TypeThirdParty
 		case t.Template != "":

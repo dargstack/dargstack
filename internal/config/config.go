@@ -314,6 +314,7 @@ func (c *Config) ArtifactsDir() string { return filepath.Join(c.stackDir, "artif
 func (c *Config) CertificatesDir() string {
 	return filepath.Join(c.stackDir, "artifacts", "certificates")
 }
+func (c *Config) ConfigsDir() string { return filepath.Join(c.stackDir, "artifacts", "configs") }
 func (c *Config) DevDir() string     { return filepath.Join(c.stackDir, "src", "development") }
 func (c *Config) DevEnvFile() string { return filepath.Join(c.stackDir, "src", "development", ".env") }
 func (c *Config) DevEnvTemplate() string {

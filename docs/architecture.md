@@ -46,8 +46,11 @@ Understanding these decisions will help you make changes that align with dargsta
 
 10. **Image lifecycle** — auto-build in dev via `dargstack.development.build`; pre-pull before production deploy; offer cleanup after production deploy.
 
-11. **`x-dargstack` extension** — top-level compose extension key; `secrets` subkey holds templating metadata.
+11. **`x-dargstack` extension** — top-level compose extension key; `secrets` and `configs` subkeys hold templating metadata.
 
 12. **Secret templating** — `x-dargstack.secrets` with `hint`, `length`, `special_characters`, `template` (`{{secret:<name>}}`), and optional `third_party`. Topological sort resolves order.
+
+12a. **Config derivation**: `x-dargstack.configs` derives non-secret values that pair with a secret, currently `public_key`, which derives a public key from a `source` `private_key` secret.
+     Written as a plain Docker config (`artifacts/configs/`, world-readable) rather than a secret, since a public key is not sensitive.
 
 13. **Audit trail** — each deployment saves a timestamped snapshot to `artifacts/audit-log/`. `inspect` lists, diffs, and displays past snapshots. `--dry-run` traces all steps without deploying.

@@ -166,7 +166,13 @@ func deploySetupSecrets(composeData []byte, dryRun bool) ([]resource.Issue, erro
 	if err != nil {
 		return nil, fmt.Errorf("secret setup: %w", err)
 	}
-	return secretIssues, nil
+
+	configIssues, err := configSetupFlow(secretComposeData)
+	if err != nil {
+		return nil, fmt.Errorf("config setup: %w", err)
+	}
+
+	return append(secretIssues, configIssues...), nil
 }
 
 // deployValidateResources runs resource validation and combines results with

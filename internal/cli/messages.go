@@ -8,6 +8,7 @@ const (
 	ErrNoComposeSources       = "no compose sources found"
 	ErrValidationFailed       = "validation failed"
 	ErrRewriteSecretFilePaths = "rewrite secret file paths"
+	ErrRewriteConfigFilePaths = "rewrite config file paths"
 
 	// Success messages
 	MsgBuiltImage     = "Built %s"
