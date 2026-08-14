@@ -23,9 +23,6 @@ func configSetupFlow(composeData []byte) ([]resource.Issue, error) {
 	}
 
 	configPaths := secret.ExtractConfigPaths(composeData)
-	if len(configPaths) == 0 {
-		return nil, nil
-	}
 
 	secretPaths := secret.ExtractSecretPaths(composeData)
 	secretValues := secret.ReadSecretValues(secretPaths)
@@ -39,24 +36,29 @@ func configSetupFlow(composeData []byte) ([]resource.Issue, error) {
 		return nil, fmt.Errorf("write configs: %w", err)
 	}
 
-	var missing []string
+	names := make([]string, 0, len(configTemplates))
 	for name := range configTemplates {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	var issues []resource.Issue
+	for _, name := range names {
 		if _, ok := configPaths[name]; !ok {
+			issues = append(issues, resource.Issue{
+				Severity:    "error",
+				Resource:    fmt.Sprintf("config:%s", name),
+				Description: "derived config has no top-level configs entry with a file: path",
+			})
 			continue
 		}
 		if values[name] == "" {
-			missing = append(missing, name)
+			issues = append(issues, resource.Issue{
+				Severity:    "warning",
+				Resource:    fmt.Sprintf("config:%s", name),
+				Description: "derived config not set: source secret is not resolved yet",
+			})
 		}
-	}
-	sort.Strings(missing)
-
-	var issues []resource.Issue
-	for _, name := range missing {
-		issues = append(issues, resource.Issue{
-			Severity:    "warning",
-			Resource:    fmt.Sprintf("config:%s", name),
-			Description: "derived config not set: source secret is not resolved yet",
-		})
 	}
 
 	return issues, nil

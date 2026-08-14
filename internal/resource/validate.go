@@ -145,10 +145,12 @@ func validateConfigs(doc map[string]interface{}, stackDir string, production boo
 func validateDargstackConfigs(configTemplates, secretTemplates map[string]secret.Template) []Issue {
 	var issues []Issue
 
-	for name, tmpl := range configTemplates {
+	for name := range configTemplates {
+		tmpl := configTemplates[name]
 		switch tmpl.Type {
 		case secret.TypePublicKey:
-			if tmpl.Source == "" {
+			source := strings.TrimSpace(tmpl.Source)
+			if source == "" {
 				issues = append(issues, Issue{
 					Severity:    "error",
 					Resource:    fmt.Sprintf("config:%s", name),
@@ -156,20 +158,20 @@ func validateDargstackConfigs(configTemplates, secretTemplates map[string]secret
 				})
 				continue
 			}
-			source, ok := secretTemplates[tmpl.Source]
+			sourceTmpl, ok := secretTemplates[source]
 			if !ok {
 				issues = append(issues, Issue{
 					Severity:    "error",
 					Resource:    fmt.Sprintf("config:%s", name),
-					Description: fmt.Sprintf("source %q is not defined in x-dargstack.secrets", tmpl.Source),
+					Description: fmt.Sprintf("source %q is not defined in x-dargstack.secrets", source),
 				})
 				continue
 			}
-			if source.Type != secret.TypePrivateKey {
+			if sourceTmpl.Type != secret.TypePrivateKey {
 				issues = append(issues, Issue{
 					Severity:    "error",
 					Resource:    fmt.Sprintf("config:%s", name),
-					Description: fmt.Sprintf("source %q must be a private_key secret", tmpl.Source),
+					Description: fmt.Sprintf("source %q must be a private_key secret", source),
 				})
 			}
 		default:

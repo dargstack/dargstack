@@ -98,6 +98,38 @@ x-dargstack:
 	}
 }
 
+func TestConfigSetupFlow_MissingTopLevelConfigsEntry(t *testing.T) {
+	dir := t.TempDir()
+
+	composeYAML := `secrets:
+  signing-key:
+    file: ` + filepath.Join(dir, "signing-key.secret") + `
+x-dargstack:
+  secrets:
+    signing-key:
+      type: private_key
+      key_type: ed25519
+  configs:
+    signing-key-pub:
+      type: public_key
+      source: signing-key
+`
+
+	issues, err := configSetupFlow([]byte(composeYAML))
+	if err != nil {
+		t.Fatalf("configSetupFlow: %v", err)
+	}
+	if len(issues) != 1 {
+		t.Fatalf("expected 1 error issue, got %v", issues)
+	}
+	if issues[0].Severity != "error" {
+		t.Errorf("expected error severity, got %s", issues[0].Severity)
+	}
+	if issues[0].Resource != "config:signing-key-pub" {
+		t.Errorf("unexpected issue resource: %s", issues[0].Resource)
+	}
+}
+
 func TestConfigSetupFlow_NoConfigTemplates(t *testing.T) {
 	issues, err := configSetupFlow([]byte(`services:
   api:
