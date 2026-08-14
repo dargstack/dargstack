@@ -1,4 +1,4 @@
-package cli
+package secret
 
 import (
 	"crypto/ecdsa"
@@ -53,9 +53,9 @@ func generateTestEd25519Key(t *testing.T) []byte {
 
 func TestDerivePublicKeyPEM_RSA(t *testing.T) {
 	data := generateTestRSAKey(t)
-	pubPEM, keyType, err := derivePublicKeyPEM(data)
+	pubPEM, keyType, err := DerivePublicKeyPEM(data)
 	if err != nil {
-		t.Fatalf("derivePublicKeyPEM: %v", err)
+		t.Fatalf("DerivePublicKeyPEM: %v", err)
 	}
 	if keyType != "rsa-2048" {
 		t.Errorf("keyType = %q, want %q", keyType, "rsa-2048")
@@ -70,9 +70,9 @@ func TestDerivePublicKeyPEM_RSA(t *testing.T) {
 
 func TestDerivePublicKeyPEM_EC(t *testing.T) {
 	data := generateTestECKey(t)
-	pubPEM, keyType, err := derivePublicKeyPEM(data)
+	pubPEM, keyType, err := DerivePublicKeyPEM(data)
 	if err != nil {
-		t.Fatalf("derivePublicKeyPEM: %v", err)
+		t.Fatalf("DerivePublicKeyPEM: %v", err)
 	}
 	if keyType != "ecdsa-p256" {
 		t.Errorf("keyType = %q, want %q", keyType, "ecdsa-p256")
@@ -87,9 +87,9 @@ func TestDerivePublicKeyPEM_EC(t *testing.T) {
 
 func TestDerivePublicKeyPEM_Ed25519(t *testing.T) {
 	data := generateTestEd25519Key(t)
-	pubPEM, keyType, err := derivePublicKeyPEM(data)
+	pubPEM, keyType, err := DerivePublicKeyPEM(data)
 	if err != nil {
-		t.Fatalf("derivePublicKeyPEM: %v", err)
+		t.Fatalf("DerivePublicKeyPEM: %v", err)
 	}
 	if keyType != "ed25519" {
 		t.Errorf("keyType = %q, want %q", keyType, "ed25519")
@@ -127,7 +127,7 @@ func TestDerivePublicKeyPEM_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := derivePublicKeyPEM(tt.data)
+			_, _, err := DerivePublicKeyPEM(tt.data)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}

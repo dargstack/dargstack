@@ -45,6 +45,11 @@ func buildDevelopmentCompose() ([]byte, error) {
 		return nil, fmt.Errorf("%s: %w", ErrRewriteSecretFilePaths, err)
 	}
 
+	data, err = secret.RewriteConfigFilePaths(data, cfg.ConfigsDir())
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrRewriteConfigFilePaths, err)
+	}
+
 	return data, nil
 }
 
@@ -117,6 +122,11 @@ func buildProductionCompose() ([]byte, error) {
 	merged, err = secret.RewriteSecretFilePaths(merged, cfg.SecretsDir())
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrRewriteSecretFilePaths, err)
+	}
+
+	merged, err = secret.RewriteConfigFilePaths(merged, cfg.ConfigsDir())
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrRewriteConfigFilePaths, err)
 	}
 
 	return merged, nil

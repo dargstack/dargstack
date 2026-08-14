@@ -130,7 +130,8 @@ func deploySetupSecrets(composeData []byte, dryRun bool) ([]resource.Issue, erro
 		templates, templateErr := secret.ExtractTemplates(secretComposeData)
 		if templateErr == nil && len(templates) > 0 {
 			logger.L.Info(fmt.Sprintf("[dry-run] Would set up %d secret(s):", len(templates)))
-			for name, tmpl := range templates {
+			for name := range templates {
+				tmpl := templates[name]
 				switch {
 				case tmpl.Type == secret.TypeThirdParty || tmpl.ThirdParty:
 					msg := fmt.Sprintf("  %s: third-party (provide manually)", name)
@@ -166,7 +167,13 @@ func deploySetupSecrets(composeData []byte, dryRun bool) ([]resource.Issue, erro
 	if err != nil {
 		return nil, fmt.Errorf("secret setup: %w", err)
 	}
-	return secretIssues, nil
+
+	configIssues, err := configSetupFlow(secretComposeData)
+	if err != nil {
+		return nil, fmt.Errorf("config setup: %w", err)
+	}
+
+	return append(secretIssues, configIssues...), nil
 }
 
 // deployValidateResources runs resource validation and combines results with

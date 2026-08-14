@@ -40,8 +40,17 @@ func Validate(composeData []byte, stackDir string, production bool) ([]Issue, er
 			Description: tmplErr.Error(),
 		})
 	}
+	configTemplates, cfgTmplErr := secret.ExtractConfigTemplates(composeData)
+	if cfgTmplErr != nil {
+		issues = append(issues, Issue{
+			Severity:    "error",
+			Resource:    "x-dargstack.configs",
+			Description: cfgTmplErr.Error(),
+		})
+	}
 	issues = append(issues, validateSecrets(doc, stackDir, production, templates)...)
 	issues = append(issues, validateConfigs(doc, stackDir, production)...)
+	issues = append(issues, validateDargstackConfigs(configTemplates, templates)...)
 	issues = append(issues, validateServices(doc, stackDir, production)...)
 	if !production {
 		issues = append(issues, validateCertificates(stackDir)...)
@@ -127,6 +136,53 @@ func validateConfigs(doc map[string]interface{}, stackDir string, production boo
 			}
 		}
 	}
+	return issues
+}
+
+// validateDargstackConfigs checks that x-dargstack.configs entries are well-formed:
+// a recognized type, and for public_key, a source that names an existing
+// private_key secret.
+func validateDargstackConfigs(configTemplates, secretTemplates map[string]secret.Template) []Issue {
+	var issues []Issue
+
+	for name := range configTemplates {
+		tmpl := configTemplates[name]
+		switch tmpl.Type {
+		case secret.TypePublicKey:
+			source := strings.TrimSpace(tmpl.Source)
+			if source == "" {
+				issues = append(issues, Issue{
+					Severity:    "error",
+					Resource:    fmt.Sprintf("config:%s", name),
+					Description: "public_key type requires a source",
+				})
+				continue
+			}
+			sourceTmpl, ok := secretTemplates[source]
+			if !ok {
+				issues = append(issues, Issue{
+					Severity:    "error",
+					Resource:    fmt.Sprintf("config:%s", name),
+					Description: fmt.Sprintf("source %q is not defined in x-dargstack.secrets", source),
+				})
+				continue
+			}
+			if sourceTmpl.Type != secret.TypePrivateKey {
+				issues = append(issues, Issue{
+					Severity:    "error",
+					Resource:    fmt.Sprintf("config:%s", name),
+					Description: fmt.Sprintf("source %q must be a private_key secret", source),
+				})
+			}
+		default:
+			issues = append(issues, Issue{
+				Severity:    "error",
+				Resource:    fmt.Sprintf("config:%s", name),
+				Description: fmt.Sprintf("unknown x-dargstack.configs type %q", tmpl.Type),
+			})
+		}
+	}
+
 	return issues
 }
 

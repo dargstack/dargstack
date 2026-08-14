@@ -264,6 +264,149 @@ configs:
 	}
 }
 
+func TestValidateDargstackConfigsPublicKey(t *testing.T) {
+	stackDir := t.TempDir()
+
+	keyFile := filepath.Join(stackDir, "signing-key")
+	if err := os.WriteFile(keyFile, []byte("-----BEGIN PRIVATE KEY-----\n-----END PRIVATE KEY-----\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	pubFile := filepath.Join(stackDir, "signing-key-pub")
+	if err := os.WriteFile(pubFile, []byte("-----BEGIN PUBLIC KEY-----\n-----END PUBLIC KEY-----\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	composeYAML := `services:
+  api:
+    image: api:latest
+x-dargstack:
+  secrets:
+    signing-key:
+      type: private_key
+      key_type: ed25519
+  configs:
+    signing-key-pub:
+      type: public_key
+      source: signing-key
+secrets:
+  signing-key:
+    file: ` + keyFile + `
+configs:
+  signing-key-pub:
+    file: ` + pubFile + `
+`
+
+	issues, err := Validate([]byte(composeYAML), stackDir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, iss := range issues {
+		if iss.Severity == "error" {
+			t.Errorf("unexpected error: %s", iss)
+		}
+	}
+}
+
+func TestValidateDargstackConfigsPublicKeyTrimsSourceWhitespace(t *testing.T) {
+	stackDir := t.TempDir()
+
+	keyFile := filepath.Join(stackDir, "signing-key")
+	if err := os.WriteFile(keyFile, []byte("-----BEGIN PRIVATE KEY-----\n-----END PRIVATE KEY-----\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	pubFile := filepath.Join(stackDir, "signing-key-pub")
+	if err := os.WriteFile(pubFile, []byte("-----BEGIN PUBLIC KEY-----\n-----END PUBLIC KEY-----\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	composeYAML := `services:
+  api:
+    image: api:latest
+x-dargstack:
+  secrets:
+    signing-key:
+      type: private_key
+      key_type: ed25519
+  configs:
+    signing-key-pub:
+      type: public_key
+      source: " signing-key "
+secrets:
+  signing-key:
+    file: ` + keyFile + `
+configs:
+  signing-key-pub:
+    file: ` + pubFile + `
+`
+
+	issues, err := Validate([]byte(composeYAML), stackDir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, iss := range issues {
+		if iss.Severity == "error" {
+			t.Errorf("unexpected error for source with surrounding whitespace: %s", iss)
+		}
+	}
+}
+
+func TestValidateDargstackConfigsUnknownSource(t *testing.T) {
+	composeYAML := `services:
+  api:
+    image: api:latest
+x-dargstack:
+  configs:
+    signing-key-pub:
+      type: public_key
+      source: does-not-exist
+`
+	stackDir := t.TempDir()
+	issues, err := Validate([]byte(composeYAML), stackDir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	found := false
+	for _, iss := range issues {
+		if iss.Resource == "config:signing-key-pub" && iss.Severity == "error" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected error for config referencing unknown source, got: %v", issues)
+	}
+}
+
+func TestValidateDargstackConfigsSourceNotPrivateKey(t *testing.T) {
+	composeYAML := `services:
+  api:
+    image: api:latest
+x-dargstack:
+  secrets:
+    api-token:
+      length: 32
+  configs:
+    signing-key-pub:
+      type: public_key
+      source: api-token
+`
+	stackDir := t.TempDir()
+	issues, err := Validate([]byte(composeYAML), stackDir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	found := false
+	for _, iss := range issues {
+		if iss.Resource == "config:signing-key-pub" && iss.Severity == "error" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected error for config sourcing a non-private_key secret, got: %v", issues)
+	}
+}
+
 func TestExtractDargstackBuildLabelMapForm(t *testing.T) {
 	svc := map[string]interface{}{
 		"image": "myapp:latest",

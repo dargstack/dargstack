@@ -12,8 +12,8 @@ import (
 func TopologicalSort(templates map[string]Template) ([]string, error) {
 	// Build dependency graph: name -> list of secrets it depends on
 	deps := make(map[string][]string)
-	for name, tmpl := range templates {
-		if tmpl.Template != "" {
+	for name := range templates {
+		if tmpl := templates[name]; tmpl.Template != "" {
 			deps[name] = extractTemplateRefs(tmpl.Template)
 		}
 	}

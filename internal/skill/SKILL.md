@@ -119,6 +119,38 @@ x-dargstack:
 
 Secret files (`.secret` extension) live alongside `compose.yaml` in the service directory.
 
+## Config Derivation
+
+A public key is not a secret.
+When a stack needs the public half of a `private_key` secret (e.g. for a peer to verify signatures), derive it as a plain Docker config via `x-dargstack.configs` instead of storing it as another secret:
+
+```yaml
+x-dargstack:
+  secrets:
+    signing-key:
+      type: private_key
+      key_type: ed25519
+  configs:
+    signing-key-pub:
+      type: public_key
+      source: signing-key
+
+secrets:
+  signing-key:
+    file: ./secrets/signing-key.secret
+configs:
+  signing-key-pub:
+    file: ./secrets/signing-key-pub.pub
+
+services:
+  api:
+    secrets: [signing-key]
+    configs: [signing-key-pub]
+```
+
+`dargstack secret generate` (and deploy) derives the value and writes it to the compose-declared `configs.<name>.file` path with normal (world-readable) permissions, mirroring how `secrets` are written to their `file:` path.
+`source` must name a `private_key` secret; `public_key` is currently the only supported config type.
+
 ## Label Conventions
 
 Special labels in `deploy.labels` control dargstack behavior:
