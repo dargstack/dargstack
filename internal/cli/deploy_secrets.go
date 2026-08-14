@@ -27,7 +27,8 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) ([]resource.Issu
 		secretPaths := secret.ExtractSecretPaths(composeData)
 		if len(secretPaths) > 0 {
 			var placeholderThirdParty []string
-			for name, tmpl := range templates {
+			for name := range templates {
+				tmpl := templates[name]
 				if !tmpl.ThirdParty && tmpl.Type != secret.TypeThirdParty {
 					continue
 				}
@@ -63,7 +64,8 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) ([]resource.Issu
 	}
 
 	thirdParty := make(map[string]bool)
-	for name, tmpl := range templates {
+	for name := range templates {
+		tmpl := templates[name]
 		if tmpl.ThirdParty || tmpl.Type == secret.TypeThirdParty {
 			thirdParty[name] = true
 		}
@@ -151,13 +153,14 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) ([]resource.Issu
 
 		// Count auto-generated secrets.
 		autoResolvedCount := 0
-		for name, tmpl := range templates {
+		for name := range templates {
 			if preResolved[name] != "" {
 				continue
 			}
 			if values[name] == "" {
 				continue
 			}
+			tmpl := templates[name]
 			if secret.IsAutoGeneratable(&tmpl) {
 				autoResolvedCount++
 			}
@@ -292,13 +295,14 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) ([]resource.Issu
 	}
 
 	autoResolvedCount := 0
-	for name, tmpl := range templates {
+	for name := range templates {
 		if preResolved[name] != "" || manualInput[name] {
 			continue
 		}
 		if values[name] == "" {
 			continue
 		}
+		tmpl := templates[name]
 		if secret.IsAutoGeneratable(&tmpl) {
 			autoResolvedCount++
 		}

@@ -60,7 +60,8 @@ func DerivePublicKeyPEM(data []byte) (pubPEM, keyType string, err error) {
 // callers can retry once the secret is generated.
 func ResolveConfigs(configTemplates map[string]Template, secretValues map[string]string) (map[string]string, error) {
 	values := make(map[string]string, len(configTemplates))
-	for name, tmpl := range configTemplates {
+	for name := range configTemplates {
+		tmpl := configTemplates[name]
 		normalizeTemplate(&tmpl)
 		if tmpl.Type != TypePublicKey {
 			continue
