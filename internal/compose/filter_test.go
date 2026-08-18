@@ -569,6 +569,142 @@ func TestFilterServicesByName(t *testing.T) {
 	}
 }
 
+func TestFilterServicesRemovesUnusedDargstackConfigs(t *testing.T) {
+	// Regression test: filtering to a service that doesn't use the derived
+	// public_key config (and thus filtering out the service that owns the
+	// private_key secret it's derived from) must also drop the dangling
+	// x-dargstack.configs entry. Otherwise validation later fails because
+	// the config template still references a secret that's no longer in
+	// x-dargstack.secrets, and has no top-level configs: file: entry.
+	composeYAML := `secrets:
+  api-jwt-secret:
+    file: ./secrets/api-jwt-secret.secret
+configs:
+  api-jwt-public-key:
+    file: ./configs/api-jwt-public-key.pub
+services:
+  adminer:
+    image: adminer:latest
+  api:
+    image: api:latest
+    secrets:
+      - source: api-jwt-secret
+        target: /run/secrets/jwt-secret
+    configs:
+      - source: api-jwt-public-key
+        target: /run/configs/jwt-public-key
+x-dargstack:
+  configs:
+    api-jwt-public-key:
+      type: public_key
+      source: api-jwt-secret
+  secrets:
+    api-jwt-secret:
+      type: private_key
+      key_type: ecdsa
+`
+
+	result, err := FilterServices([]byte(composeYAML), []string{"adminer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(result, &doc); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, ok := doc["configs"]; ok {
+		t.Error("expected top-level configs: to be removed (adminer doesn't use api-jwt-public-key)")
+	}
+	if _, ok := doc["secrets"]; ok {
+		t.Error("expected top-level secrets: to be removed (adminer doesn't use api-jwt-secret)")
+	}
+
+	ext, ok := doc["x-dargstack"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected x-dargstack extension to be present")
+	}
+	if configs, ok := ext["configs"].(map[string]interface{}); ok {
+		if _, ok := configs["api-jwt-public-key"]; ok {
+			t.Error("expected api-jwt-public-key to be removed from x-dargstack.configs")
+		}
+	}
+	if secrets, ok := ext["secrets"].(map[string]interface{}); ok {
+		if _, ok := secrets["api-jwt-secret"]; ok {
+			t.Error("expected api-jwt-secret to be removed from x-dargstack.secrets")
+		}
+	}
+}
+
+func TestFilterServicesKeepsPublicKeySourceSecret(t *testing.T) {
+	// A service can mount only the derived public_key config without ever
+	// mounting the private_key secret it comes from (e.g. reccoom mounts
+	// postgraphile-jwt-public-key but never postgraphile-jwt-secret). When
+	// such a service is retained, the source secret must survive filtering
+	// too, in both the top-level secrets: section and x-dargstack.secrets,
+	// so the config can still be derived.
+	composeYAML := `secrets:
+  api-jwt-secret:
+    file: ./secrets/api-jwt-secret.secret
+configs:
+  api-jwt-public-key:
+    file: ./configs/api-jwt-public-key.pub
+services:
+  consumer:
+    image: consumer:latest
+    configs:
+      - source: api-jwt-public-key
+        target: /run/configs/jwt-public-key
+x-dargstack:
+  configs:
+    api-jwt-public-key:
+      type: public_key
+      source: api-jwt-secret
+  secrets:
+    api-jwt-secret:
+      type: private_key
+      key_type: ecdsa
+`
+
+	result, err := FilterServices([]byte(composeYAML), []string{"consumer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(result, &doc); err != nil {
+		t.Fatal(err)
+	}
+
+	secrets, ok := doc["secrets"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected top-level secrets: to be present")
+	}
+	if _, ok := secrets["api-jwt-secret"]; !ok {
+		t.Error("expected api-jwt-secret to be kept in top-level secrets: (source of a used public_key config)")
+	}
+
+	ext, ok := doc["x-dargstack"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected x-dargstack extension to be present")
+	}
+	configs, ok := ext["configs"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected x-dargstack.configs to be present")
+	}
+	if _, ok := configs["api-jwt-public-key"]; !ok {
+		t.Error("expected api-jwt-public-key to be kept in x-dargstack.configs")
+	}
+	dargSecrets, ok := ext["secrets"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected x-dargstack.secrets to be present")
+	}
+	if _, ok := dargSecrets["api-jwt-secret"]; !ok {
+		t.Error("expected api-jwt-secret to be kept in x-dargstack.secrets (source of a used public_key config)")
+	}
+}
+
 func TestServiceNames(t *testing.T) {
 	composeYAML := `services:
   api:
