@@ -9,15 +9,22 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// StripDevOnlyMarkers removes YAML keys annotated with # dargstack:dev-only comments.
-// This processes the raw YAML text before parsing.
+// DevOnlyMarker is the trailing comment directive that marks a line as
+// development-only. Lines containing this marker are removed entirely during
+// production merge, ensuring no dev-only content reaches the deployed stack.
+const DevOnlyMarker = "# dargstack:dev-only"
+
+// StripDevOnlyMarkers removes lines annotated with # dargstack:dev-only comments.
+// This processes the raw YAML text before parsing. Entire lines containing the
+// marker are dropped, including the marker itself, so that development-only
+// configuration never reaches the production merge.
 func StripDevOnlyMarkers(data []byte) []byte {
 	var result []string
 	scanner := bufio.NewScanner(strings.NewReader(string(data)))
 	scanner.Buffer(make([]byte, 64*1024), 10*1024*1024) // handle large YAML lines
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.Contains(line, "# dargstack:dev-only") {
+		if strings.Contains(line, DevOnlyMarker) {
 			continue
 		}
 		result = append(result, line)

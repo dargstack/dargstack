@@ -284,6 +284,8 @@ func extractServiceCommentFromFile(composePath, serviceName string) string {
 }
 
 // cleanComment strips YAML comment prefixes and returns clean markdown text.
+// Lines containing the dargstack:dev-only marker are filtered out, since they
+// are internal directives that should not appear in generated documentation.
 func cleanComment(raw string) string {
 	if raw == "" {
 		return ""
@@ -291,6 +293,10 @@ func cleanComment(raw string) string {
 	lines := strings.Split(raw, "\n")
 	var cleaned []string
 	for _, line := range lines {
+		// Skip lines that are solely the dev-only marker.
+		if strings.Contains(line, "dargstack:dev-only") {
+			continue
+		}
 		line = strings.TrimPrefix(line, "# ")
 		line = strings.TrimPrefix(line, "#")
 		cleaned = append(cleaned, line)
