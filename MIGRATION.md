@@ -45,6 +45,31 @@ Remove the old v3 script:
 sudo rm ~/scripts/dargstack
 ```
 
+### Pinning a version for CI
+
+The `releases/latest` URL above is suitable for local development where you want
+the newest release automatically. For CI pipelines, pin to a specific version so
+that documentation generation and validation output are reproducible:
+
+```bash
+VERSION="$(sed -n 's#^FROM ghcr\.io/dargstack/dargstack:##p' Dockerfile.md)"
+BASE_URL="https://github.com/dargstack/dargstack/releases/download/v${VERSION}"
+ARCHIVE="dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz"
+curl -sfL -o "$ARCHIVE" "${BASE_URL}/$ARCHIVE"
+curl -sfL "${BASE_URL}/checksums.txt" | sha256sum -c - --ignore-missing
+tar xzf "$ARCHIVE" && rm "$ARCHIVE"
+mv dargstack /usr/local/bin/
+```
+
+The version is read from a `Dockerfile.md` file at the repository root. The `.md`
+extension is intentional: Renovate's docker-manager matches files named
+`Dockerfile*`, so it will detect and offer pull requests for version bumps. The
+file only needs a single `FROM` line:
+
+```dockerfile
+FROM ghcr.io/dargstack/dargstack:4.0.0
+```
+
 ---
 
 ## Step 2 — Migrate the config file
