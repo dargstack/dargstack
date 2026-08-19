@@ -1,3 +1,9 @@
+## [4.13.2](https://github.com/dargstack/dargstack/compare/v4.13.1...v4.13.2) (2026-08-19)
+
+### Bug Fixes
+
+* **deploy:** list missing env vars and fix pluralization ([#123](https://github.com/dargstack/dargstack/issues/123)) ([370fa67](https://github.com/dargstack/dargstack/commit/370fa6703d0542fa866ad6cd54b1735a64826d72))
+
 ## [4.13.1](https://github.com/dargstack/dargstack/compare/v4.13.0...v4.13.1) (2026-08-19)
 
 ### Bug Fixes
