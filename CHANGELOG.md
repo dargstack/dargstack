@@ -1,3 +1,10 @@
+## [4.13.4](https://github.com/dargstack/dargstack/compare/v4.13.3...v4.13.4) (2026-08-19)
+
+### Bug Fixes
+
+* **logger:** gate colored output on TTY detection via lipgloss.Fprintln ([#125](https://github.com/dargstack/dargstack/issues/125)) ([5c47b91](https://github.com/dargstack/dargstack/commit/5c47b917a766720505a6559bce7fae8a99a96b5b))
+* **resource:** strip dev-only marker from generated documentation ([#126](https://github.com/dargstack/dargstack/issues/126)) ([9700553](https://github.com/dargstack/dargstack/commit/9700553f5a3205c199ed8a4e15f461996c4f4a20))
+
 ## [4.13.3](https://github.com/dargstack/dargstack/compare/v4.13.2...v4.13.3) (2026-08-19)
 
 ### Bug Fixes
