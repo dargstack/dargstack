@@ -608,7 +608,7 @@ func resolveBuildContext(svc map[string]interface{}, stackDir string) string {
 	}
 
 	repoName := giturl.RepoNameFromURL(gitURL.Primary())
-	parentDir := filepath.Dir(stackDir)
+	parentDir := giturl.SiblingParentDir(stackDir)
 	return filepath.Join(parentDir, repoName)
 }
 
