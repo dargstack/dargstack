@@ -221,8 +221,50 @@ services:
 ```
 
 You no longer need `production.sed`. The `#DARGSTACK-REMOVE` sed trick is
-replaced by the `# dargstack:dev-only` label convention — any deploy label
+replaced by the `# dargstack:dev-only` label convention. Any deploy label
 ending in `# dargstack:dev-only` is stripped before production deployment.
+
+### Volumes in production overrides
+
+Spruce replaces lists by default. When a service uses a named volume in both
+development and production, the top-level `volumes:` definition belongs in the
+base (development) layer, and the production overlay only replaces the service's
+mount list.
+
+**Common mistake:** putting the top-level `volumes:` block in the production
+overlay. This replaces the entire top-level `volumes:` section, losing volume
+definitions from other services.
+
+**Correct pattern:**
+
+`src/development/postgres/compose.yaml` (base layer defines the volume):
+
+```yaml
+services:
+  postgres:
+    image: postgres:16
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+```
+
+`src/production/postgres/compose.yaml` (overlay only changes the mount):
+
+```yaml
+services:
+  postgres:
+    volumes:
+      - (( prune ))
+      - pgdata:/var/lib/postgresql/data
+      - ./backups:/backups
+```
+
+The production overlay replaces only `postgres.volumes`. The top-level
+`volumes:` section from the base layer is preserved because spruce deep-merges
+maps. The same rule applies to `secrets:` and `configs:`. Define them in the
+base layer even if only production uses them in their final form.
 
 ### Environment files
 
