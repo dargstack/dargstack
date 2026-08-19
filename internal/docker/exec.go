@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 
 	"github.com/dargstack/dargstack/v4/internal/logger"
 )
@@ -41,8 +42,11 @@ func newLabelWriter(w io.Writer, label string) *labelWriter {
 	h := hashString(label)
 	code := buildLabelColors[h%uint32(len(buildLabelColors))]
 	style := lipgloss.NewStyle().Foreground(lipgloss.Color(code))
+	// Wrap the writer with colorprofile so ANSI codes are stripped when
+	// output is redirected to a file or CI log.
+	cw := colorprofile.NewWriter(w, os.Environ())
 	return &labelWriter{
-		w:      w,
+		w:      cw,
 		prefix: style.Render("["+label+"]") + " ",
 	}
 }
@@ -136,7 +140,7 @@ func needsSudo(binary string) bool {
 		}
 		// Credentials may have expired. Fall back to interactive sudo so the
 		// user can authenticate once rather than getting a silent permission error.
-		fmt.Fprintln(os.Stderr, logger.StyleWarn.Render("sudo: Docker requires elevated privileges on this system. Please authenticate to continue."))
+		_, _ = lipgloss.Fprintln(os.Stderr, logger.StyleWarn.Render("sudo: Docker requires elevated privileges on this system. Please authenticate to continue."))
 		sudoI := exec.Command("sudo", binary, "info")
 		sudoI.Stdin = os.Stdin
 		sudoI.Stdout = nil
@@ -158,8 +162,8 @@ func prewarmSudo() error {
 	if ni.Run() == nil {
 		return nil
 	}
-	// Credentials not cached — a password prompt is about to appear.
-	fmt.Fprintln(os.Stderr, logger.StyleWarn.Render("sudo: Docker requires elevated privileges on this system. Please authenticate to continue."))
+	// Credentials not cached; a password prompt is about to appear.
+	_, _ = lipgloss.Fprintln(os.Stderr, logger.StyleWarn.Render("sudo: Docker requires elevated privileges on this system. Please authenticate to continue."))
 	cmd := exec.Command("sudo", "-v")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout

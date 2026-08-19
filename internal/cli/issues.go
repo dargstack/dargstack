@@ -5,6 +5,8 @@ import (
 	"os"
 	"sort"
 
+	"charm.land/lipgloss/v2"
+
 	"github.com/dargstack/dargstack/v4/internal/logger"
 	"github.com/dargstack/dargstack/v4/internal/resource"
 )
@@ -25,11 +27,11 @@ func printIssues(issues []resource.Issue) bool {
 	}
 
 	if len(errs) > 0 {
-		fmt.Fprintf(os.Stderr, "%s\n", logger.StyleErr.Render(fmt.Sprintf("%d error(s):", len(errs))))
+		_, _ = lipgloss.Fprintln(os.Stderr, logger.StyleErr.Render(fmt.Sprintf("%d error(s):", len(errs))))
 		printIssueGroup(errs)
 	}
 	if len(warns) > 0 {
-		fmt.Fprintf(os.Stderr, "%s\n", logger.StyleWarn.Render(fmt.Sprintf("%d warning(s):", len(warns))))
+		_, _ = lipgloss.Fprintln(os.Stderr, logger.StyleWarn.Render(fmt.Sprintf("%d warning(s):", len(warns))))
 		printIssueGroup(warns)
 	}
 

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/dargstack/dargstack/v4/internal/config"
@@ -276,7 +277,7 @@ func wrapWithBugHint(err error) error {
 // This keeps error strings Go-conventional while still giving the user guidance.
 // Unlike regular log messages, hints always print regardless of log level.
 func hintErr(err error, suggestion string) error {
-	fmt.Fprintln(os.Stderr, logger.StyleInfo.Render(suggestion))
+	_, _ = lipgloss.Fprintln(os.Stderr, logger.StyleInfo.Render(suggestion))
 	return err
 }
 

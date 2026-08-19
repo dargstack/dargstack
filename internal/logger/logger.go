@@ -28,11 +28,15 @@ var levelStyle = map[slog.Level]lipgloss.Style{
 	slog.LevelDebug: StyleInfo,
 }
 
+// levelWrite routes output to the appropriate stream. Each call creates a
+// fresh colorprofile wrapper around os.Stdout/os.Stderr so that tests
+// redirecting those globals still see the output, and non-TTY output
+// (pipelines, CI logs) gets ANSI codes stripped automatically.
 var levelWrite = map[slog.Level]func(string){
-	slog.LevelError: func(s string) { _, _ = os.Stderr.WriteString(s + "\n") },
-	slog.LevelWarn:  func(s string) { _, _ = os.Stderr.WriteString(s + "\n") },
-	slog.LevelInfo:  func(s string) { _, _ = os.Stdout.WriteString(s + "\n") },
-	slog.LevelDebug: func(s string) { _, _ = os.Stdout.WriteString(s + "\n") },
+	slog.LevelError: func(s string) { _, _ = lipgloss.Fprintln(os.Stderr, s) },
+	slog.LevelWarn:  func(s string) { _, _ = lipgloss.Fprintln(os.Stderr, s) },
+	slog.LevelInfo:  func(s string) { _, _ = lipgloss.Fprintln(os.Stdout, s) },
+	slog.LevelDebug: func(s string) { _, _ = lipgloss.Fprintln(os.Stdout, s) },
 }
 
 // Level is the mutable log level. Defaults to slog.LevelInfo.

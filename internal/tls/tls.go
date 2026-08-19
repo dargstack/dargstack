@@ -2,6 +2,7 @@ package tls
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -18,8 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"bytes"
-
+	"charm.land/lipgloss/v2"
 	"go.yaml.in/yaml/v3"
 
 	"github.com/dargstack/dargstack/v4/internal/logger"
@@ -42,15 +42,15 @@ func EnsureCertificates(certDir string, domains []string) error {
 		if !needsRegen {
 			return nil
 		}
-		fmt.Println(logger.StyleInfo.Render(fmt.Sprintf("Regenerating TLS certificate: %s", reason)))
+		_, _ = lipgloss.Println(logger.StyleInfo.Render(fmt.Sprintf("Regenerating TLS certificate: %s", reason)))
 	}
 
 	if hasMkcert() {
 		return generateWithMkcert(certDir, domains)
 	}
 
-	fmt.Println(logger.StyleInfo.Render("mkcert not found - generating self-signed certificate"))
-	fmt.Println(logger.StyleInfo.Render("  Install mkcert for browser-trusted local certificates: https://github.com/FiloSottile/mkcert"))
+	_, _ = lipgloss.Println(logger.StyleInfo.Render("mkcert not found; generating self-signed certificate"))
+	_, _ = lipgloss.Println(logger.StyleInfo.Render("  Install mkcert for browser-trusted local certificates: https://github.com/FiloSottile/mkcert"))
 	return generateSelfSigned(certFile, keyFile, domains)
 }
 

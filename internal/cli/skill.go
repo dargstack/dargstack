@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/dargstack/dargstack/v4/internal/config"
@@ -75,7 +76,7 @@ func runSkillInstall(_ *cobra.Command, _ []string) error {
 		if !filepath.IsAbs(skillDir) {
 			displayDir = "./" + skillDir
 		}
-		fmt.Println(logger.StyleInfo.Render(fmt.Sprintf("Skill already installed at %s (user-modified)", displayDir)))
+		_, _ = lipgloss.Println(logger.StyleInfo.Render(fmt.Sprintf("Skill already installed at %s (user-modified)", displayDir)))
 		return nil
 	}
 
@@ -92,7 +93,7 @@ func runSkillInstall(_ *cobra.Command, _ []string) error {
 	if !filepath.IsAbs(skillDir) {
 		displayDir = "./" + skillDir
 	}
-	fmt.Println(logger.StyleInfo.Render(fmt.Sprintf("Skill already installed at %s (up to date)", displayDir)))
+	_, _ = lipgloss.Println(logger.StyleInfo.Render(fmt.Sprintf("Skill already installed at %s (up to date)", displayDir)))
 	return nil
 }
 
@@ -124,7 +125,7 @@ func runSkillUpdate(_ *cobra.Command, _ []string) error {
 	if updated {
 		logger.Success("Skill updated")
 	} else {
-		fmt.Println(logger.StyleInfo.Render("Skill is already up to date"))
+		_, _ = lipgloss.Println(logger.StyleInfo.Render("Skill is already up to date"))
 	}
 	return nil
 }
