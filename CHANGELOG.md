@@ -1,3 +1,9 @@
+## [4.13.1](https://github.com/dargstack/dargstack/compare/v4.13.0...v4.13.1) (2026-08-19)
+
+### Bug Fixes
+
+* **compose:** drop dangling x-dargstack.configs entries when filtering services ([#122](https://github.com/dargstack/dargstack/issues/122)) ([2e1f940](https://github.com/dargstack/dargstack/commit/2e1f940448633af50d6424735c00ac15995925bf))
+
 ## [4.13.0](https://github.com/dargstack/dargstack/compare/v4.12.3...v4.13.0) (2026-08-14)
 
 ## [4.12.3](https://github.com/dargstack/dargstack/compare/v4.12.2...v4.12.3) (2026-08-12)
