@@ -80,7 +80,7 @@ func promptForEnvValues(prod bool) error {
 		return nil
 	}
 
-	logger.L.Info(fmt.Sprintf("Found %d environment variable(s) without values", len(missing)))
+	logger.L.Info(fmt.Sprintf("Found %d environment variable%s without values: %s", len(missing), pluralS(len(missing)), strings.Join(missing, ", ")))
 	ok, promptErr := prompt.Confirm("Fill in missing environment variable values now?", true)
 	if promptErr != nil || !ok {
 		return nil
