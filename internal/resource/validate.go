@@ -222,7 +222,7 @@ func validateServices(doc map[string]interface{}, stackDir string, production bo
 		gitURL := giturl.ExtractFromService(svcDef, name)
 		if gitURL.IsSet() {
 			repoName := giturl.RepoNameFromURL(gitURL.Primary())
-			parentDir := filepath.Dir(stackDir)
+			parentDir := giturl.SiblingParentDir(stackDir)
 			clonedDir := filepath.Join(parentDir, repoName)
 			if _, err := os.Stat(clonedDir); err != nil {
 				issues = append(issues, Issue{

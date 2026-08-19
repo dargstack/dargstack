@@ -537,7 +537,7 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 	var result []byte
 	cloneRepos := func() error {
 		result = composeData
-		parentDir := filepath.Dir(stackDir)
+		parentDir := giturl.SiblingParentDir(stackDir)
 
 		for name, def := range svcMap {
 			svc, ok := def.(map[string]interface{})
