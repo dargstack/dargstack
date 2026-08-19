@@ -242,6 +242,13 @@ func cleanupResources(doc, filteredServices map[string]interface{}) {
 		collectVolumeRefs(svcMap, usedVolumes)
 	}
 
+	// A derived public_key config (x-dargstack.configs) implicitly depends on
+	// its source private_key secret, even when no retained service mounts
+	// that secret directly (e.g. a service may mount only the derived
+	// public key, never the private key it was derived from). Expand
+	// usedSecrets accordingly before the secret filtering passes below.
+	resolveConfigSecretDeps(doc, usedConfigs, usedSecrets)
+
 	filterTopLevel(doc, "configs", usedConfigs)
 	filterTopLevel(doc, "networks", usedNetworks)
 
@@ -257,24 +264,75 @@ func cleanupResources(doc, filteredServices map[string]interface{}) {
 	// secret template metadata for out-of-profile services is not visible to
 	// the secret setup flow.
 	filterDargstackSecrets(doc, usedSecrets)
+
+	// Also filter x-dargstack.configs to only the keys in usedConfigs so that
+	// derived-config metadata for out-of-profile services doesn't dangle:
+	// without this, a config removed from the top-level configs: section
+	// (because no retained service uses it) stays in x-dargstack.configs and
+	// fails validation as a config with no top-level entry, or as a public_key
+	// whose source secret was just filtered out of x-dargstack.secrets above.
+	filterDargstackConfigs(doc, usedConfigs)
+}
+
+// resolveConfigSecretDeps adds the source secret of each used public_key
+// config (from x-dargstack.configs) to usedSecrets, so the private_key
+// secret it's derived from survives filtering even when no retained service
+// mounts that secret directly.
+func resolveConfigSecretDeps(doc map[string]interface{}, usedConfigs, usedSecrets map[string]bool) {
+	configsMap, ok := dargstackSection(doc, "configs")
+	if !ok {
+		return
+	}
+
+	for name := range usedConfigs {
+		def, ok := configsMap[name].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if source, ok := def["source"].(string); ok && source != "" {
+			usedSecrets[source] = true
+		}
+	}
+}
+
+// filterDargstackConfigs removes x-dargstack.configs entries whose names are
+// not present in usedConfigs, mirroring filterDargstackSecrets.
+func filterDargstackConfigs(doc map[string]interface{}, usedConfigs map[string]bool) {
+	configsMap, ok := dargstackSection(doc, "configs")
+	if !ok {
+		return
+	}
+
+	for name := range configsMap {
+		if !usedConfigs[name] {
+			delete(configsMap, name)
+		}
+	}
+}
+
+// dargstackSection returns the named subsection (e.g. "secrets", "configs")
+// of x-dargstack as a map, if present.
+func dargstackSection(doc map[string]interface{}, key string) (map[string]interface{}, bool) {
+	ext, ok := doc["x-dargstack"]
+	if !ok {
+		return nil, false
+	}
+	extMap, ok := ext.(map[string]interface{})
+	if !ok {
+		return nil, false
+	}
+	sectionRaw, ok := extMap[key]
+	if !ok {
+		return nil, false
+	}
+	sectionMap, ok := sectionRaw.(map[string]interface{})
+	return sectionMap, ok
 }
 
 // resolveTransitiveSecretDeps expands usedSecrets to include secrets transitively
 // referenced via {{secret:name}} in x-dargstack.secrets templates.
 func resolveTransitiveSecretDeps(doc map[string]interface{}, usedSecrets map[string]bool) {
-	ext, ok := doc["x-dargstack"]
-	if !ok {
-		return
-	}
-	extMap, ok := ext.(map[string]interface{})
-	if !ok {
-		return
-	}
-	secretsRaw, ok := extMap["secrets"]
-	if !ok {
-		return
-	}
-	secretsMap, ok := secretsRaw.(map[string]interface{})
+	secretsMap, ok := dargstackSection(doc, "secrets")
 	if !ok {
 		return
 	}
@@ -285,19 +343,7 @@ func resolveTransitiveSecretDeps(doc map[string]interface{}, usedSecrets map[str
 // not present in usedSecrets. usedSecrets should already be expanded with
 // transitive template dependencies via resolveTransitiveSecretDeps.
 func filterDargstackSecrets(doc map[string]interface{}, usedSecrets map[string]bool) {
-	ext, ok := doc["x-dargstack"]
-	if !ok {
-		return
-	}
-	extMap, ok := ext.(map[string]interface{})
-	if !ok {
-		return
-	}
-	secretsRaw, ok := extMap["secrets"]
-	if !ok {
-		return
-	}
-	secretsMap, ok := secretsRaw.(map[string]interface{})
+	secretsMap, ok := dargstackSection(doc, "secrets")
 	if !ok {
 		return
 	}
