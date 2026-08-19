@@ -1,3 +1,9 @@
+## [4.13.3](https://github.com/dargstack/dargstack/compare/v4.13.2...v4.13.3) (2026-08-19)
+
+### Bug Fixes
+
+* **git:** resolve siblings relative to the main worktree checkout ([#124](https://github.com/dargstack/dargstack/issues/124)) ([117d89f](https://github.com/dargstack/dargstack/commit/117d89f3e0ca906e044b283e9ebd43bb8ee9731f))
+
 ## [4.13.2](https://github.com/dargstack/dargstack/compare/v4.13.1...v4.13.2) (2026-08-19)
 
 ### Bug Fixes
