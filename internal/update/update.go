@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"charm.land/lipgloss/v2"
 	"github.com/Masterminds/semver/v3"
 	"github.com/creativeprojects/go-selfupdate"
 
@@ -141,7 +142,7 @@ func SelfUpdate() error {
 	}
 
 	if !latest.GreaterThan(current.String()) {
-		fmt.Println(logger.StyleInfo.Render(fmt.Sprintf("Already at latest version %s", currentVersion())))
+		_, _ = lipgloss.Println(logger.StyleInfo.Render(fmt.Sprintf("Already at latest version %s", currentVersion())))
 		return nil
 	}
 

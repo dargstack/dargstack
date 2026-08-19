@@ -1,9 +1,9 @@
 package cli
 
 import (
-	"fmt"
 	"os"
 
+	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/dargstack/dargstack/v4/internal/logger"
@@ -15,7 +15,7 @@ var inspectCmd = &cobra.Command{
 	Long:       "View the final composed YAML that was deployed.\n\nWithout arguments, shows the latest deployment.",
 	Deprecated: "use 'audit' instead",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Fprintln(os.Stderr, logger.StyleWarn.Render("Warning: 'inspect' is deprecated, use 'audit' instead."))
+		_, _ = lipgloss.Fprintln(os.Stderr, logger.StyleWarn.Render("Warning: 'inspect' is deprecated, use 'audit' instead."))
 		return runAudit(cmd, args)
 	},
 }
