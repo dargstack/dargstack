@@ -14,7 +14,7 @@ FROM base AS copy
 COPY . .
 
 # ── lint ────────────────────────────────────────────────────────────────────
-FROM golangci/golangci-lint:v2.13.0-alpine AS lint
+FROM golangci/golangci-lint:v2.13.1-alpine AS lint
 WORKDIR /src
 COPY --from=copy /src .
 RUN golangci-lint run ./...
