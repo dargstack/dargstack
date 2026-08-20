@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ── base: shared Go module cache ────────────────────────────────────────────
-FROM golang:1.26.6-alpine AS base
+FROM golang:1.27.0-alpine AS base
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
@@ -14,7 +14,7 @@ FROM base AS copy
 COPY . .
 
 # ── lint ────────────────────────────────────────────────────────────────────
-FROM golangci/golangci-lint:v2.12.2-alpine AS lint
+FROM golangci/golangci-lint:v2.13.0-alpine AS lint
 WORKDIR /src
 COPY --from=copy /src .
 RUN golangci-lint run ./...
