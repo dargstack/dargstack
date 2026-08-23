@@ -6,6 +6,22 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
+func TestFilterVolumesByCompose(t *testing.T) {
+	composeYAML := `services:
+  postgres:
+    image: postgres:16
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata: {}
+`
+	allVolumes := []string{"mystack_pgdata", "mystack_redisdata"}
+	got := filterVolumesByCompose(allVolumes, "mystack", []byte(composeYAML))
+	if len(got) != 1 || got[0] != "mystack_pgdata" {
+		t.Fatalf("expected [mystack_pgdata], got %v", got)
+	}
+}
+
 func TestExtractBuildServices(t *testing.T) {
 	tests := []struct {
 		name     string

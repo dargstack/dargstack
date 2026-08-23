@@ -712,3 +712,35 @@ func TestServiceNames(t *testing.T) {
 		t.Fatalf("expected 2 service names, got %d: %v", len(names), names)
 	}
 }
+
+func TestVolumeNames(t *testing.T) {
+	composeYAML := `services:
+  postgres:
+    image: postgres:16
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata: {}
+`
+	names, err := VolumeNames([]byte(composeYAML))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(names) != 1 || names[0] != "pgdata" {
+		t.Fatalf("expected [pgdata], got %v", names)
+	}
+}
+
+func TestVolumeNamesNoVolumesSection(t *testing.T) {
+	composeYAML := `services:
+  api:
+    image: api:latest
+`
+	names, err := VolumeNames([]byte(composeYAML))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(names) != 0 {
+		t.Fatalf("expected no volume names, got %v", names)
+	}
+}
