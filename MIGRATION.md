@@ -354,8 +354,18 @@ service's compose file. Generated values are written to `artifacts/secrets/`
 5. For development-only secrets with a hardcoded default, use
    `type: insecure_default`.
 
-6. Delete `src/development/secrets/` and `src/production/secrets/` — those
+6. Delete `src/development/secrets/` and `src/production/secrets/`, those
    directories are no longer used.
+
+### Renaming existing production secrets
+
+v4 defines secrets with a flat kebab-case name (e.g. `my-stack-api-key`) while v3 included underscores (e.g. `my-stack_api-key`).
+Any secret already created in a production swarm therefore needs to be re-created under its new name before the v4 stack is first deployed.
+
+[`scripts/migrate-secrets.sh`](scripts/migrate-secrets.sh) automates this.
+Run it on a swarm manager node before deploying the v4 branch to production.
+It derives the new name for each existing secret by replacing underscores with dashes, dumps every old secret's value via a throwaway swarm service, and recreates it under the new name.
+It only creates new secrets, it never deletes or modifies the old ones, so remove those manually once the v4 stack is confirmed healthy.
 
 ---
 
