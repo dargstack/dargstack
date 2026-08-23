@@ -136,12 +136,22 @@ func VolumeList(exec *Executor, stackName string) ([]string, error) {
 }
 
 // VolumeRemove removes the specified volumes.
+// Retries briefly on "volume is in use" since a container can still hold the volume for a moment after Docker has otherwise removed it.
 func VolumeRemove(exec *Executor, volumes []string) error {
 	if len(volumes) == 0 {
 		return nil
 	}
 	args := append([]string{"volume", "rm"}, volumes...)
-	_, err := exec.Run(args...)
+
+	const retries = 5
+	var err error
+	for i := 0; i < retries; i++ {
+		_, err = exec.Run(args...)
+		if err == nil || !strings.Contains(err.Error(), "volume is in use") {
+			return err
+		}
+		time.Sleep(time.Second)
+	}
 	return err
 }
 
