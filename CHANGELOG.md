@@ -1,3 +1,9 @@
+## [4.13.5](https://github.com/dargstack/dargstack/compare/v4.13.4...v4.13.5) (2026-08-23)
+
+### Bug Fixes
+
+* **deploy:** scope volume cleanup to the active profile ([#129](https://github.com/dargstack/dargstack/issues/129)) ([09bed9d](https://github.com/dargstack/dargstack/commit/09bed9d120a7cac62877d5690b3cd680d124562a))
+
 ## [4.13.4](https://github.com/dargstack/dargstack/compare/v4.13.3...v4.13.4) (2026-08-19)
 
 ### Bug Fixes
