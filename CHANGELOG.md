@@ -1,3 +1,9 @@
+## [4.13.6](https://github.com/dargstack/dargstack/compare/v4.13.5...v4.13.6) (2026-08-23)
+
+### Bug Fixes
+
+* **deploy:** wait for targeted service removal before redeploying ([#130](https://github.com/dargstack/dargstack/issues/130)) ([c1e0a76](https://github.com/dargstack/dargstack/commit/c1e0a7600cd7eb30cf232a358e44b6b00f0cf722))
+
 ## [4.13.5](https://github.com/dargstack/dargstack/compare/v4.13.4...v4.13.5) (2026-08-23)
 
 ### Bug Fixes
