@@ -194,6 +194,25 @@ func deployValidateResources(composeData []byte, secretIssues []resource.Issue, 
 	return nil
 }
 
+// filterVolumesByCompose restricts a stack's full volume list to the ones declared in composeData, so a profile-filtered deploy only touches volumes belonging to the active profile.
+func filterVolumesByCompose(volumes []string, stackName string, composeData []byte) []string {
+	names, err := compose.VolumeNames(composeData)
+	if err != nil {
+		return nil
+	}
+	wanted := make(map[string]bool, len(names))
+	for _, n := range names {
+		wanted[stackName+"_"+n] = true
+	}
+	filtered := make([]string, 0, len(volumes))
+	for _, v := range volumes {
+		if wanted[v] {
+			filtered = append(filtered, v)
+		}
+	}
+	return filtered
+}
+
 // deployPrepareDevelopment handles TLS certs, git clones, repo fetches, auto-builds, and volume cleanup for development deployments.
 func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, executor *docker.Executor, composeData []byte, domains []string, dryRun bool) ([]byte, error) {
 	// TLS certificates
@@ -248,9 +267,12 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 		if promptVolumes {
 			running := isStackRunning(ctx, dockerClient, executor)
 			if !running {
-				ok, _ := prompt.Confirm("Remove all stack volumes for a clean start?", false)
+				ok, _ := prompt.Confirm("Remove stack volumes for a clean start?", false)
 				if ok {
 					volumes, volErr := docker.VolumeList(executor, cfg.Metadata.Name)
+					if volErr == nil {
+						volumes = filterVolumesByCompose(volumes, cfg.Metadata.Name, composeData)
+					}
 					if volErr == nil && len(volumes) > 0 {
 						if err := docker.VolumeRemove(executor, volumes); err != nil {
 							logger.L.Warn(fmt.Sprintf("Failed to remove volumes: %v", err))

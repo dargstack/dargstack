@@ -150,6 +150,25 @@ func ServiceNames(composeData []byte) ([]string, error) {
 	return names, nil
 }
 
+// VolumeNames returns the names of all top-level named volumes in the compose document.
+func VolumeNames(composeData []byte) ([]string, error) {
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(composeData, &doc); err != nil {
+		return nil, fmt.Errorf("parse compose for volume names: %w", err)
+	}
+
+	volumeMap, ok := doc["volumes"].(map[string]interface{})
+	if !ok {
+		return nil, nil
+	}
+
+	names := make([]string, 0, len(volumeMap))
+	for name := range volumeMap {
+		names = append(names, name)
+	}
+	return names, nil
+}
+
 func DiscoverProfiles(composeData []byte) ([]string, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
