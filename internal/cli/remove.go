@@ -169,6 +169,24 @@ func runRemoveTargeted(executor *docker.Executor) error {
 	if err := docker.ServiceRemove(executor, fullNames); err != nil {
 		return err
 	}
-	logger.Success(fmt.Sprintf("Removed %d service(s)", len(fullNames)))
+
+	logger.L.Info("Waiting for services to stop...")
+
+	if noInteraction {
+		err = docker.WaitForServicesRemoval(executor, fullNames, 60*time.Second, nil)
+	} else {
+		err = spinner.New().
+			Title("Removing services").
+			ActionWithErr(func(ctx context.Context) error {
+				return docker.WaitForServicesRemoval(executor, fullNames, 60*time.Second, nil)
+			}).
+			Run()
+	}
+
+	if err != nil {
+		logger.L.Warn(err.Error())
+	} else {
+		logger.Success(fmt.Sprintf("Removed %d service(s)", len(fullNames)))
+	}
 	return nil
 }

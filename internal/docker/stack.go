@@ -55,6 +55,39 @@ func WaitForStackRemoval(exec *Executor, stackName string, timeout time.Duration
 	return fmt.Errorf("stack %q networks still present after %s", stackName, timeout)
 }
 
+// WaitForServicesRemoval polls until no containers remain for the given full service names (<stack>_<service>).
+// Docker de-lists a removed service from "service ls" immediately, so that alone doesn't indicate its containers have exited; the containers are the last artefact to disappear, mirroring WaitForStackRemoval.
+// progress is called on each tick with the remaining container count.
+func WaitForServicesRemoval(exec *Executor, serviceNames []string, timeout time.Duration, progress func(remaining int)) error {
+	if len(serviceNames) == 0 {
+		return nil
+	}
+
+	args := []string{"ps", "-a", "--quiet"}
+	for _, s := range serviceNames {
+		args = append(args, "--filter", "label=com.docker.swarm.service.name="+s)
+	}
+
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		out, err := exec.Run(args...)
+		if err != nil {
+			// Transient error; keep polling.
+			time.Sleep(time.Second)
+			continue
+		}
+		containers := strings.Fields(strings.TrimSpace(out))
+		if len(containers) == 0 {
+			return nil
+		}
+		if progress != nil {
+			progress(len(containers))
+		}
+		time.Sleep(time.Second)
+	}
+	return fmt.Errorf("services %v still have containers after %s", serviceNames, timeout)
+}
+
 // ServiceList lists service names in a stack, returning only the bare service name without the "<stack>_" prefix.
 func ServiceList(exec *Executor, stackName string) ([]string, error) {
 	out, err := exec.Run("service", "ls", "--filter", fmt.Sprintf("label=com.docker.stack.namespace=%s", stackName), "--format", "{{.Name}}")
