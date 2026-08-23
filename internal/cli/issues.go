@@ -11,10 +11,7 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/resource"
 )
 
-// printIssues prints validation issues grouped by severity and then by
-// description, so repeated problems across many resources are collapsed into a
-// single entry with an indented resource list rather than N identical lines.
-//
+// printIssues prints validation issues grouped by severity and then by description, so repeated problems across many resources are collapsed into a single entry with an indented resource list rather than N identical lines.
 // Returns true when at least one error is present.
 func printIssues(issues []resource.Issue) bool {
 	var errs, warns []resource.Issue
@@ -38,8 +35,7 @@ func printIssues(issues []resource.Issue) bool {
 	return len(errs) > 0
 }
 
-// printIssueGroup collapses issues that share the same description into a
-// single entry and prints each group indented under the severity header.
+// printIssueGroup collapses issues that share the same description into a single entry and prints each group indented under the severity header.
 func printIssueGroup(issues []resource.Issue) {
 	type entry struct {
 		resources []string

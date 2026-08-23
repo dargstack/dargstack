@@ -104,9 +104,8 @@ func Resolve(templates map[string]Template, values map[string]string) (map[strin
 	return resolveTemplates(templates, values, false)
 }
 
-// ResolveAllowPlaceholders is like Resolve but allows template references to
-// pass through placeholder values instead of returning an error. This is useful
-// for non-interactive modes where third-party secrets haven't been set yet.
+// ResolveAllowPlaceholders is like Resolve but allows template references to pass through placeholder values instead of returning an error.
+// This is useful for non-interactive modes where third-party secrets haven't been set yet.
 func ResolveAllowPlaceholders(templates map[string]Template, values map[string]string) (map[string]string, error) {
 	return resolveTemplates(templates, values, true)
 }

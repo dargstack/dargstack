@@ -48,7 +48,7 @@ func runAudit(cmd *cobra.Command, args []string) error {
 	// Show latest deployment
 	dep, err := audit.LatestDeployment(auditDir, env)
 	if err != nil {
-		logger.L.Info("No previous deployments found — run `dargstack deploy` first to create a deployment snapshot.")
+		logger.L.Info("No previous deployments found. Run `dargstack deploy` first to create a deployment snapshot.")
 		return nil
 	}
 
@@ -148,8 +148,8 @@ func showDiff(latest *audit.Deployment, latestData []byte) error {
 	fmt.Printf("# Diff: last deployed vs current (%s)\n\n", latest.Environment)
 
 	// Delegate to system diff for a proper unified diff output.
-	// diff exits 0 (no diff), 1 (differ), or 2 (error). Both 0 and 1 produce
-	// valid output; only exit code 2 indicates a real failure.
+	// diff exits 0 (no diff), 1 (differ), or 2 (error).
+	// Both 0 and 1 produce valid output; only exit code 2 indicates a real failure.
 	deployedLabel := "deployed (" + latest.Timestamp.Format("2006-01-02 15:04:05 UTC") + ")"
 	out, runErr := exec.Command("diff", "-u",
 		"--label", deployedLabel,
@@ -158,11 +158,11 @@ func showDiff(latest *audit.Deployment, latestData []byte) error {
 
 	var exitErr *exec.ExitError
 	if runErr != nil && (!errors.As(runErr, &exitErr) || exitErr.ExitCode() == 2) {
-		// diff binary unavailable or hard error — fall back to summary
+		// diff binary unavailable or hard error: fall back to summary
 		deployedLines := strings.Split(string(latestData), "\n")
 		currentLines := strings.Split(string(currentData), "\n")
 		if strings.Join(deployedLines, "\n") == strings.Join(currentLines, "\n") {
-			logger.Success("No changes — current compose matches last deployed version")
+			logger.Success("No changes: current compose matches last deployed version")
 			return nil
 		}
 		logger.L.Warn("diff not available; showing full current compose:")
@@ -171,7 +171,7 @@ func showDiff(latest *audit.Deployment, latestData []byte) error {
 	}
 
 	if len(out) == 0 {
-		logger.Success("No changes — current compose matches last deployed version")
+		logger.Success("No changes: current compose matches last deployed version")
 		return nil
 	}
 

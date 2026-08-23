@@ -95,7 +95,7 @@ func TestEnsureCertificatesSkipsValidExisting(t *testing.T) {
 	certInfo, _ := os.Stat(certFile)
 	origModTime := certInfo.ModTime()
 
-	// Call EnsureCertificates with same domains — should not regenerate
+	// Call EnsureCertificates with same domains: should not regenerate
 	if err := EnsureCertificates(dir, domains); err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestCertNeedsRegenerationSameCountDifferentDomains(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Same count, but one domain swapped — should still trigger regen
+	// Same count, but one domain swapped: should still trigger regen
 	needsRegen, reason := certNeedsRegeneration(certFile, []string{"localhost", "web.app.localhost"})
 	if !needsRegen {
 		t.Error("expected regeneration when a domain was swapped out")

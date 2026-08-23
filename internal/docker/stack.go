@@ -9,9 +9,8 @@ import (
 // StackDeploy deploys a stack from compose YAML data.
 func StackDeploy(exec *Executor, stackName string, composeData []byte) error {
 	// docker stack deploy --with-registry-auth -c - <stack_name>
-	// Feed compose data via stdin. --with-registry-auth propagates the
-	// manager's registry credentials to other swarm nodes so they can pull
-	// private images; harmless on single-node swarms.
+	// Feed compose data via stdin.
+	// --with-registry-auth propagates the manager's registry credentials to other swarm nodes so they can pull private images; harmless on single-node swarms.
 	err := exec.RunWithStdin(composeData, "stack", "deploy", "--with-registry-auth", "-c", "-", stackName)
 	if err != nil {
 		return fmt.Errorf("deploy stack %q: %w", stackName, err)
@@ -28,9 +27,8 @@ func StackRemove(exec *Executor, stackName string) error {
 	return nil
 }
 
-// WaitForStackRemoval polls until all networks belonging to the stack have
-// been removed, which indicates containers have fully exited. Services are
-// de-listed almost immediately; networks are the last artefact to disappear.
+// WaitForStackRemoval polls until all networks belonging to the stack have been removed, which indicates containers have fully exited.
+// Services are de-listed almost immediately; networks are the last artefact to disappear.
 // progress is called on each tick with the remaining network count.
 func WaitForStackRemoval(exec *Executor, stackName string, timeout time.Duration, progress func(remaining int)) error {
 	deadline := time.Now().Add(timeout)
@@ -57,8 +55,7 @@ func WaitForStackRemoval(exec *Executor, stackName string, timeout time.Duration
 	return fmt.Errorf("stack %q networks still present after %s", stackName, timeout)
 }
 
-// ServiceList lists service names in a stack, returning only the bare service name
-// (without the "<stack>_" prefix).
+// ServiceList lists service names in a stack, returning only the bare service name without the "<stack>_" prefix.
 func ServiceList(exec *Executor, stackName string) ([]string, error) {
 	out, err := exec.Run("service", "ls", "--filter", fmt.Sprintf("label=com.docker.stack.namespace=%s", stackName), "--format", "{{.Name}}")
 	if err != nil {

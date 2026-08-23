@@ -55,13 +55,13 @@ func resolveDeployTag() (string, error) {
 	if targetTag != "" {
 		targetMajor, err := parseMajorVersion(targetTag)
 		if err != nil {
-			// Non-semver tag (e.g. "latest") — no major to guard on, deploy as-is.
+			// Non-semver tag (e.g. "latest"): no major to guard on, deploy as-is.
 			return targetTag, nil
 		}
 
 		if !currentDetermined {
 			if !deployMajor {
-				return "", fmt.Errorf("current major version could not be determined (no tagged commit checked out at HEAD) — pass --major to confirm this deploy")
+				return "", fmt.Errorf("current major version could not be determined (no tagged commit checked out at HEAD): pass --major to confirm this deploy")
 			}
 			return targetTag, nil
 		}
@@ -71,12 +71,12 @@ func resolveDeployTag() (string, error) {
 		}
 
 		if !deployMajor {
-			return "", fmt.Errorf("deploying %s changes the major version from %s (v%d -> v%d) — use --major to confirm", targetTag, current, currentMajor, targetMajor)
+			return "", fmt.Errorf("deploying %s changes the major version from %s (v%d -> v%d): use --major to confirm", targetTag, current, currentMajor, targetMajor)
 		}
 
 		if abs(targetMajor-currentMajor) > 1 {
 			nextMajor := currentMajor + signInt(targetMajor-currentMajor)
-			return "", fmt.Errorf("deploying %s skips major version v%d (currently on %s) — deploy v%d first", targetTag, nextMajor, current, nextMajor)
+			return "", fmt.Errorf("deploying %s skips major version v%d (currently on %s): deploy v%d first", targetTag, nextMajor, current, nextMajor)
 		}
 
 		return targetTag, nil
@@ -91,7 +91,7 @@ func resolveDeployTag() (string, error) {
 
 	if !currentDetermined {
 		if !deployMajor {
-			return "", fmt.Errorf("current major version could not be determined (no tagged commit checked out at HEAD) — pass --major to confirm this deploy")
+			return "", fmt.Errorf("current major version could not be determined (no tagged commit checked out at HEAD): pass --major to confirm this deploy")
 		}
 		tag, err := latestGitTag(-1)
 		if err != nil {
@@ -108,9 +108,9 @@ func resolveDeployTag() (string, error) {
 	tag, err := latestGitTag(targetMajor)
 	if err != nil {
 		if deployMajor {
-			return "", fmt.Errorf("no v%d.x.x tag found — version v%d has not been released yet", targetMajor, targetMajor)
+			return "", fmt.Errorf("no v%d.x.x tag found: version v%d has not been released yet", targetMajor, targetMajor)
 		}
-		return "", fmt.Errorf("resolve deploy tag from branch %q: %w — use --tag to set explicitly", cfg.Environment.Production.Branch, err)
+		return "", fmt.Errorf("resolve deploy tag from branch %q: %w, use --tag to set explicitly", cfg.Environment.Production.Branch, err)
 	}
 	return tag, nil
 }
@@ -179,12 +179,8 @@ func latestGitTag(targetMajor int) (string, error) {
 	return candidates[0], nil
 }
 
-// compareSemver compares two tags by their dot-separated numeric segments,
-// ignoring an optional "v" prefix on either side. A plain string or git
-// version-sort comparison gets this wrong in two ways: it buckets "v"
-// prefixed and bare-digit tags separately regardless of actual version, and
-// it compares multi-digit segments lexicographically (making "v2.10.0" sort
-// below "v2.9.0" because '1' < '9').
+// compareSemver compares two tags by their dot-separated numeric segments, ignoring an optional "v" prefix on either side.
+// A plain string or git version-sort comparison gets this wrong in two ways: it buckets "v" prefixed and bare-digit tags separately regardless of actual version, and it compares multi-digit segments lexicographically (making "v2.10.0" sort below "v2.9.0" because '1' < '9').
 func compareSemver(a, b string) int {
 	as := strings.Split(strings.TrimPrefix(a, "v"), ".")
 	bs := strings.Split(strings.TrimPrefix(b, "v"), ".")
@@ -203,10 +199,8 @@ func compareSemver(a, b string) int {
 	return 0
 }
 
-// gitWorkingTreeDirty reports whether dir has uncommitted changes to tracked
-// files. Untracked files (e.g. generated artifacts) are ignored — git itself
-// refuses a checkout that would clobber one, so that failure surfaces on its
-// own when it matters.
+// gitWorkingTreeDirty reports whether dir has uncommitted changes to tracked files.
+// Untracked files (e.g. generated artifacts) are ignored: git itself refuses a checkout that would clobber one, so that failure surfaces on its own when it matters.
 func gitWorkingTreeDirty(dir string) (bool, error) {
 	cmd := exec.Command("git", "status", "--porcelain", "--untracked-files=no")
 	cmd.Dir = dir
@@ -230,12 +224,9 @@ func gitCheckout(dir, ref string) error {
 	return nil
 }
 
-// checkoutDeployTag resolves the production deploy tag (via resolveDeployTag)
-// and checks it out in stackDir so the compose files that get deployed
-// actually match the tagged release, rather than whatever happened to be on
-// disk. The checkout is left in place (detached at the tag) after deploy.
-// When offline, it only resolves the tag from local state without checking
-// out — the working tree is left as-is.
+// checkoutDeployTag resolves the production deploy tag (via resolveDeployTag) and checks it out in stackDir so the compose files that get deployed actually match the tagged release, rather than whatever happened to be on disk.
+// The checkout is left in place (detached at the tag) after deploy.
+// When offline, it only resolves the tag from local state without checking out: the working tree is left as-is.
 func checkoutDeployTag() (string, error) {
 	tag, err := resolveDeployTag()
 	if err != nil {
@@ -252,7 +243,7 @@ func checkoutDeployTag() (string, error) {
 		return "", fmt.Errorf("check git working tree status: %w", err)
 	}
 	if dirty {
-		return "", fmt.Errorf("stack directory has uncommitted changes to tracked files — commit or stash them before deploying to production")
+		return "", fmt.Errorf("stack directory has uncommitted changes to tracked files: commit or stash them before deploying to production")
 	}
 
 	if err := gitCheckout(stackDir, tag); err != nil {
@@ -400,8 +391,7 @@ type gitBehindInfo struct {
 	branch      string
 }
 
-// fetchAndWarnBehind fetches all git repos used as build contexts in parallel
-// and returns info for any that are behind their remote (caller prints the warning).
+// fetchAndWarnBehind fetches all git repos used as build contexts in parallel and returns info for any that are behind their remote (caller prints the warning).
 func fetchAndWarnBehind(composeData []byte) []gitBehindInfo {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
@@ -491,13 +481,13 @@ func printBehindWarning(behind []gitBehindInfo) {
 	}
 	parts := make([]string, len(behind))
 	for i, b := range behind {
-		parts[i] = fmt.Sprintf("  %s (%s) — %d commit%s behind", b.serviceName, b.branch, b.behind, pluralS(b.behind))
+		parts[i] = fmt.Sprintf("  %s (%s): %d commit%s behind", b.serviceName, b.branch, b.behind, pluralS(b.behind))
 	}
 	logger.L.Warn("Local repos behind remote:\n" + strings.Join(parts, "\n"))
 }
 
-// fetchAndCheckBehind runs `git fetch` in dir and returns how many commits
-// the current branch is behind its upstream. Returns (0, "", err) on failure.
+// fetchAndCheckBehind runs `git fetch` in dir and returns how many commits the current branch is behind its upstream.
+// Returns (0, "", err) on failure.
 func fetchAndCheckBehind(dir string) (behind int, branch string, err error) {
 	// Check if it's a git repo.
 	if _, err := os.Stat(filepath.Join(dir, ".git")); os.IsNotExist(err) {
@@ -520,7 +510,7 @@ func fetchAndCheckBehind(dir string) (behind int, branch string, err error) {
 	}
 	branch = strings.TrimSpace(string(branchOut))
 	if branch == "HEAD" {
-		// Detached HEAD — nothing to compare.
+		// Detached HEAD: nothing to compare.
 		return 0, "", nil
 	}
 
@@ -562,8 +552,7 @@ func imageExists(executor *docker.Executor, tag string) bool {
 	return err == nil
 }
 
-// extractDargstackBuildContext returns the build context from a
-// deploy.labels.dargstack.development.build label, or "" if not present.
+// extractDargstackBuildContext returns the build context from a deploy.labels.dargstack.development.build label, or "" if not present.
 func extractDargstackBuildContext(svc map[string]interface{}) string {
 	deploy, ok := svc["deploy"].(map[string]interface{})
 	if !ok {
@@ -594,8 +583,7 @@ func extractDargstackBuildContext(svc map[string]interface{}) string {
 
 // resolveBuildContext returns the build context for a service.
 // It checks for a `dargstack.development.build` label first.
-// If not present, falls back to `dargstack.development.git.ssh`/`dargstack.development.git.https` and derives
-// the context from the cloned repo directory (sibling of the stack directory).
+// If not present, falls back to `dargstack.development.git.ssh`/`dargstack.development.git.https` and derives the context from the cloned repo directory (sibling of the stack directory).
 // Returns "" if neither label is set.
 func resolveBuildContext(svc map[string]interface{}, stackDir string) string {
 	if ctx := extractDargstackBuildContext(svc); ctx != "" {

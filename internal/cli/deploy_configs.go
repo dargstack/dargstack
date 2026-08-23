@@ -8,11 +8,8 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/secret"
 )
 
-// configSetupFlow derives and writes generated config values declared under
-// x-dargstack.configs (currently only the public_key type, sourced from a
-// private_key secret). Unlike secrets, this never prompts: derivation is
-// deterministic given the source secret, so it either succeeds, is skipped
-// because the source isn't resolved yet, or fails outright.
+// configSetupFlow derives and writes generated config values declared under x-dargstack.configs (currently only the public_key type, sourced from a private_key secret).
+// Unlike secrets, this never prompts: derivation is deterministic given the source secret, so it either succeeds, is skipped because the source isn't resolved yet, or fails outright.
 func configSetupFlow(composeData []byte) ([]resource.Issue, error) {
 	configTemplates, err := secret.ExtractConfigTemplates(composeData)
 	if err != nil {

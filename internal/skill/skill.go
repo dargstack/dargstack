@@ -108,8 +108,7 @@ func IsInstalled(skillDir string) bool {
 // Install installs or updates the skill at the given directory.
 // Returns (updated bool, userModified bool, error).
 // updated is true if the file was written.
-// userModified is true if the existing file's hash differs from both the
-// previous bundled hash and the current bundled hash.
+// userModified is true if the existing file's hash differs from both the previous bundled hash and the current bundled hash.
 func Install(skillDir string) (updated, userModified bool, err error) {
 	existingMeta, err := ReadMeta(skillDir)
 	if err != nil {
@@ -173,7 +172,8 @@ func Uninstall(skillDir string) error {
 }
 
 // Update updates the skill if the bundled version differs from the installed one.
-// Returns (updated bool, error). Errors if not already installed.
+// Returns (updated bool, error).
+// Errors if not already installed.
 func Update(skillDir string) (bool, error) {
 	meta, err := ReadMeta(skillDir)
 	if err != nil {

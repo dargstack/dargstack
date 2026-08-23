@@ -18,10 +18,8 @@ const StackRootPrefix = "~~"
 // ParentDirPrefix is the "~~~" prefix that expands to the parent directory of the stack project root.
 const ParentDirPrefix = "~~~"
 
-// PreprocessStackRoot returns a pre-process function that replaces the "~~" stack
-// root prefix with the absolute stack directory path and the "~~~" parent directory
-// prefix with its parent in the raw YAML bytes before parsing. This is necessary
-// because YAML interprets "~" as null, so "~~" becomes the string "~" after parsing.
+// PreprocessStackRoot returns a pre-process function that replaces the "~~" stack root prefix with the absolute stack directory path and the "~~~" parent directory prefix with its parent in the raw YAML bytes before parsing.
+// This is necessary because YAML interprets "~" as null, so "~~" becomes the string "~" after parsing.
 // By expanding on raw bytes, we avoid this issue.
 func PreprocessStackRoot(stackDir string) func([]byte) []byte {
 	return func(data []byte) []byte {
@@ -47,9 +45,8 @@ func PreprocessStackRoot(stackDir string) func([]byte) []byte {
 	}
 }
 
-// extractPlatformOverlay extracts the x-dargstack.platform.<platform> section from
-// a parsed compose document and returns it as a standalone document with its contents
-// promoted to root level. Returns nil if the platform section doesn't exist.
+// extractPlatformOverlay extracts the x-dargstack.platform.<platform> section from a parsed compose document and returns it as a standalone document with its contents promoted to root level.
+// Returns nil if the platform section doesn't exist.
 func extractPlatformOverlay(doc map[interface{}]interface{}, platform string) map[interface{}]interface{} {
 	xds, ok := doc["x-dargstack"]
 	if !ok {
@@ -82,16 +79,15 @@ func extractPlatformOverlay(doc map[interface{}]interface{}, platform string) ma
 }
 
 // MergeFiles merges multiple compose YAML files using spruce.
-// Later files override earlier ones. Spruce operators like (( prune )) are evaluated.
+// Later files override earlier ones.
+// Spruce operators like (( prune )) are evaluated.
 // stackDir is the stack project root directory used for expanding the "~~" and "~~~" prefixes.
-// platform is the target OS (e.g. "darwin", "linux"); if non-empty, x-dargstack.platform.<platform>
-// sections are extracted and merged as higher-priority overlays.
+// platform is the target OS (e.g. "darwin", "linux"); if non-empty, x-dargstack.platform.<platform> sections are extracted and merged as higher-priority overlays.
 func MergeFiles(stackDir, platform string, paths ...string) ([]byte, error) {
 	return mergeFiles(nil, stackDir, platform, paths...)
 }
 
-// MergeFilesProduction merges compose YAML files like MergeFiles but strips
-// # dargstack:dev-only markers from each file's raw bytes before YAML parsing.
+// MergeFilesProduction merges compose YAML files like MergeFiles but strips # dargstack:dev-only markers from each file's raw bytes before YAML parsing.
 // platform is the target OS for x-dargstack.platform overrides.
 func MergeFilesProduction(stackDir, platform string, paths ...string) ([]byte, error) {
 	return mergeFiles(StripDevOnlyMarkers, stackDir, platform, paths...)
@@ -244,11 +240,8 @@ func LoadSingle(stackDir, platform, path string) ([]byte, error) {
 	return result, nil
 }
 
-// splitVolumeSpec splits a Docker volume short syntax string "HOST:CONTAINER[:MODE]"
-// into the host part and the remainder. It correctly handles Windows drive letter
-// prefixes (e.g. "C:\path:/container") by treating a single alpha character
-// followed by a colon and a path separator as a drive prefix rather than as the
-// HOST:CONTAINER separator.
+// splitVolumeSpec splits a Docker volume short syntax string "HOST:CONTAINER[:MODE]" into the host part and the remainder.
+// It correctly handles Windows drive letter prefixes (e.g. "C:\path:/container") by treating a single alpha character followed by a colon and a path separator as a drive prefix rather than as the HOST:CONTAINER separator.
 func splitVolumeSpec(vol string) (host, rest string) {
 	idx := strings.IndexByte(vol, ':')
 	if idx < 0 {
@@ -275,8 +268,7 @@ func splitVolumeSpec(vol string) (host, rest string) {
 }
 
 // resolveFilePaths makes relative file: paths in secrets, configs, and bind mounts absolute.
-// This is required because after merge, compose is fed to Docker via stdin
-// and Docker cannot resolve paths relative to the original compose file.
+// This is required because after merge, compose is fed to Docker via stdin and Docker cannot resolve paths relative to the original compose file.
 func resolveFilePaths(doc map[interface{}]interface{}, baseDir string) {
 	// Resolve secrets and configs
 	for _, section := range []string{"secrets", "configs"} {
@@ -334,8 +326,8 @@ func resolveFilePaths(doc map[interface{}]interface{}, baseDir string) {
 				if remainder == "" {
 					continue
 				}
-				// Only resolve dot-relative host paths (./ or ../). This preserves
-				// named Docker volumes like "pgdata:/var/lib/postgresql/data".
+				// Only resolve dot-relative host paths (./ or ../).
+				// This preserves named Docker volumes like "pgdata:/var/lib/postgresql/data".
 				if strings.HasPrefix(hostPath, ".") {
 					absPath := filepath.Join(baseDir, hostPath)
 					volumes[i] = absPath + ":" + remainder

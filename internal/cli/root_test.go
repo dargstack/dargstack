@@ -107,7 +107,7 @@ func TestResolveVersionIncompatibility(t *testing.T) {
 			confirmResult:    true,
 			selfUpdateErr:    nil,
 			wantUpdateCalled: true,
-			wantErrMsg:       "please re-run the command",
+			wantErrMsg:       "Please re-run the command",
 		},
 		{
 			name:             "user accepts but self-update fails",

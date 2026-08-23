@@ -65,15 +65,13 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 		return runDeployWithExecutor(ctx, cmd, nil, nil, env, true)
 	}
 
-	// Docker prerequisite check — create executor first so sudo is pre-warmed
-	// before any Docker socket access.
+	// Docker prerequisite check: create executor first so sudo is pre-warmed before any Docker socket access.
 	executor, err := docker.NewExecutor(string(cfg.Runtime.Sudo))
 	if err != nil {
 		return wrapWithBugHint(err)
 	}
 
-	// When sudo is needed the Docker SDK cannot reach the socket directly,
-	// so perform all pre-flight checks through the CLI executor.
+	// When sudo is needed the Docker SDK cannot reach the socket directly, so perform all pre-flight checks through the CLI executor.
 	if executor.NeedsSudo() {
 		if err := executor.Ping(); err != nil {
 			return hintErr(
@@ -95,7 +93,7 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 		return runDeployWithExecutor(ctx, cmd, nil, executor, env, false)
 	}
 
-	// No sudo required — use the SDK for richer checks.
+	// No sudo required: use the SDK for richer checks.
 	dockerClient, err := docker.NewClient()
 	if err != nil {
 		return wrapWithBugHint(err)

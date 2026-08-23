@@ -21,8 +21,7 @@ func testSetup(t *testing.T) func(t *testing.T) {
 	origCurrentVersion := currentVersion
 	resetBackgroundState()
 	return func(t *testing.T) {
-		// Wait for the background goroutine to finish before restoring
-		// package-level variables, preventing data races.
+		// Wait for the background goroutine to finish before restoring package-level variables, preventing data races.
 		if bgStarted.Load() {
 			for i := 0; i < 100; i++ {
 				if bgComplete.Load() {

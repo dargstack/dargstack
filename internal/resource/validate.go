@@ -139,9 +139,7 @@ func validateConfigs(doc map[string]interface{}, stackDir string, production boo
 	return issues
 }
 
-// validateDargstackConfigs checks that x-dargstack.configs entries are well-formed:
-// a recognized type, and for public_key, a source that names an existing
-// private_key secret.
+// validateDargstackConfigs checks that x-dargstack.configs entries are well-formed: a recognized type, and for public_key, a source that names an existing private_key secret.
 func validateDargstackConfigs(configTemplates, secretTemplates map[string]secret.Template) []Issue {
 	var issues []Issue
 
@@ -202,19 +200,19 @@ func validateServices(doc map[string]interface{}, stackDir string, production bo
 
 		// In production, warn when a service has no explicit deploy.update_config.order.
 		// Docker defaults to "stop-first" which causes downtime for replicated services.
-		// Any explicit value ("start-first" or "stop-first") silences the warning —
-		// the important thing is that the author has consciously chosen a policy.
-		// Skip services without an image — they are dev-only stubs that won't be deployed.
+		// Any explicit value ("start-first" or "stop-first") silences the warning.
+		// The important thing is that the author has consciously chosen a policy.
+		// Skip services without an image.
+		// They are dev-only stubs that won't be deployed.
 		if production && hasImage(svcDef) && !hasUpdateOrder(svcDef) {
 			issues = append(issues, Issue{
 				Severity:    "warning",
 				Resource:    fmt.Sprintf("service:%s", name),
-				Description: `deploy.update_config.order is not set — use "start-first" for zero-downtime or "stop-first" for stateful services`,
+				Description: `deploy.update_config.order is not set: use "start-first" for zero-downtime or "stop-first" for stateful services`,
 			})
 		}
 
-		// dargstack.development.build labels are dev-only and stripped before
-		// production deployment, so skip this check in production mode.
+		// dargstack.development.build labels are dev-only and stripped before production deployment, so skip this check in production mode.
 		if production {
 			continue
 		}
@@ -288,8 +286,8 @@ func extractDargstackBuildLabel(svc map[string]interface{}) string {
 }
 
 // hasUpdateOrder reports whether the service has an explicit deploy.update_config.order value.
-// Any non-empty value ("start-first" or "stop-first") is accepted — the check only
-// ensures the author has consciously chosen a rolling-update policy.
+// Any non-empty value ("start-first" or "stop-first") is accepted.
+// The check only ensures the author has consciously chosen a rolling-update policy.
 func hasUpdateOrder(svc map[string]interface{}) bool {
 	deploy, ok := svc["deploy"].(map[string]interface{})
 	if !ok {

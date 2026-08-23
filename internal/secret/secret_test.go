@@ -47,8 +47,7 @@ x-dargstack:
 
 func TestExtractTemplatesParseError(t *testing.T) {
 	// A scalar value under x-dargstack.secrets is not a valid secret definition.
-	// The marshal step succeeds, but unmarshaling into Template fails because
-	// the data is a scalar, not a mapping.
+	// The marshal step succeeds, but unmarshaling into Template fails because the data is a scalar, not a mapping.
 	composeYAML := `x-dargstack:
   secrets:
     good-secret:
@@ -270,8 +269,7 @@ func TestResolveTemplateSpecialTokens(t *testing.T) {
 }
 
 func TestRandomStringDefaults(t *testing.T) {
-	// When type=random_string is set without length/special_characters,
-	// normalizeTemplate should default length=32 and special_characters=true.
+	// When type=random_string is set without length/special_characters, normalizeTemplate should default length=32 and special_characters=true.
 	tmpl := Template{Type: TypeRandomString}
 	normalizeTemplate(&tmpl)
 	if tmpl.Length != 32 {

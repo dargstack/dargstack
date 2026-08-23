@@ -10,12 +10,9 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/prompt"
 )
 
-// applyEnvToProcess loads the resolved .env values and STACK_DOMAIN into the
-// current process environment so that `docker stack deploy -c -` can
-// interpolate them. The process environment takes precedence — existing values
-// are not overwritten.
-// It returns the map of vars that were applied so the caller can forward them
-// explicitly to sudo subprocesses via Executor.SetComposeEnv.
+// applyEnvToProcess loads the resolved .env values and STACK_DOMAIN into the current process environment so that `docker stack deploy -c -` can interpolate them.
+// The process environment takes precedence: existing values are not overwritten.
+// It returns the map of vars that were applied so the caller can forward them explicitly to sudo subprocesses via Executor.SetComposeEnv.
 func applyEnvToProcess(prod bool) map[string]string {
 	env, err := compose.LoadEnvFile(cfg.DevEnvFile())
 	if err != nil {
@@ -70,7 +67,7 @@ func promptForEnvValues(prod bool) error {
 
 	if prod {
 		return hintErr(
-			fmt.Errorf("production deployment requires all environment variables to be set — missing: %s", strings.Join(missing, ", ")),
+			fmt.Errorf("production deployment requires all environment variables to be set, missing: %s", strings.Join(missing, ", ")),
 			fmt.Sprintf("Add the missing values to %s.", cfg.ProdEnvFile()),
 		)
 	}

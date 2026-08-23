@@ -28,8 +28,7 @@ type ExternalService struct {
 }
 
 // GenerateDocumentation generates a markdown documentation file for the stack.
-// It reads YAML comments from raw service compose files for service descriptions
-// and indicates production-only services.
+// It reads YAML comments from raw service compose files for service descriptions and indicates production-only services.
 func GenerateDocumentation(dc *DocsConfig) (string, error) {
 	devDir := dc.DevDir
 	prodDir := dc.ProdDir
@@ -155,9 +154,7 @@ func GenerateDocumentation(dc *DocsConfig) (string, error) {
 	return content, nil
 }
 
-// listComposeServices parses every compose.yaml under dir's service directories
-// as well as a root dir/compose.yaml (shared base layer), and returns all service
-// names found in the services: mapping, sorted and deduplicated.
+// listComposeServices parses every compose.yaml under dir's service directories as well as a root dir/compose.yaml (shared base layer), and returns all service names found in the services: mapping, sorted and deduplicated.
 func listComposeServices(dir string) []string {
 	nameSet := make(map[string]bool)
 
@@ -200,9 +197,7 @@ func listComposeServices(dir string) []string {
 	return names
 }
 
-// extractServiceCommentAny searches all compose.yaml files under baseDir
-// (including a root baseDir/compose.yaml) for a service matching the given
-// name and extracts its YAML comment.
+// extractServiceCommentAny searches all compose.yaml files under baseDir (including a root baseDir/compose.yaml) for a service matching the given name and extracts its YAML comment.
 func extractServiceCommentAny(baseDir, serviceName string) string {
 	// Check root compose.yaml first.
 	if c := extractServiceCommentFromFile(filepath.Join(baseDir, "compose.yaml"), serviceName); c != "" {
@@ -223,14 +218,12 @@ func extractServiceCommentAny(baseDir, serviceName string) string {
 	return ""
 }
 
-// extractServiceComment reads baseDir/dirName/compose.yaml and extracts the
-// YAML comment for serviceName using the yaml.v3 Node API.
+// extractServiceComment reads baseDir/dirName/compose.yaml and extracts the YAML comment for serviceName using the yaml.v3 Node API.
 func extractServiceComment(baseDir, dirName, serviceName string) string {
 	return extractServiceCommentFromFile(filepath.Join(baseDir, dirName, "compose.yaml"), serviceName)
 }
 
-// extractServiceCommentFromFile reads composePath and extracts the YAML comment
-// associated with the named service using the yaml.v3 Node API.
+// extractServiceCommentFromFile reads composePath and extracts the YAML comment associated with the named service using the yaml.v3 Node API.
 func extractServiceCommentFromFile(composePath, serviceName string) string {
 	data, err := os.ReadFile(composePath)
 	if err != nil {
@@ -284,8 +277,7 @@ func extractServiceCommentFromFile(composePath, serviceName string) string {
 }
 
 // cleanComment strips YAML comment prefixes and returns clean markdown text.
-// Lines containing the dargstack:dev-only marker are filtered out, since they
-// are internal directives that should not appear in generated documentation.
+// Lines containing the dargstack:dev-only marker are filtered out, since they are internal directives that should not appear in generated documentation.
 func cleanComment(raw string) string {
 	if raw == "" {
 		return ""
@@ -304,8 +296,7 @@ func cleanComment(raw string) string {
 	return strings.TrimSpace(strings.Join(cleaned, "\n"))
 }
 
-// collectProfiles parses all compose.yaml files in the dev and prod directories
-// and returns a map of profile name → list of service names using that profile.
+// collectProfiles parses all compose.yaml files in the dev and prod directories and returns a map of profile name to list of service names using that profile.
 // Profiles are defined via deploy.labels.dargstack.profiles (comma-separated).
 func collectProfiles(devDir, prodDir string) map[string][]string {
 	profileMap := make(map[string][]string)
@@ -314,8 +305,7 @@ func collectProfiles(devDir, prodDir string) map[string][]string {
 	return profileMap
 }
 
-// collectFromDir scans all compose.yaml files under baseDir (including the root
-// baseDir/compose.yaml shared layer) and populates profileMap.
+// collectFromDir scans all compose.yaml files under baseDir (including the root baseDir/compose.yaml shared layer) and populates profileMap.
 func collectFromDir(baseDir string, profileMap map[string][]string) {
 	collectFromFile := func(composePath string) {
 		data, err := os.ReadFile(composePath)
@@ -374,8 +364,7 @@ func collectFromDir(baseDir string, profileMap map[string][]string) {
 	}
 }
 
-// extractProfilesLabel extracts the dargstack.profiles value from a deploy.labels
-// value that may be either a map (string → interface{}) or a list ([]"key=value").
+// extractProfilesLabel extracts the dargstack.profiles value from a deploy.labels value that may be either a map (string to interface{}) or a list ([]"key=value").
 func extractProfilesLabel(labels interface{}) string {
 	switch v := labels.(type) {
 	case map[string]interface{}:

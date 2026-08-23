@@ -6,9 +6,8 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// ExtractServiceImages returns the unique sorted list of image names referenced
-// by all services in the compose document. Services without an image field (e.g.
-// build-only services) are omitted.
+// ExtractServiceImages returns the unique sorted list of image names referenced by all services in the compose document.
+// Services without an image field (e.g. build-only services) are omitted.
 func ExtractServiceImages(data []byte) []string {
 	var doc struct {
 		Services map[string]struct {

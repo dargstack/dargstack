@@ -2,9 +2,11 @@
 
 Docker Swarm, made simple. Dev-first deployments, production overlays, built-in audit trail.
 
-dargstack is a **CLI tool and project structure specification** that **reduces Docker Swarm complexity** to a minimal command set. Define your development setup as the base, express production as incremental changes on top.
+dargstack is a **CLI tool and project structure specification** that **reduces Docker Swarm complexity** to a minimal command set.
+Define your development setup as the base, express production as incremental changes on top.
 
-dargstack does **not** replace `docker stack`. You can interact with `docker stack` on the same stack that you manage with dargstack.
+dargstack does **not** replace `docker stack`.
+You can interact with `docker stack` on the same stack that you manage with dargstack.
 
 ---
 
@@ -40,22 +42,23 @@ Contributing? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Why dargstack?
 
-Deploying the same app to development and production with Docker Swarm usually means maintaining two nearly identical compose files. Change one thing? Manually copy, edit, hope nothing breaks.
+Deploying the same app to development and production with Docker Swarm usually means maintaining two nearly identical compose files.
+Change one thing? Manually copy, edit, hope nothing breaks.
 
 dargstack inverts this: define development as the source of truth, then express production as **changes** on top. One deploy command. One audit trail. Done.
 
 | dargstack                                                      | `docker stack`                                                                |
 | -------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| ✅ A single resource and diff specification                    | ❌ Two compose files for dev and prod – risk of configuration drift           |
-| ✅ Clear file separation by service                            | ❌ Monolithic compose file – hard to maintain if big                          |
-| ✅ Snapshot for every deploy; easy inspect and diff            | ❌ Volatile audit trail – live console tracing only                           |
-| ✅ Safer secret management with auto-generation and templating | ❌ Manual secret management – tedious, often insecure defaults                |
-| ✅ Development certificates auto-generated                     | ❌ No TLS certificates – out of scope, traffic unencrypted                    |
-| ✅ Zero downtime service update motivation                     | ❌ Stop-first update order by default – unreliable availability in production |
+| ✅ A single resource and diff specification                    | ❌ Two compose files for dev and prod: risk of configuration drift           |
+| ✅ Clear file separation by service                            | ❌ Monolithic compose file: hard to maintain if big                          |
+| ✅ Snapshot for every deploy; easy inspect and diff            | ❌ Volatile audit trail: live console tracing only                           |
+| ✅ Safer secret management with auto-generation and templating | ❌ Manual secret management: tedious, often insecure defaults                |
+| ✅ Development certificates auto-generated                     | ❌ No TLS certificates: out of scope, traffic unencrypted                    |
+| ✅ Zero downtime service update motivation                     | ❌ Stop-first update order by default: unreliable availability in production |
 
 ## Install
 
-### Recommended — From GitHub Releases
+### Recommended: From GitHub Releases
 
 On Windows, run this in a POSIX shell (WSL, Git Bash, or Cygwin); it won't work in `cmd.exe` or native PowerShell.
 
@@ -69,9 +72,9 @@ mkdir -p "$HOME/.local/bin" && mv dargstack "$HOME/.local/bin/"
 
 Ensure `$HOME/.local/bin` is on your `PATH`.
 
-### Alternative — From Source
+### Alternative: From Source
 
-**Prerequisite** – Go installed, see [go.dev: Download and install](https://go.dev/doc/install).
+**Prerequisite**: Go installed, see [go.dev: Download and install](https://go.dev/doc/install).
 
 ```bash
 go install github.com/dargstack/dargstack/v4/cmd/dargstack@latest
@@ -82,7 +85,7 @@ Pin to a specific version (e.g., `@v4.1.0`) for a reproducible, auditable instal
 
 ## Quick Start
 
-**Prerequisite** – Docker installed, see [docs.docker.com: Install Docker Engine](https://docs.docker.com/engine/install/).
+**Prerequisite**: Docker installed, see [docs.docker.com: Install Docker Engine](https://docs.docker.com/engine/install/).
 
 1. Initialize a new dargstack project:
 
@@ -138,7 +141,8 @@ example/
 
 ### Service Files
 
-Each service file is a full Docker Compose document — files are deep-merged by [spruce](https://github.com/geofffranks/spruce).
+Each service file is a full Docker Compose document.
+Files are deep-merged by [spruce](https://github.com/geofffranks/spruce).
 See [github.com: What are all the Spruce operators?](https://github.com/geofffranks/spruce/blob/main/doc/operators.md) for special keywords controlling merge behavior.
 
 ```yaml
@@ -191,7 +195,8 @@ services:
 
 ### Git Cloning
 
-The `dargstack.development.git.ssh` and `dargstack.development.git.https` labels instruct dargstack to clone a git repository before building a service's Docker image. The repository is cloned to a sibling directory of the stack, named after the repository:
+The `dargstack.development.git.ssh` and `dargstack.development.git.https` labels instruct dargstack to clone a git repository before building a service's Docker image.
+The repository is cloned to a sibling directory of the stack, named after the repository:
 
 ```yaml
 services:
@@ -202,7 +207,8 @@ services:
     image: mystack/webapp:development
 ```
 
-This clones `webapp.git` to a `webapp/` directory next to the stack directory, and automatically sets the build context to that directory. You can override the build context with `dargstack.development.build` to point to a subdirectory:
+This clones `webapp.git` to a `webapp/` directory next to the stack directory, and automatically sets the build context to that directory.
+You can override the build context with `dargstack.development.build` to point to a subdirectory:
 
 ```yaml
 services:
@@ -215,7 +221,9 @@ services:
     image: mystack/webapp:development
 ```
 
-The SSH URL is used as the primary clone URL, with the HTTPS URL as a fallback. Providing both ensures cloning works regardless of network restrictions. The repository is cloned once (on first deploy) and left untouched on subsequent deploys.
+The SSH URL is used as the primary clone URL, with the HTTPS URL as a fallback.
+Providing both ensures cloning works regardless of network restrictions.
+The repository is cloned once (on first deploy) and left untouched on subsequent deploys.
 
 ### Configuration: dargstack.yaml
 
@@ -266,12 +274,14 @@ services:
 
 Multiple profiles: `dargstack.profiles: "db,monitoring"` (comma-separated).
 
-Profiles can also be activated via the `COMPOSE_PROFILES` environment variable (comma-separated). The `--profiles` flag takes precedence over `COMPOSE_PROFILES`.
+Profiles can also be activated via the `COMPOSE_PROFILES` environment variable (comma-separated).
+The `--profiles` flag takes precedence over `COMPOSE_PROFILES`.
 
 If no profile selection is made and any service declares `default`, only services with `dargstack.profiles: default` are deployed; unlabeled services are excluded.
 If no profile selection is made and no service declares `default`, all services (including unlabeled) are deployed.
 
-When one or more profiles are explicitly activated with `--profiles`, only services whose `dargstack.profiles` intersect the active profile set are deployed. Services without a `dargstack.profiles` label are deployed only if the special `unlabeled` profile is explicitly activated (for example: `--profiles unlabeled` or `--profiles db --profiles unlabeled`).
+When one or more profiles are explicitly activated with `--profiles`, only services whose `dargstack.profiles` intersect the active profile set are deployed.
+Services without a `dargstack.profiles` label are deployed only if the special `unlabeled` profile is explicitly activated (for example: `--profiles unlabeled` or `--profiles db --profiles unlabeled`).
 
 ### Secret Templating
 
@@ -298,7 +308,8 @@ x-dargstack:
       template: "postgresql://postgres:{{secret:postgres-password}}@postgres:5432/app"
 ```
 
-`type` controls secret behavior. Supported values: `random_string`, `wordlist_word`, `private_key`, `third_party`, `insecure_default`, `template`. If omitted, the type is inferred from the fields provided:
+`type` controls secret behavior. Supported values: `random_string`, `wordlist_word`, `private_key`, `third_party`, `insecure_default`, `template`.
+If omitted, the type is inferred from the fields provided:
 
 - `private_key` if `key_type` or `key_size` is set
 - `third_party` if `third_party` is set
@@ -308,39 +319,44 @@ x-dargstack:
 
 **`random_string` properties:**
 
-- `length` — Random string length (default: `32`)
-- `special_characters` — Include special characters (default: `true`; set `false` to opt out)
+- `length`: random string length (default: `32`)
+- `special_characters`: include special characters (default: `true`; set `false` to opt out)
 
 **`private_key` properties:**
 
-- `key_type` — Key algorithm: `ed25519` (default), `rsa`, `ecdsa`
-- `key_size` — Key size: RSA default `2048`; ECDSA `256` (P-256), `384` (P-384), `521` (P-521)
+- `key_type`: key algorithm: `ed25519` (default), `rsa`, `ecdsa`
+- `key_size`: key size: RSA default `2048`; ECDSA `256` (P-256), `384` (P-384), `521` (P-521)
 
 **`third_party` properties:**
 
-- `hint` — Human-readable hint for expected value (shown when the secret is unset)
+- `hint`: human-readable hint for expected value (shown when the secret is unset)
 
 **`insecure_default` properties:**
 
-- `insecure_default` — Default value used for the secret
+- `insecure_default`: default value used for the secret
 
 **`template` properties:**
 
-- `template` — Template string, supporting the following tokens:
-  - `{{secret:<name>}}` (or legacy `{{<name>}}`) — Reference another secret
-  - `{{random_string}}`, `{{random_string:<length>}}`, `{{random_string:<length>:<special>}}` — Inline random generation
-  - `{{wordlist_word}}` — Inline word generation
-  - `{{private_key}}` — Inline private key generation
+- `template`: template string, supporting the following tokens:
+  - `{{secret:<name>}}` (or legacy `{{<name>}}`): reference another secret
+  - `{{random_string}}`, `{{random_string:<length>}}`, `{{random_string:<length>:<special>}}`: inline random generation
+  - `{{wordlist_word}}`: inline word generation
+  - `{{private_key}}`: inline private key generation
 
 ### Environment Files
 
-`.env.template` files (tracked in version control) define the keys your stack needs. On first deploy, dargstack copies each `.env.template` to `.env` (gitignored), which holds actual values. During deploy, missing values are prompted. Production blocks on missing values.
+`.env.template` files (tracked in version control) define the keys your stack needs.
+On first deploy, dargstack copies each `.env.template` to `.env` (gitignored), which holds actual values.
+During deploy, missing values are prompted.
+Production blocks on missing values.
 
 ### Platform Overrides
 
-dargstack is linux-first. When running on macOS, some compose configurations are invalid or undesirable: volume mounts referencing Linux-only paths (`/dev/disk/by-id/`, `/dev/kmsg`), `privileged: true` where not needed, or services like `cadvisor` that depend on Linux kernel features.
+dargstack is linux-first.
+When running on macOS, some compose configurations are invalid or undesirable: volume mounts referencing Linux-only paths (`/dev/disk/by-id/`, `/dev/kmsg`), `privileged: true` where not needed, or services like `cadvisor` that depend on Linux kernel features.
 
-Platform overrides live under `x-dargstack.platform.<os>` and use spruce operators to modify the base configuration. Supported platforms: `darwin`, `linux`, `windows`.
+Platform overrides live under `x-dargstack.platform.<os>` and use spruce operators to modify the base configuration.
+Supported platforms: `darwin`, `linux`, `windows`.
 
 ```yaml
 services:
@@ -371,7 +387,8 @@ x-dargstack:
           privileged: false
 ```
 
-Multiple platforms can coexist in one file. The active platform is auto-detected via `runtime.GOOS`, or overridden with `--platform darwin`.
+Multiple platforms can coexist in one file.
+The active platform is auto-detected via `runtime.GOOS`, or overridden with `--platform darwin`.
 
 ## Commands
 

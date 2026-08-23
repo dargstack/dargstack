@@ -43,7 +43,7 @@ volumes:
   monitoring-data:
 `
 
-	// No profile and no "default" profile exists — all services deployed
+	// No profile and no "default" profile exists: all services deployed
 	result, err := FilterByProfile([]byte(composeYAML), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -90,7 +90,7 @@ func TestFilterByProfileDefault(t *testing.T) {
         dargstack.profiles: "default,monitoring"
 `
 
-	// No explicit profile — auto-activates "default"
+	// No explicit profile: auto-activates "default"
 	result, err := FilterByProfile([]byte(composeYAML), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -329,8 +329,7 @@ func TestExtractVolumeName(t *testing.T) {
 		// Windows drive letters should be treated as bind mounts (return "")
 		{`C:\data:/container`, ""},
 		{`C:/data:/container`, ""},
-		// A bare drive letter without a path separator is ambiguous but rare;
-		// treat as bind mount to be safe.
+		// A bare drive letter without a path separator is ambiguous but rare; treat as bind mount to be safe.
 		{"C:/container", ""},
 	}
 
@@ -445,7 +444,8 @@ secrets:
 func TestFilterByProfileKeepsTransitiveSecretDeps(t *testing.T) {
 	// A service references "aws-credentials" directly.
 	// The "aws-credentials" template references "aws-access-key" and "aws-secret-key"
-	// via {{secret:...}}. Those are NOT directly referenced by any service.
+	// via {{secret:...}}.
+	// Those are NOT directly referenced by any service.
 	// They should still be kept in both secrets: and x-dargstack.secrets.
 	composeYAML := `services:
   app:
@@ -570,12 +570,8 @@ func TestFilterServicesByName(t *testing.T) {
 }
 
 func TestFilterServicesRemovesUnusedDargstackConfigs(t *testing.T) {
-	// Regression test: filtering to a service that doesn't use the derived
-	// public_key config (and thus filtering out the service that owns the
-	// private_key secret it's derived from) must also drop the dangling
-	// x-dargstack.configs entry. Otherwise validation later fails because
-	// the config template still references a secret that's no longer in
-	// x-dargstack.secrets, and has no top-level configs: file: entry.
+	// Regression test: filtering to a service that doesn't use the derived public_key config (and thus filtering out the service that owns the private_key secret it's derived from) must also drop the dangling x-dargstack.configs entry.
+	// Otherwise validation later fails because the config template still references a secret that's no longer in x-dargstack.secrets, and has no top-level configs: file: entry.
 	composeYAML := `secrets:
   api-jwt-secret:
     file: ./secrets/api-jwt-secret.secret
@@ -638,12 +634,8 @@ x-dargstack:
 }
 
 func TestFilterServicesKeepsPublicKeySourceSecret(t *testing.T) {
-	// A service can mount only the derived public_key config without ever
-	// mounting the private_key secret it comes from (e.g. reccoom mounts
-	// postgraphile-jwt-public-key but never postgraphile-jwt-secret). When
-	// such a service is retained, the source secret must survive filtering
-	// too, in both the top-level secrets: section and x-dargstack.secrets,
-	// so the config can still be derived.
+	// A service can mount only the derived public_key config without ever mounting the private_key secret it comes from (e.g. reccoom mounts postgraphile-jwt-public-key but never postgraphile-jwt-secret).
+	// When such a service is retained, the source secret must survive filtering too, in both the top-level secrets: section and x-dargstack.secrets, so the config can still be derived.
 	composeYAML := `secrets:
   api-jwt-secret:
     file: ./secrets/api-jwt-secret.secret

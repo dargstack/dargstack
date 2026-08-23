@@ -9,15 +9,13 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// DevOnlyMarker is the trailing comment directive that marks a line as
-// development-only. Lines containing this marker are removed entirely during
-// production merge, ensuring no dev-only content reaches the deployed stack.
+// DevOnlyMarker is the trailing comment directive that marks a line as development-only.
+// Lines containing this marker are removed entirely during production merge, ensuring no dev-only content reaches the deployed stack.
 const DevOnlyMarker = "# dargstack:dev-only"
 
 // StripDevOnlyMarkers removes lines annotated with # dargstack:dev-only comments.
-// This processes the raw YAML text before parsing. Entire lines containing the
-// marker are dropped, including the marker itself, so that development-only
-// configuration never reaches the production merge.
+// This processes the raw YAML text before parsing.
+// Entire lines containing the marker are dropped, including the marker itself, so that development-only configuration never reaches the production merge.
 func StripDevOnlyMarkers(data []byte) []byte {
 	var result []string
 	scanner := bufio.NewScanner(strings.NewReader(string(data)))
@@ -37,8 +35,8 @@ func StripDevOnlyMarkers(data []byte) []byte {
 }
 
 // StripProductionDevelopmentLabels strips `dargstack.development.*` labels from deploy.labels.
-// This is used for production deployments where development-only metadata should
-// not reach the deployed stack. Other labels (e.g. dargstack.profiles) are preserved.
+// This is used for production deployments where development-only metadata should not reach the deployed stack.
+// Other labels (e.g. dargstack.profiles) are preserved.
 func StripProductionDevelopmentLabels(data []byte) ([]byte, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(data, &doc); err != nil {
@@ -87,8 +85,7 @@ func StripProductionDevelopmentLabels(data []byte) ([]byte, error) {
 	return yaml.Marshal(doc)
 }
 
-// RewriteProductionBindMounts rewrites bind-mount host paths from development
-// sources to mirrored production sources when the production path exists.
+// RewriteProductionBindMounts rewrites bind-mount host paths from development sources to mirrored production sources when the production path exists.
 //
 // Rules:
 // - Named/pure Docker volumes are unchanged.
@@ -159,10 +156,8 @@ func RewriteProductionBindMounts(data []byte, devRoot, prodRoot string) ([]byte,
 	return yaml.Marshal(doc)
 }
 
-// RewriteProductionSecrets converts all secrets that have a file: key to
-// external: true, removing the file: key. This is used for production
-// deployments where Docker Swarm manages secrets externally and local
-// file paths are meaningless.
+// RewriteProductionSecrets converts all secrets that have a file: key to external: true, removing the file: key.
+// This is used for production deployments where Docker Swarm manages secrets externally and local file paths are meaningless.
 func RewriteProductionSecrets(data []byte) ([]byte, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(data, &doc); err != nil {

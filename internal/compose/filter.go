@@ -13,10 +13,9 @@ import (
 var templateTokenRegex = regexp.MustCompile(`\{\{([^}]+)\}\}`)
 
 // FilterByProfile filters a compose document using dargstack profile semantics.
-// When activeProfiles is nil (no --profiles flag): if any service declares a "default"
-// profile, only "default" services are deployed. Otherwise all services
-// are deployed. When a "default" profile exists, unlabeled services are only
-// included if profile "unlabeled" is explicitly active.
+// When activeProfiles is nil (no --profiles flag): if any service declares a "default" profile, only "default" services are deployed.
+// Otherwise all services are deployed.
+// When a "default" profile exists, unlabeled services are only included if profile "unlabeled" is explicitly active.
 func FilterByProfile(composeData []byte, activeProfiles []string) ([]byte, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
@@ -98,8 +97,7 @@ func FilterByProfile(composeData []byte, activeProfiles []string) ([]byte, error
 	return result, nil
 }
 
-// FilterServices filters a compose document to include only the specified services
-// and their referenced top-level resources (secrets, volumes, networks, configs).
+// FilterServices filters a compose document to include only the specified services and their referenced top-level resources (secrets, volumes, networks, configs).
 func FilterServices(composeData []byte, services []string) ([]byte, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
@@ -242,42 +240,28 @@ func cleanupResources(doc, filteredServices map[string]interface{}) {
 		collectVolumeRefs(svcMap, usedVolumes)
 	}
 
-	// A derived public_key config (x-dargstack.configs) implicitly depends on
-	// its source private_key secret, even when no retained service mounts
-	// that secret directly (e.g. a service may mount only the derived
-	// public key, never the private key it was derived from). Expand
-	// usedSecrets accordingly before the secret filtering passes below.
+	// A derived public_key config (x-dargstack.configs) implicitly depends on its source private_key secret, even when no retained service mounts that secret directly (e.g. a service may mount only the derived public key, never the private key it was derived from).
+	// Expand usedSecrets accordingly before the secret filtering passes below.
 	resolveConfigSecretDeps(doc, usedConfigs, usedSecrets)
 
 	filterTopLevel(doc, "configs", usedConfigs)
 	filterTopLevel(doc, "networks", usedNetworks)
 
 	// Resolve transitive template dependencies before filtering secrets.
-	// This ensures secrets referenced via {{secret:name}} in a kept secret's
-	// template are also kept in both the top-level secrets: and x-dargstack.secrets.
+	// This ensures secrets referenced via {{secret:name}} in a kept secret's template are also kept in both the top-level secrets: and x-dargstack.secrets.
 	resolveTransitiveSecretDeps(doc, usedSecrets)
 
 	filterTopLevel(doc, "secrets", usedSecrets)
 	filterTopLevel(doc, "volumes", usedVolumes)
 
-	// Also filter x-dargstack.secrets to only the keys in usedSecrets so that
-	// secret template metadata for out-of-profile services is not visible to
-	// the secret setup flow.
+	// Also filter x-dargstack.secrets to only the keys in usedSecrets so that secret template metadata for out-of-profile services is not visible to the secret setup flow.
 	filterDargstackSecrets(doc, usedSecrets)
 
-	// Also filter x-dargstack.configs to only the keys in usedConfigs so that
-	// derived-config metadata for out-of-profile services doesn't dangle:
-	// without this, a config removed from the top-level configs: section
-	// (because no retained service uses it) stays in x-dargstack.configs and
-	// fails validation as a config with no top-level entry, or as a public_key
-	// whose source secret was just filtered out of x-dargstack.secrets above.
+	// Also filter x-dargstack.configs to only the keys in usedConfigs so that derived-config metadata for out-of-profile services doesn't dangle: without this, a config removed from the top-level configs: section (because no retained service uses it) stays in x-dargstack.configs and fails validation as a config with no top-level entry, or as a public_key whose source secret was just filtered out of x-dargstack.secrets above.
 	filterDargstackConfigs(doc, usedConfigs)
 }
 
-// resolveConfigSecretDeps adds the source secret of each used public_key
-// config (from x-dargstack.configs) to usedSecrets, so the private_key
-// secret it's derived from survives filtering even when no retained service
-// mounts that secret directly.
+// resolveConfigSecretDeps adds the source secret of each used public_key config (from x-dargstack.configs) to usedSecrets, so the private_key secret it's derived from survives filtering even when no retained service mounts that secret directly.
 func resolveConfigSecretDeps(doc map[string]interface{}, usedConfigs, usedSecrets map[string]bool) {
 	configsMap, ok := dargstackSection(doc, "configs")
 	if !ok {
@@ -295,8 +279,7 @@ func resolveConfigSecretDeps(doc map[string]interface{}, usedConfigs, usedSecret
 	}
 }
 
-// filterDargstackConfigs removes x-dargstack.configs entries whose names are
-// not present in usedConfigs, mirroring filterDargstackSecrets.
+// filterDargstackConfigs removes x-dargstack.configs entries whose names are not present in usedConfigs, mirroring filterDargstackSecrets.
 func filterDargstackConfigs(doc map[string]interface{}, usedConfigs map[string]bool) {
 	configsMap, ok := dargstackSection(doc, "configs")
 	if !ok {
@@ -329,8 +312,7 @@ func dargstackSection(doc map[string]interface{}, key string) (map[string]interf
 	return sectionMap, ok
 }
 
-// resolveTransitiveSecretDeps expands usedSecrets to include secrets transitively
-// referenced via {{secret:name}} in x-dargstack.secrets templates.
+// resolveTransitiveSecretDeps expands usedSecrets to include secrets transitively referenced via {{secret:name}} in x-dargstack.secrets templates.
 func resolveTransitiveSecretDeps(doc map[string]interface{}, usedSecrets map[string]bool) {
 	secretsMap, ok := dargstackSection(doc, "secrets")
 	if !ok {
@@ -339,9 +321,8 @@ func resolveTransitiveSecretDeps(doc map[string]interface{}, usedSecrets map[str
 	expandUsedSecrets(secretsMap, usedSecrets)
 }
 
-// filterDargstackSecrets removes x-dargstack.secrets entries whose names are
-// not present in usedSecrets. usedSecrets should already be expanded with
-// transitive template dependencies via resolveTransitiveSecretDeps.
+// filterDargstackSecrets removes x-dargstack.secrets entries whose names are not present in usedSecrets.
+// usedSecrets should already be expanded with transitive template dependencies via resolveTransitiveSecretDeps.
 func filterDargstackSecrets(doc map[string]interface{}, usedSecrets map[string]bool) {
 	secretsMap, ok := dargstackSection(doc, "secrets")
 	if !ok {
@@ -355,8 +336,7 @@ func filterDargstackSecrets(doc map[string]interface{}, usedSecrets map[string]b
 	}
 }
 
-// expandUsedSecrets transitively adds secrets referenced via {{secret:name}}
-// in templates of already-used secrets to the usedSecrets set.
+// expandUsedSecrets transitively adds secrets referenced via {{secret:name}} in templates of already-used secrets to the usedSecrets set.
 func expandUsedSecrets(secretsMap map[string]interface{}, usedSecrets map[string]bool) {
 	changed := true
 	for changed {
@@ -379,9 +359,8 @@ func expandUsedSecrets(secretsMap map[string]interface{}, usedSecrets map[string
 	}
 }
 
-// extractDargstackSecretRefs extracts secret names referenced via {{secret:name}}
-// or {{name}} from a secret definition's template field. It mirrors the
-// templateDependency logic in the secret package.
+// extractDargstackSecretRefs extracts secret names referenced via {{secret:name}} or {{name}} from a secret definition's template field.
+// It mirrors the templateDependency logic in the secret package.
 func extractDargstackSecretRefs(def map[string]interface{}) []string {
 	var tmpl string
 	switch v := def["template"].(type) {
@@ -474,8 +453,7 @@ func collectVolumeRefs(svc map[string]interface{}, used map[string]bool) {
 }
 
 // extractVolumeName extracts a named volume from short volume syntax.
-// Returns empty string for bind mounts (paths starting with / or .) and for
-// Windows absolute paths (e.g. C:\path:/container or C:/path:/container).
+// Returns empty string for bind mounts (paths starting with / or .) and for Windows absolute paths (e.g. C:\path:/container or C:/path:/container).
 func extractVolumeName(vol string) string {
 	// Find the first colon
 	for i, c := range vol {
@@ -485,8 +463,7 @@ func extractVolumeName(vol string) string {
 			if name == "" || name[0] == '/' || name[0] == '.' {
 				return ""
 			}
-			// Windows drive letter: single alpha char before the colon, followed
-			// by a path separator — treat the whole thing as a bind mount.
+			// Windows drive letter: single alpha char before the colon, followed by a path separator: treat the whole thing as a bind mount.
 			if len(name) == 1 {
 				ch := name[0]
 				if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') {

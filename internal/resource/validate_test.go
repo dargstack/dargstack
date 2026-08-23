@@ -149,7 +149,7 @@ func TestGenerateDocumentation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Dev service: postgres (no comment) — also defines a "redis" service
+	// Dev service: postgres (no comment), also defines a "redis" service
 	pgDir := filepath.Join(devDir, "postgres")
 	if err := os.MkdirAll(pgDir, 0o755); err != nil {
 		t.Fatal(err)

@@ -31,8 +31,7 @@ func ensureSwarm(executor *docker.Executor) error {
 	return nil
 }
 
-// isStackRunning checks if the stack has running services, using the SDK client
-// when available or falling back to the executor.
+// isStackRunning checks if the stack has running services, using the SDK client when available or falling back to the executor.
 func isStackRunning(ctx context.Context, client *docker.Client, executor *docker.Executor) bool {
 	if client != nil {
 		running, err := client.IsStackRunning(ctx, cfg.Metadata.Name)

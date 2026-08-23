@@ -17,7 +17,7 @@ This guide helps you migrate an existing dargstack v3 (Bash) project to v4 (Go).
 
 ---
 
-## Step 1 — Install dargstack v4
+## Step 1: Install dargstack v4
 
 **Recommended** (binary download with checksum verification):
 
@@ -47,9 +47,8 @@ sudo rm ~/scripts/dargstack
 
 ### Pinning a version for CI
 
-The `releases/latest` URL above is suitable for local development where you want
-the newest release automatically. For CI pipelines, pin to a specific version so
-that documentation generation and validation output are reproducible:
+The `releases/latest` URL above is suitable for local development where you want the newest release automatically.
+For CI pipelines, pin to a specific version so that documentation generation and validation output are reproducible:
 
 ```bash
 VERSION="$(sed -n 's#^FROM ghcr\.io/dargstack/dargstack:##p' Dockerfile.md)"
@@ -61,10 +60,9 @@ tar xzf "$ARCHIVE" && rm "$ARCHIVE"
 mv dargstack /usr/local/bin/
 ```
 
-The version is read from a `Dockerfile.md` file at the repository root. The `.md`
-extension is intentional: Renovate's docker-manager matches files named
-`Dockerfile*`, so it will detect and offer pull requests for version bumps. The
-file only needs a single `FROM` line:
+The version is read from a `Dockerfile.md` file at the repository root.
+The `.md` extension is intentional: Renovate's docker-manager matches files named `Dockerfile*`, so it will detect and offer pull requests for version bumps.
+The file only needs a single `FROM` line:
 
 ```dockerfile
 FROM ghcr.io/dargstack/dargstack:4.0.0
@@ -72,7 +70,7 @@ FROM ghcr.io/dargstack/dargstack:4.0.0
 
 ---
 
-## Step 2 — Migrate the config file
+## Step 2: Migrate the config file
 
 v3 used a flat `dargstack.env`:
 
@@ -98,12 +96,11 @@ runtime:
   sudo: auto # optional; "auto" | "always" | "never"
 ```
 
-Create `dargstack.yaml` at the root of your stack directory (same level as
-`src/`) and remove `dargstack.env`.
+Create `dargstack.yaml` at the root of your stack directory (same level as `src/`) and remove `dargstack.env`.
 
 ---
 
-## Step 3 — Split the monolithic stack.yml into per-service files
+## Step 3: Split the monolithic stack.yml into per-service files
 
 ### v3 structure
 
@@ -138,11 +135,10 @@ dargstack.yaml         ← structured config
 
 ### How to split
 
-For each service defined in `src/development/stack.yml`, create a dedicated
-directory and compose file. Move only that service's keys (`services:`,
-`secrets:`, `volumes:`, `networks:`, `configs:`) into it.
+For each service defined in `src/development/stack.yml`, create a dedicated directory and compose file.
+Move only that service's keys (`services:`, `secrets:`, `volumes:`, `networks:`, `configs:`) into it.
 
-**Before (v3) — `src/development/stack.yml`** (excerpt):
+**Before (v3): `src/development/stack.yml`** (excerpt):
 
 ```yaml
 services:
@@ -166,7 +162,7 @@ secrets:
     file: ./secrets/postgres/postgres-password.secret
 ```
 
-**After (v4) — `src/development/api/compose.yaml`**:
+**After (v4): `src/development/api/compose.yaml`**:
 
 ```yaml
 services:
@@ -188,7 +184,7 @@ x-dargstack:
       length: 32
 ```
 
-**After (v4) — `src/development/postgres/compose.yaml`**:
+**After (v4): `src/development/postgres/compose.yaml`**:
 
 ```yaml
 services:
@@ -209,30 +205,16 @@ x-dargstack:
       type: random_string
 ```
 
-> **Note:** The `file:` path in each service's compose is relative to that
-> service's directory. v4 rewrites these to point to `artifacts/secrets/`
-> automatically before calling `docker stack deploy`.
+> **Note:** The `file:` path in each service's compose is relative to that service's directory.
+> v4 rewrites these to point to `artifacts/secrets/` automatically before calling `docker stack deploy`.
 
 ### Production overrides
 
 v3 had a `production.yml` spruce overlay and a `production.sed` sed-patch file.
-Drop both. Instead, write only the differences in
-`src/production/<service>/compose.yaml`:
+Drop both.
+Instead, write only the differences in `src/production/<service>/compose.yaml`:
 
-**Before (v3) — `src/production/production.yml`** (excerpt):
-
-```yaml
-services:
-  api:
-    image: ghcr.io/myorg/api:v1.0.0
-    deploy:
-      replicas: 3
-      update_config:
-        parallelism: 1
-        order: start-first
-```
-
-**After (v4) — `src/production/api/compose.yaml`**:
+**Before (v3): `src/production/production.yml`** (excerpt):
 
 ```yaml
 services:
@@ -245,20 +227,30 @@ services:
         order: start-first
 ```
 
-You no longer need `production.sed`. The `#DARGSTACK-REMOVE` sed trick is
-replaced by the `# dargstack:dev-only` label convention. Any deploy label
-ending in `# dargstack:dev-only` is stripped before production deployment.
+**After (v4): `src/production/api/compose.yaml`**:
+
+```yaml
+services:
+  api:
+    image: ghcr.io/myorg/api:v1.0.0
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        order: start-first
+```
+
+You no longer need `production.sed`.
+The `#DARGSTACK-REMOVE` sed trick is replaced by the `# dargstack:dev-only` label convention.
+Any deploy label ending in `# dargstack:dev-only` is stripped before production deployment.
 
 ### Volumes in production overrides
 
-Spruce replaces lists by default. When a service uses a named volume in both
-development and production, the top-level `volumes:` definition belongs in the
-base (development) layer, and the production overlay only replaces the service's
-mount list.
+Spruce replaces lists by default.
+When a service uses a named volume in both development and production, the top-level `volumes:` definition belongs in the base (development) layer, and the production overlay only replaces the service's mount list.
 
-**Common mistake:** putting the top-level `volumes:` block in the production
-overlay. This replaces the entire top-level `volumes:` section, losing volume
-definitions from other services.
+**Common mistake:** putting the top-level `volumes:` block in the production overlay.
+This replaces the entire top-level `volumes:` section, losing volume definitions from other services.
 
 **Correct pattern:**
 
@@ -286,60 +278,50 @@ services:
       - ./backups:/backups
 ```
 
-The production overlay replaces only `postgres.volumes`. The top-level
-`volumes:` section from the base layer is preserved because spruce deep-merges
-maps. The same rule applies to `secrets:` and `configs:`. Define them in the
-base layer even if only production uses them in their final form.
+The production overlay replaces only `postgres.volumes`.
+The top-level `volumes:` section from the base layer is preserved because spruce deep-merges maps.
+The same rule applies to `secrets:` and `configs:`.
+Define them in the base layer even if only production uses them in their final form.
 
 ### Environment files
 
-v3 concatenated `src/development/stack.env` and `src/production/production.env`
-into `src/production/stack.env` during `derive`. v4 uses `.env.template` files
-(tracked in version control) per environment, with corresponding `.env` files
-(gitignored) holding actual values:
+v3 concatenated `src/development/stack.env` and `src/production/production.env` into `src/production/stack.env` during `derive`.
+v4 uses `.env.template` files (tracked in version control) per environment, with corresponding `.env` files (gitignored) holding actual values:
 
-- `src/development/.env.template` — development variable keys (tracked)
-- `src/development/.env` — development values (gitignored, auto-created from template)
-- `src/production/.env.template` — production override keys (tracked)
-- `src/production/.env` — production values (gitignored, auto-created from template)
+- `src/development/.env.template`: development variable keys (tracked)
+- `src/development/.env`: development values (gitignored, auto-created from template)
+- `src/production/.env.template`: production override keys (tracked)
+- `src/production/.env`: production values (gitignored, auto-created from template)
 
-Rename `src/development/stack.env` to `src/development/.env.template` and
-`src/production/production.env` to `src/production/.env.template`. Add `.env` to
-`src/development/.gitignore` and `src/production/.gitignore`.
+Rename `src/development/stack.env` to `src/development/.env.template` and `src/production/production.env` to `src/production/.env.template`.
+Add `.env` to `src/development/.gitignore` and `src/production/.gitignore`.
 
 ---
 
-## Step 4 — Migrate secrets
+## Step 4: Migrate secrets
 
 ### v3 approach
 
-v3 stored secrets as static files with a `.secret.template` extension in
-`src/<env>/secrets/**/*.secret.template`. The deploy script checked whether the
-corresponding `.secret` file existed and whether it still contained the
-`UNSET THIRD PARTY SECRET` placeholder.
+v3 stored secrets as static files with a `.secret.template` extension in `src/<env>/secrets/**/*.secret.template`.
+The deploy script checked whether the corresponding `.secret` file existed and whether it still contained the `UNSET THIRD PARTY SECRET` placeholder.
 
-Secret files were typically committed to the repository or managed manually
-outside git.
+Secret files were typically committed to the repository or managed manually outside git.
 
 ### v4 approach
 
-v4 declares secret generation rules in `x-dargstack.secrets` inside each
-service's compose file. Generated values are written to `artifacts/secrets/`
-(gitignored). Nothing is committed.
+v4 declares secret generation rules in `x-dargstack.secrets` inside each service's compose file.
+Generated values are written to `artifacts/secrets/` (gitignored).
+Nothing is committed.
 
 **Migration:**
 
-1. For each secret that was randomly generated (passwords, keys), add an
-   `x-dargstack.secrets` entry with `type: random_string` or `type: private_key`.
-   Delete the static secret file — v4 will generate a fresh value.
+1. For each secret that was randomly generated (passwords, keys), add an `x-dargstack.secrets` entry with `type: random_string` or `type: private_key`.
+   Delete the static secret file: v4 will generate a fresh value.
 
-2. For each secret that required manual input (third-party tokens, API keys), add
-   `type: third_party` and an optional `hint:`. Set the value in
-   `artifacts/secrets/<name>` after the first deploy attempt, or provide it when
-   prompted.
+2. For each secret that required manual input (third-party tokens, API keys), add `type: third_party` and an optional `hint:`.
+   Set the value in `artifacts/secrets/<name>` after the first deploy attempt, or provide it when prompted.
 
-3. For composite secrets built from other secrets (e.g. connection URLs), use
-   `type: template`:
+3. For composite secrets built from other secrets (e.g. connection URLs), use `type: template`:
 
    ```yaml
    x-dargstack:
@@ -351,11 +333,9 @@ service's compose file. Generated values are written to `artifacts/secrets/`
 
 4. For secrets that need a human-readable word, use `type: wordlist_word`.
 
-5. For development-only secrets with a hardcoded default, use
-   `type: insecure_default`.
+5. For development-only secrets with a hardcoded default, use `type: insecure_default`.
 
-6. Delete `src/development/secrets/` and `src/production/secrets/`, those
-   directories are no longer used.
+6. Delete `src/development/secrets/` and `src/production/secrets/`, those directories are no longer used.
 
 ### Renaming existing production secrets
 
@@ -369,15 +349,14 @@ It only creates new secrets, it never deletes or modifies the old ones, so remov
 
 ---
 
-## Step 5 — Remove the `derive` step
+## Step 5: Remove the `derive` step
 
-If your CI/CD pipeline or deployment scripts ran `dargstack derive` before
-`dargstack deploy --production`, remove that step. v4 performs the merge
-automatically during deploy.
+If your CI/CD pipeline or deployment scripts ran `dargstack derive` before `dargstack deploy --production`, remove that step.
+v4 performs the merge automatically during deploy.
 
 ---
 
-## Step 6 — Verify
+## Step 6: Verify
 
 Run validation against your migrated stack:
 
@@ -386,8 +365,7 @@ dargstack validate
 dargstack validate --production
 ```
 
-Then do a dry-run deploy to see the merged compose output without touching the
-daemon:
+Then do a dry-run deploy to see the merged compose output without touching the daemon:
 
 ```bash
 dargstack deploy --dry-run
@@ -408,7 +386,7 @@ dargstack deploy
 | ----------------------- | ------------------------------------- |
 | `dargstack build`       | `dargstack build`                     |
 | `dargstack deploy`      | `dargstack deploy`                    |
-| `dargstack derive`      | _(removed — automatic during deploy)_ |
+| `dargstack derive`      | _(removed: automatic during deploy)_  |
 | `dargstack redeploy`    | `dargstack deploy --force`            |
 | `dargstack rgen`        | `dargstack document`                  |
 | `dargstack rm`          | `dargstack remove`                    |
@@ -426,6 +404,5 @@ dargstack deploy
 
 ## Getting help
 
-- [README](README.md) — project structure, configuration, and all commands
-- [GitHub Issues](https://github.com/dargstack/dargstack/issues) — bug reports
-  and questions
+- [README](README.md): project structure, configuration, and all commands
+- [GitHub Issues](https://github.com/dargstack/dargstack/issues): bug reports and questions

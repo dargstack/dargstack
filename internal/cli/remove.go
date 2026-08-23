@@ -44,8 +44,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// When sudo is needed the Docker SDK cannot reach the socket,
-	// so use the CLI executor for all checks.
+	// When sudo is needed the Docker SDK cannot reach the socket, so use the CLI executor for all checks.
 	var dockerClient *docker.Client
 	if !executor.NeedsSudo() {
 		dockerClient, err = docker.NewClient()

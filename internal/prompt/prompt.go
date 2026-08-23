@@ -4,14 +4,13 @@ import (
 	"charm.land/huh/v2"
 )
 
-// NonInteractive disables all prompts when set to true. Calls to Confirm, Select,
-// MultiSelect, Input, and Password return their default values immediately.
+// NonInteractive disables all prompts when set to true.
+// Calls to Confirm, Select, MultiSelect, Input, and Password return their default values immediately.
 var NonInteractive bool
 
-// Confirm asks a yes/no question. Returns the default value when NonInteractive
-// is true or when the prompt cannot be completed (e.g., non-TTY terminal,
-// user abort). Never returns an error for prompt failures — callers can treat
-// the return value as the definitive answer.
+// Confirm asks a yes/no question.
+// Returns the default value when NonInteractive is true or when the prompt cannot be completed (e.g., non-TTY terminal, user abort).
+// Never returns an error for prompt failures: callers can treat the return value as the definitive answer.
 func Confirm(title string, defaultVal bool) (bool, error) {
 	if NonInteractive {
 		return defaultVal, nil
@@ -24,8 +23,7 @@ func Confirm(title string, defaultVal bool) (bool, error) {
 		Negative("No").
 		Run()
 	if err != nil {
-		// Degrade gracefully: non-TTY, user abort, or terminal error all
-		// fall back to the default rather than surfacing a prompt error.
+		// Degrade gracefully: non-TTY, user abort, or terminal error all fall back to the default rather than surfacing a prompt error.
 		return defaultVal, nil
 	}
 	return result, nil

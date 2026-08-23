@@ -126,7 +126,7 @@ func cloneProject(url, target string) error {
 	}
 
 	logger.L.Info(fmt.Sprintf("Cloning %s into %s ...", url, displayTarget))
-	gitCmd := exec.Command("git", "clone", "--quiet", url, target) // #nosec G204 — URL is user-supplied intentionally
+	gitCmd := exec.Command("git", "clone", "--quiet", url, target) // #nosec G204: URL is user-supplied intentionally
 	gitCmd.Stdout = os.Stdout
 	gitCmd.Stderr = os.Stderr
 	gitCmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
@@ -351,7 +351,7 @@ dargstack deploy
 ` + "```" + `
 
 The ` + "`hello`" + ` service is built automatically from ` + "`hello/`" + ` and served on port 8080.
-Replace it with your own services — clone source repositories next to ` + "`stack/`" + ` and
+Replace it with your own services: clone source repositories next to ` + "`stack/`" + ` and
 add service directories in ` + "`stack/src/development/`" + ` and ` + "`stack/src/production/`" + `.
 `
 
@@ -427,7 +427,7 @@ services:
         target: /etc/hello/config.yaml
     deploy:
       labels:
-        # Build context relative to stack/src/development/hello/ — points to <project>/hello/
+        # Build context relative to stack/src/development/hello/: points to <project>/hello/
         dargstack.development.build: "../../../../hello"
         # Alternatively, clone from a git repo (clones to sibling of stack directory):
         # dargstack.development.git.ssh: "git@github.com:yourorg/hello.git"
@@ -457,8 +457,8 @@ greeting: Hello from dargstack!
 //   - (( append )) to extend a list without replacing it
 const initHelloProdCompose = `# Production overrides for the hello service.
 # Spruce operators used here:
-#   (( prune ))  — remove this key from the merged result
-#   (( append )) — append to the list instead of replacing it
+#   (( prune ))  : remove this key from the merged result
+#   (( append )) : append to the list instead of replacing it
 # All other keys simply overwrite the development value.
 
 configs:

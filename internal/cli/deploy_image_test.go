@@ -502,7 +502,7 @@ func TestCheckoutDeployTagSkipsCheckoutWhenOffline(t *testing.T) {
 	setupGitRepo(t, dir)
 	runGit(t, dir, "tag", "v1.0.0")
 
-	// Dirty the tree — should NOT error when offline
+	// Dirty the tree: should NOT error when offline
 	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("changed"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -1245,8 +1245,7 @@ func TestResolveDeployTagNonSemverTagBypassesGuard(t *testing.T) {
 		stackDir = origStackDir
 	}()
 
-	// "latest" isn't semver — the guard can't compute a major for it, so it
-	// should deploy as given, with no --major required.
+	// "latest" isn't semver: the guard can't compute a major for it, so it should deploy as given, with no --major required.
 	deployTag = "latest"
 	deployMajor = false
 	offline = true

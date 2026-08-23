@@ -60,8 +60,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		return wrapWithBugHint(err)
 	}
 
-	// Extract TLS domains from all services before profile filtering, so
-	// certificates cover every domain regardless of which profile is active.
+	// Extract TLS domains from all services before profile filtering, so certificates cover every domain regardless of which profile is active.
 	allDomains := tls.FilterDomains(tls.ExtractDomains(composeData, cfg.Environment.Development.Domain), cfg.Environment.Development.Certificate.Include, cfg.Environment.Development.Certificate.Exclude)
 
 	composeVars := applyEnvToProcess(isProduction())
@@ -81,8 +80,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		return err
 	}
 
-	// Filter for all subsequent operations so TLS, git cloning, repo
-	// fetching, and auto-builds only operate on services that will be deployed.
+	// Filter for all subsequent operations so TLS, git cloning, repo fetching, and auto-builds only operate on services that will be deployed.
 	composeData, filterMsg, filterErr := applyProfileFilter(composeData)
 	if filterErr != nil {
 		return fmt.Errorf("filter compose by profile: %w", filterErr)
@@ -103,8 +101,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
-	// Validate resources after preparation so generated certs and cloned
-	// repos are visible to the validator.
+	// Validate resources after preparation so generated certs and cloned repos are visible to the validator.
 	if err := deployValidateResources(composeData, secretIssues, dryRun); err != nil {
 		return err
 	}
@@ -136,7 +133,7 @@ func deploySetupSecrets(composeData []byte, dryRun bool) ([]resource.Issue, erro
 				case tmpl.Type == secret.TypeThirdParty || tmpl.ThirdParty:
 					msg := fmt.Sprintf("  %s: third-party (provide manually)", name)
 					if tmpl.Hint != "" {
-						msg += fmt.Sprintf(" — %s", tmpl.Hint)
+						msg += fmt.Sprintf(": %s", tmpl.Hint)
 					}
 					logger.L.Info(msg)
 				case tmpl.Type == secret.TypeTemplate || tmpl.Template != "":
@@ -176,8 +173,8 @@ func deploySetupSecrets(composeData []byte, dryRun bool) ([]resource.Issue, erro
 	return append(secretIssues, configIssues...), nil
 }
 
-// deployValidateResources runs resource validation and combines results with
-// any pre-existing secret issues. Returns an error if validation fails.
+// deployValidateResources runs resource validation and combines results with any pre-existing secret issues.
+// Returns an error if validation fails.
 func deployValidateResources(composeData []byte, secretIssues []resource.Issue, dryRun bool) error {
 	if dryRun {
 		logger.L.Info("[dry-run] Would validate stack resources")
@@ -197,8 +194,7 @@ func deployValidateResources(composeData []byte, secretIssues []resource.Issue, 
 	return nil
 }
 
-// deployPrepareDevelopment handles TLS certs, git clones, repo fetches,
-// auto-builds, and volume cleanup for development deployments.
+// deployPrepareDevelopment handles TLS certs, git clones, repo fetches, auto-builds, and volume cleanup for development deployments.
 func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, executor *docker.Executor, composeData []byte, domains []string, dryRun bool) ([]byte, error) {
 	// TLS certificates
 	if dryRun {
@@ -312,17 +308,15 @@ func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun
 			for _, img := range unreachableImages {
 				logger.L.Error(fmt.Sprintf("image not accessible: %s: %v", img, unreachable[img]))
 			}
-			return nil, fmt.Errorf("one or more images are not accessible — fix registry credentials or image references before deploying")
+			return nil, fmt.Errorf("one or more images are not accessible: fix registry credentials or image references before deploying")
 		}
 	}
 
 	return composeData, nil
 }
 
-// deployExecute prints deploy messaging, saves the audit snapshot, and
-// runs docker stack deploy. tag is the production deploy tag already
-// resolved (and checked out) by the caller; it is "unknown" on dry runs and
-// in development, where no checkout happens.
+// deployExecute prints deploy messaging, saves the audit snapshot, and runs docker stack deploy.
+// tag is the production deploy tag already resolved (and checked out) by the caller; it is "unknown" on dry runs and in development, where no checkout happens.
 func deployExecute(executor *docker.Executor, composeData []byte, env, tag string, dryRun bool) error {
 	if isProduction() {
 		if cfg.Environment.Production.Domain == "app.localhost" {
@@ -330,7 +324,7 @@ func deployExecute(executor *docker.Executor, composeData []byte, env, tag strin
 			if dryRun {
 				prefix = "[dry-run] "
 			}
-			logger.L.Warn(prefix + "STACK_DOMAIN is still set to default \"app.localhost\" — set domain in dargstack.yaml for production")
+			logger.L.Warn(prefix + "STACK_DOMAIN is still set to default \"app.localhost\": set domain in dargstack.yaml for production")
 		}
 		if dryRun {
 			logger.L.Info(fmt.Sprintf("[dry-run] Would deploy production stack %q (tag: %s)", cfg.Metadata.Name, tag))
@@ -392,8 +386,7 @@ func deployPostDeploy(ctx context.Context, dockerClient *docker.Client, executor
 	}
 }
 
-// extractBuildServices returns the sorted list of service names that have a
-// dargstack.development.build label, meaning they would be auto-built.
+// extractBuildServices returns the sorted list of service names that have a dargstack.development.build label, meaning they would be auto-built.
 func extractBuildServices(composeData []byte) []string {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
@@ -419,8 +412,7 @@ func extractBuildServices(composeData []byte) []string {
 	return names
 }
 
-// extractGitServices returns the sorted list of service names that have a
-// dargstack.development.git.ssh or dargstack.development.git.https label, meaning their repos would be cloned.
+// extractGitServices returns the sorted list of service names that have a dargstack.development.git.ssh or dargstack.development.git.https label, meaning their repos would be cloned.
 func extractGitServices(composeData []byte) []string {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
@@ -459,8 +451,8 @@ func countComposeServices(composeData []byte) int {
 	return len(svcMap)
 }
 
-// injectBuildContext adds a dargstack.development.build label to the specified
-// service if one does not already exist. Returns the re-marshaled compose YAML.
+// injectBuildContext adds a dargstack.development.build label to the specified service if one does not already exist.
+// Returns the re-marshaled compose YAML.
 func injectBuildContext(composeData []byte, serviceName, buildPath string) ([]byte, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
@@ -505,9 +497,8 @@ func injectBuildContext(composeData []byte, serviceName, buildPath string) ([]by
 	return yaml.Marshal(doc)
 }
 
-// cloneGitRepos clones git repositories for services with a
-// dargstack.development.git.ssh or dargstack.development.git.https label. It returns mutated compose data with
-// .build labels injected where .git.ssh/.git.https is set but .build is not.
+// cloneGitRepos clones git repositories for services with a dargstack.development.git.ssh or dargstack.development.git.https label.
+// It returns mutated compose data with .build labels injected where .git.ssh/.git.https is set but .build is not.
 func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {

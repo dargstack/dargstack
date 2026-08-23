@@ -94,11 +94,11 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		for _, name := range toBuild {
 			svcDef, ok := svcMap[name].(map[string]interface{})
 			if !ok {
-				return fmt.Errorf("service %q not found in compose — have you cloned its repository?", name)
+				return fmt.Errorf("service %q not found in compose: have you cloned its repository?", name)
 			}
 			contextPath := resolveBuildContext(svcDef, stackDir)
 			if contextPath == "" {
-				return fmt.Errorf("service %q has no dargstack.development.build or dargstack.development.git.ssh/https label — it uses a pre-built image", name)
+				return fmt.Errorf("service %q has no dargstack.development.build or dargstack.development.git.ssh/https label: it uses a pre-built image", name)
 			}
 			if !filepath.IsAbs(contextPath) {
 				// Context is relative to the service directory.
@@ -106,7 +106,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 				contextPath = filepath.Join(svcDir, contextPath)
 			}
 			if _, statErr := os.Stat(contextPath); os.IsNotExist(statErr) {
-				return fmt.Errorf("build context for %q not found at %s — have you cloned its repository?", name, contextPath)
+				return fmt.Errorf("build context for %q not found at %s: have you cloned its repository?", name, contextPath)
 			}
 		}
 	}
@@ -235,9 +235,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// selectBuildableServices discovers services with a `dargstack.development.build` or
-// `dargstack.development.git.ssh`/`dargstack.development.git.https` label, classifies them as available (context exists)
-// or unavailable, and prompts the user.
+// selectBuildableServices discovers services with a `dargstack.development.build` or `dargstack.development.git.ssh`/`dargstack.development.git.https` label, classifies them as available (context exists) or unavailable, and prompts the user.
 func selectBuildableServices(svcMap map[string]interface{}) ([]string, error) {
 	var available, unavailable []string
 
@@ -271,7 +269,7 @@ func selectBuildableServices(svcMap map[string]interface{}) ([]string, error) {
 	}
 
 	if len(unavailable) > 0 {
-		logger.L.Warn(fmt.Sprintf("Unavailable for build (context directory not found — clone their repositories): %s",
+		logger.L.Warn(fmt.Sprintf("Unavailable for build (context directory not found, clone their repositories): %s",
 			joinNames(unavailable)))
 	}
 

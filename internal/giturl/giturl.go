@@ -35,8 +35,8 @@ func (g GitURL) IsSet() bool {
 }
 
 // RepoNameFromURL extracts the repository directory name from a git URL.
-// It handles SSH (git@host:user/repo.git), HTTPS (https://host/user/repo.git),
-// and git:// formats. The .git suffix is stripped if present.
+// It handles SSH (git@host:user/repo.git), HTTPS (https://host/user/repo.git), and git:// formats.
+// The .git suffix is stripped if present.
 func RepoNameFromURL(url string) string {
 	name := url
 	if idx := strings.LastIndex(name, ":"); idx >= 0 {

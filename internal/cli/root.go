@@ -127,13 +127,9 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-// applyStackDomainDefault sets STACK_DOMAIN from cfg unless the user
-// explicitly set it in the environment. It uses the domain matching the
-// active --environment: production commands use the production domain,
-// development commands use the development domain. Called once from
-// PersistentPreRunE, and again by production deploy after checkoutDeployTag
-// reloads cfg, so the env var reflects whichever dargstack.yaml is actually
-// on disk.
+// applyStackDomainDefault sets STACK_DOMAIN from cfg unless the user explicitly set it in the environment.
+// It uses the domain matching the active --environment: production commands use the production domain, development commands use the development domain.
+// Called once from PersistentPreRunE, and again by production deploy after checkoutDeployTag reloads cfg, so the env var reflects whichever dargstack.yaml is actually on disk.
 func applyStackDomainDefault() {
 	if stackDomainExplicit {
 		return
@@ -218,11 +214,8 @@ func isSkippedCommand(cmd *cobra.Command) bool {
 	return false
 }
 
-// resolveVersionIncompatibility offers to self-update when the CLI version
-// does not satisfy the project's compatibility constraint, then asks the
-// user to re-run the command against the new binary. Returns the original
-// error unchanged when no update was offered or performed (offline mode,
-// non-interactive mode, user declined, or the update itself failed).
+// resolveVersionIncompatibility offers to self-update when the CLI version does not satisfy the project's compatibility constraint, then asks the user to re-run the command against the new binary.
+// Returns the original error unchanged when no update was offered or performed (offline mode, non-interactive mode, user declined, or the update itself failed).
 func resolveVersionIncompatibility(err error) error {
 	if offline {
 		return err
@@ -240,7 +233,7 @@ func resolveVersionIncompatibility(err error) error {
 	if updErr := selfUpdateFunc(); updErr != nil {
 		return fmt.Errorf("%w (self-update failed: %v)", err, updErr)
 	}
-	return errors.New("dargstack was updated — please re-run the command")
+	return errors.New("dargstack was updated. Please re-run the command")
 }
 
 // isProduction returns true if the active --environment is "production".

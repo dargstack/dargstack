@@ -17,10 +17,7 @@ func runGit(t *testing.T, dir string, args ...string) {
 	}
 }
 
-// setupWorktreeRepo creates a main repo with a "stack" subdirectory and a
-// linked worktree nested under it (mirroring how dargstack worktrees are
-// created under a project's .claude/worktrees/<branch> directory), and
-// returns the main repo root and the worktree's "stack" subdirectory.
+// setupWorktreeRepo creates a main repo with a "stack" subdirectory and a linked worktree nested under it (mirroring how dargstack worktrees are created under a project's .claude/worktrees/<branch> directory), and returns the main repo root and the worktree's "stack" subdirectory.
 func setupWorktreeRepo(t *testing.T) (mainRepo, worktreeStackDir string) {
 	t.Helper()
 

@@ -27,8 +27,7 @@ import (
 
 const renewalThreshold = 30 * 24 * time.Hour // 30 days before expiry
 
-// EnsureCertificates checks for TLS certificates and generates/regenerates them
-// if missing, domains don't match, or the certificate is close to expiry.
+// EnsureCertificates checks for TLS certificates and generates/regenerates them if missing, domains don't match, or the certificate is close to expiry.
 func EnsureCertificates(certDir string, domains []string) error {
 	if err := os.MkdirAll(certDir, 0o755); err != nil {
 		return fmt.Errorf("create certificates directory: %w", err)
@@ -104,8 +103,7 @@ func certNeedsRegeneration(certFile string, expectedDomains []string) (needsRege
 }
 
 // ExtractDomains extracts domains from compose data for TLS certificate generation.
-// It includes base domains (localhost, 127.0.0.1, ::1, stackDomain) and adds
-// each service name as a subdomain of stackDomain.
+// It includes base domains (localhost, 127.0.0.1, ::1, stackDomain) and adds each service name as a subdomain of stackDomain.
 func ExtractDomains(composeData []byte, stackDomain string) []string {
 	domainSet := make(map[string]bool)
 
@@ -144,8 +142,8 @@ func sortedKeys(m map[string]bool) []string {
 }
 
 // FilterDomains merges auto-discovered domains with explicit include/exclude lists.
-// It adds all include entries, removes all exclude entries, deduplicates, and
-// returns the result sorted. Exclude takes precedence over include.
+// It adds all include entries, removes all exclude entries, deduplicates, and returns the result sorted.
+// Exclude takes precedence over include.
 func FilterDomains(extracted, include, exclude []string) []string {
 	domains := make(map[string]bool)
 

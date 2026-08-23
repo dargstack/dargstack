@@ -91,7 +91,7 @@ func (s *SkillInstallMode) UnmarshalYAML(node *yaml.Node) error {
 }
 
 type Config struct {
-	Schema   string `yaml:"$schema"` // JSON Schema URI — consumed and ignored
+	Schema   string `yaml:"$schema"` // JSON Schema URI: consumed and ignored
 	stackDir string
 
 	Environment EnvironmentConfig `yaml:"environment"`
@@ -181,9 +181,8 @@ func DetectStackDir() (string, error) {
 	}
 }
 
-// DetectStackDirIn searches for dargstack.yaml starting from the given
-// directory, walking up to its root. Unlike DetectStackDir, it does not
-// use the current working directory.
+// DetectStackDirIn searches for dargstack.yaml starting from the given directory, walking up to its root.
+// Unlike DetectStackDir, it does not use the current working directory.
 func DetectStackDirIn(startDir string) (string, error) {
 	dir, err := filepath.Abs(startDir)
 	if err != nil {
@@ -268,9 +267,8 @@ func (c *Config) applyDefaults() {
 
 var validStackName = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9_.-]*[a-zA-Z0-9])?$`)
 
-// IncompatibleVersionError indicates the running CLI version does not
-// satisfy the project's compatibility constraint. Callers can use
-// errors.As to detect this case and, e.g., offer to self-update.
+// IncompatibleVersionError indicates the running CLI version does not satisfy the project's compatibility constraint.
+// Callers can use errors.As to detect this case and, e.g., offer to self-update.
 type IncompatibleVersionError struct {
 	CLIVersion    string
 	Compatibility string
@@ -278,7 +276,7 @@ type IncompatibleVersionError struct {
 
 func (e *IncompatibleVersionError) Error() string {
 	return fmt.Sprintf(
-		"cli version %s does not satisfy project compatibility range %s — please update dargstack",
+		"cli version %s does not satisfy project compatibility range %s: please update dargstack",
 		e.CLIVersion, e.Compatibility,
 	)
 }
@@ -328,9 +326,8 @@ func (c *Config) ProdEnvTemplate() string {
 func (c *Config) SecretsDir() string { return filepath.Join(c.stackDir, "artifacts", "secrets") }
 func (c *Config) StackDir() string   { return c.stackDir }
 
-// CollectServiceFiles returns the paths to compose.yaml files in the given
-// directory. It includes the shared compose.yaml at the directory root if it
-// exists, plus compose.yaml from each subdirectory that contains one.
+// CollectServiceFiles returns the paths to compose.yaml files in the given directory.
+// It includes the shared compose.yaml at the directory root if it exists, plus compose.yaml from each subdirectory that contains one.
 func CollectServiceFiles(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {

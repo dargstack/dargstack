@@ -74,8 +74,7 @@ func buildProductionCompose() ([]byte, error) {
 		return nil, errors.New(ErrNoComposeSources)
 	}
 
-	// MergeFilesProduction strips # dargstack:dev-only markers from each source
-	// file's raw bytes before YAML parsing, since YAML roundtrips discard comments.
+	// MergeFilesProduction strips # dargstack:dev-only markers from each source file's raw bytes before YAML parsing, since YAML roundtrips discard comments.
 	merged, err := compose.MergeFilesProduction(stackDir, getPlatform(), paths...)
 	if err != nil {
 		return nil, err
@@ -88,8 +87,7 @@ func buildProductionCompose() ([]byte, error) {
 		logger.L.Warn(fmt.Sprintf("Failed to rewrite production secrets: %v", extErr))
 	}
 
-	// Remap bind mounts from development paths to mirrored production paths
-	// when production files/directories exist.
+	// Remap bind mounts from development paths to mirrored production paths when production files/directories exist.
 	if remapped, remapErr := compose.RewriteProductionBindMounts(
 		merged,
 		cfg.DevDir(),
@@ -152,14 +150,10 @@ func composeHasProfile(composeData []byte, profile string) bool {
 	return false
 }
 
-// applyProfileFilter applies the active --profiles / --services / default-profile
-// filter to composeData and returns the filtered result along with a human-readable
-// description of the filter applied. This must be called before any operation that
-// should only concern the active portion of the stack (e.g. secret setup, validation).
+// applyProfileFilter applies the active --profiles / --services / default-profile filter to composeData and returns the filtered result along with a human-readable description of the filter applied.
+// This must be called before any operation that should only concern the active portion of the stack (e.g. secret setup, validation).
 //
-// In production mode without an explicit --profiles or --services flag, all
-// services are included (matching the deploy step that skips the default-profile
-// filter in production).
+// In production mode without an explicit --profiles or --services flag, all services are included (matching the deploy step that skips the default-profile filter in production).
 func applyProfileFilter(composeData []byte) (filtered []byte, msg string, err error) {
 	if deployAll {
 		return composeData, "Deploying full stack (--all: profile and service filters bypassed)", nil

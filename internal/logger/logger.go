@@ -8,7 +8,8 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// Styles for log output. Exported so other packages can use them directly.
+// Styles for log output.
+// Exported so other packages can use them directly.
 var (
 	StyleErr  = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
 	StyleInfo = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
@@ -28,10 +29,8 @@ var levelStyle = map[slog.Level]lipgloss.Style{
 	slog.LevelDebug: StyleInfo,
 }
 
-// levelWrite routes output to the appropriate stream. Each call creates a
-// fresh colorprofile wrapper around os.Stdout/os.Stderr so that tests
-// redirecting those globals still see the output, and non-TTY output
-// (pipelines, CI logs) gets ANSI codes stripped automatically.
+// levelWrite routes output to the appropriate stream.
+// Each call creates a fresh colorprofile wrapper around os.Stdout/os.Stderr so that tests redirecting those globals still see the output, and non-TTY output (pipelines, CI logs) gets ANSI codes stripped automatically.
 var levelWrite = map[slog.Level]func(string){
 	slog.LevelError: func(s string) { _, _ = lipgloss.Fprintln(os.Stderr, s) },
 	slog.LevelWarn:  func(s string) { _, _ = lipgloss.Fprintln(os.Stderr, s) },
@@ -39,14 +38,14 @@ var levelWrite = map[slog.Level]func(string){
 	slog.LevelDebug: func(s string) { _, _ = lipgloss.Fprintln(os.Stdout, s) },
 }
 
-// Level is the mutable log level. Defaults to slog.LevelInfo.
+// Level is the mutable log level.
+// Defaults to slog.LevelInfo.
 var Level = new(slog.LevelVar)
 
 // L is the package-level logger used throughout dargstack.
 var L = slog.New(&styledHandler{level: Level})
 
-// styledHandler implements slog.Handler with lipgloss styling and
-// stdout/stderr routing based on log level.
+// styledHandler implements slog.Handler with lipgloss styling and stdout/stderr routing based on log level.
 type styledHandler struct {
 	attrs []slog.Attr
 	level *slog.LevelVar

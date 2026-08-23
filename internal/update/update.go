@@ -153,7 +153,7 @@ func SelfUpdate() error {
 
 	if err := updater.UpdateTo(ctx, latest, exe); err != nil {
 		if errors.Is(err, selfupdate.ErrChecksumValidationFailed) {
-			return fmt.Errorf("update failed: checksum verification error — the release binary may be compromised: %w", err)
+			return fmt.Errorf("update failed: checksum verification error, the release binary may be compromised: %w", err)
 		}
 		return fmt.Errorf("update: %w", err)
 	}
@@ -207,9 +207,7 @@ func checkLatest() (*CheckResult, error) {
 		return result, nil
 	}
 
-	// Compare base versions (without pre-release) so a pre-release of a
-	// future version (e.g. 4.5.1-0.timestamp-commit) is not incorrectly
-	// flagged as needing an update to an earlier release (e.g. 4.4.0).
+	// Compare base versions (without pre-release) so a pre-release of a future version (e.g. 4.5.1-0.timestamp-commit) is not incorrectly flagged as needing an update to an earlier release (e.g. 4.4.0).
 	currentBase := currentSemver.Original()
 	if pre := currentSemver.Prerelease(); pre != "" {
 		currentBase = fmt.Sprintf("%d.%d.%d", currentSemver.Major(), currentSemver.Minor(), currentSemver.Patch())
@@ -229,13 +227,11 @@ type cacheEntry struct {
 }
 
 // cacheFilePath returns the path to the update-check cache file.
-// Returns an empty string when the user cache directory is unavailable;
-// callers must treat an empty return value as "caching disabled".
+// Returns an empty string when the user cache directory is unavailable; callers must treat an empty return value as "caching disabled".
 func cacheFilePath() string {
 	dir, err := cacheDirFunc()
 	if err != nil || dir == "" {
-		// Do not fall back to os.TempDir(): a shared temp directory allows
-		// symlink/hardlink attacks and cross-user cache poisoning.
+		// Do not fall back to os.TempDir(): a shared temp directory allows symlink/hardlink attacks and cross-user cache poisoning.
 		return ""
 	}
 	return filepath.Join(dir, cacheFile)
@@ -260,10 +256,8 @@ func readCache() *CheckResult {
 		return nil
 	}
 
-	// If the cache says an update was available, verify the current version
-	// isn't already at or past that version. This prevents stale cache hits
-	// after a self-update (e.g. user was on 4.6.0, cache says 4.7.0 available,
-	// user updates to 4.7.0, but cache still reports Available=true).
+	// If the cache says an update was available, verify the current version isn't already at or past that version.
+	// This prevents stale cache hits after a self-update (e.g. user was on 4.6.0, cache says 4.7.0 available, user updates to 4.7.0, but cache still reports Available=true).
 	if entry.Available && entry.NewVersion != "" {
 		cur, cerr := semver.NewVersion(strings.TrimPrefix(currentVersion(), "v"))
 		cached, cachedErr := semver.NewVersion(entry.NewVersion)
@@ -296,8 +290,7 @@ func writeCache(result *CheckResult) {
 	if err != nil {
 		return
 	}
-	// Atomic write: write to a temp file in the same directory and rename so
-	// concurrent readers never see a partial file and symlink attacks are avoided.
+	// Atomic write: write to a temp file in the same directory and rename so concurrent readers never see a partial file and symlink attacks are avoided.
 	tmp, err := os.CreateTemp(dir, ".dargstack-update-*")
 	if err != nil {
 		return

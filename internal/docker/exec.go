@@ -15,10 +15,9 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/logger"
 )
 
-// buildLabelColors are ANSI 256-color codes used to distinguish concurrent
-// build streams by label identity (not severity). Indexed by hash(label) % len.
-// Rendered through lipgloss so NO_COLOR / non-TTY output degrades automatically,
-// same as the severity styles in internal/logger.
+// buildLabelColors are ANSI 256-color codes used to distinguish concurrent build streams by label identity (not severity).
+// Indexed by hash(label) % len.
+// Rendered through lipgloss so NO_COLOR / non-TTY output degrades automatically, same as the severity styles in internal/logger.
 var buildLabelColors = []string{
 	"81",  // blue
 	"118", // green
@@ -30,8 +29,8 @@ var buildLabelColors = []string{
 	"203", // orange
 }
 
-// labelWriter wraps an io.Writer, prepending a color-coded "[label] " prefix
-// to each line. Safe for concurrent use.
+// labelWriter wraps an io.Writer, prepending a color-coded "[label] " prefix to each line.
+// Safe for concurrent use.
 type labelWriter struct {
 	mu     sync.Mutex
 	w      io.Writer
@@ -42,8 +41,7 @@ func newLabelWriter(w io.Writer, label string) *labelWriter {
 	h := hashString(label)
 	code := buildLabelColors[h%uint32(len(buildLabelColors))]
 	style := lipgloss.NewStyle().Foreground(lipgloss.Color(code))
-	// Wrap the writer with colorprofile so ANSI codes are stripped when
-	// output is redirected to a file or CI log.
+	// Wrap the writer with colorprofile so ANSI codes are stripped when output is redirected to a file or CI log.
 	cw := colorprofile.NewWriter(w, os.Environ())
 	return &labelWriter{
 		w:      cw,
@@ -111,8 +109,7 @@ func NewExecutor(sudoMode string) (*Executor, error) {
 		e.useSudo = needsSudo(binary)
 	}
 
-	// Pre-validate sudo credentials so later commands (e.g. RunWithStdin
-	// where stdin is piped) don't fail trying to prompt for a password.
+	// Pre-validate sudo credentials so later commands (e.g. RunWithStdin where stdin is piped) don't fail trying to prompt for a password.
 	if e.useSudo {
 		if err := prewarmSudo(); err != nil {
 			return nil, fmt.Errorf("docker requires elevated privileges but sudo authentication failed: %w\n\n  Either add your user to the docker group (`sudo usermod -aG docker $USER`, then log out and back in)\n  or ensure sudo is configured correctly.", err) //nolint:staticcheck // intentional multi-line user hint
@@ -128,8 +125,7 @@ func needsSudo(binary string) bool {
 	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
 		// Only use sudo when it actually fixes the problem (permission denied).
-		// If the daemon is down or Docker is broken, sudo won't help and we
-		// should let the underlying error surface via the normal command path.
+		// If the daemon is down or Docker is broken, sudo won't help and we should let the underlying error surface via the normal command path.
 
 		// First try non-interactive (fast, no prompt) to see if credentials are cached.
 		sudoNI := exec.Command("sudo", "-n", binary, "info")
@@ -138,8 +134,8 @@ func needsSudo(binary string) bool {
 		if sudoNI.Run() == nil {
 			return true
 		}
-		// Credentials may have expired. Fall back to interactive sudo so the
-		// user can authenticate once rather than getting a silent permission error.
+		// Credentials may have expired.
+		// Fall back to interactive sudo so the user can authenticate once rather than getting a silent permission error.
 		_, _ = lipgloss.Fprintln(os.Stderr, logger.StyleWarn.Render("sudo: Docker requires elevated privileges on this system. Please authenticate to continue."))
 		sudoI := exec.Command("sudo", binary, "info")
 		sudoI.Stdin = os.Stdin
@@ -151,9 +147,8 @@ func needsSudo(binary string) bool {
 }
 
 // prewarmSudo prompts the user for sudo credentials when they are not cached.
-// A hint explaining why sudo is needed is printed only when a password prompt
-// is actually about to appear. If credentials are already valid, returns nil
-// immediately without any output.
+// A hint explaining why sudo is needed is printed only when a password prompt is actually about to appear.
+// If credentials are already valid, returns nil immediately without any output.
 func prewarmSudo() error {
 	// Fast non-interactive check: if credentials are cached, skip the prompt.
 	ni := exec.Command("sudo", "-n", "-v")
@@ -224,10 +219,8 @@ func (e *Executor) RunPassthrough(args ...string) error {
 }
 
 // Build executes a docker build command.
-// If verbose is true, stdout/stderr are streamed to the terminal with a
-// color-coded "[label]" prefix per line to separate parallel builds.
-// If verbose is false, output is captured and suppressed; only stderr
-// is returned on error.
+// If verbose is true, stdout/stderr are streamed to the terminal with a color-coded "[label]" prefix per line to separate parallel builds.
+// If verbose is false, output is captured and suppressed; only stderr is returned on error.
 func (e *Executor) Build(label string, verbose bool, args ...string) error {
 	var cmd *exec.Cmd
 	if e.useSudo {
@@ -264,10 +257,7 @@ func (e *Executor) Build(label string, verbose bool, args ...string) error {
 }
 
 // RunWithStdin executes a docker command passing data via stdin.
-// When sudo is required, any compose environment variables registered via
-// SetComposeEnv are forwarded explicitly using `sudo env KEY=VAL…` so that
-// Docker Compose variable substitution works without inheriting the full user
-// environment (which would break rootless Docker socket paths etc.).
+// When sudo is required, any compose environment variables registered via SetComposeEnv are forwarded explicitly using `sudo env KEY=VAL…` so that Docker Compose variable substitution works without inheriting the full user environment (which would break rootless Docker socket paths etc.).
 func (e *Executor) RunWithStdin(input []byte, args ...string) error {
 	if e.useSudo {
 		if err := refreshSudoIfNeeded(); err != nil {
@@ -277,8 +267,7 @@ func (e *Executor) RunWithStdin(input []byte, args ...string) error {
 	var cmd *exec.Cmd
 	if e.useSudo {
 		// Build: sudo env KEY=VAL ... docker args
-		// This forwards only the compose variable-substitution env vars, not the
-		// full user environment, so Docker socket routing is unaffected.
+		// This forwards only the compose variable-substitution env vars, not the full user environment, so Docker socket routing is unaffected.
 		envArgs := []string{"env"}
 		for k, v := range e.composeEnv {
 			envArgs = append(envArgs, fmt.Sprintf("%s=%s", k, v))
@@ -304,9 +293,8 @@ func (e *Executor) NeedsSudo() bool {
 	return e.useSudo
 }
 
-// SetComposeEnv stores environment variables to be forwarded explicitly when
-// running `docker stack deploy` via sudo. This avoids inheriting the full user
-// environment (which would break rootless Docker socket routing).
+// SetComposeEnv stores environment variables to be forwarded explicitly when running `docker stack deploy` via sudo.
+// This avoids inheriting the full user environment (which would break rootless Docker socket routing).
 func (e *Executor) SetComposeEnv(env map[string]string) {
 	e.composeEnv = env
 }

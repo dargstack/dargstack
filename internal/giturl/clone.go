@@ -10,9 +10,8 @@ import (
 )
 
 // CloneWithFallback attempts to clone using the primary URL.
-// If the primary is SSH and no SSH agent is available, it skips
-// directly to HTTPS (if set). If the clone fails and a fallback
-// URL is available, it retries with the fallback.
+// If the primary is SSH and no SSH agent is available, it skips directly to HTTPS (if set).
+// If the clone fails and a fallback URL is available, it retries with the fallback.
 func CloneWithFallback(g GitURL, targetDir string) error {
 	if !g.IsSet() {
 		return fmt.Errorf("no git URL configured")

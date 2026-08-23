@@ -12,10 +12,9 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/secret"
 )
 
-// secretSetupFlow sets up secrets for deployment. Returns warnings as []resource.Issue,
-// an error on failure, and a bool indicating whether all secrets are set (no missing,
-// no placeholders). When deployMode is true, tip messages are suppressed because the
-// resource validator will report them in its structured output.
+// secretSetupFlow sets up secrets for deployment.
+// Returns warnings as []resource.Issue, an error on failure, and a bool indicating whether all secrets are set (no missing, no placeholders).
+// When deployMode is true, tip messages are suppressed because the resource validator will report them in its structured output.
 func secretSetupFlow(composeData []byte, prod, deployMode bool) ([]resource.Issue, error, bool) {
 	templates, err := secret.ExtractTemplates(composeData)
 	if err != nil || len(templates) == 0 {
@@ -99,7 +98,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) ([]resource.Issu
 				sort.Strings(noFile)
 				for _, name := range noFile {
 					if tmpl, ok := templates[name]; ok && tmpl.Hint != "" {
-						logger.L.Info(fmt.Sprintf("  %s: expected value — %s", name, tmpl.Hint))
+						logger.L.Info(fmt.Sprintf("  %s: expected value, %s", name, tmpl.Hint))
 					}
 					values[name] = secret.ThirdPartyPlaceholder
 				}
@@ -137,8 +136,8 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) ([]resource.Issu
 	}
 
 	if noInteraction {
-		// Pre-populate third-party placeholders so templates that depend on
-		// them can resolve without error. The user will be warned below.
+		// Pre-populate third-party placeholders so templates that depend on them can resolve without error.
+		// The user will be warned below.
 		for name := range thirdParty {
 			if values[name] == "" {
 				values[name] = secret.ThirdPartyPlaceholder
@@ -207,7 +206,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) ([]resource.Issu
 				issues = append(issues, resource.Issue{
 					Severity:    "warning",
 					Resource:    fmt.Sprintf("secret:%s", name),
-					Description: "secret not set — run interactively to set it",
+					Description: "secret not set: run interactively to set it",
 				})
 			}
 			// Only show tip if any missing secret lacks an x-dargstack.secrets definition.
@@ -278,8 +277,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) ([]resource.Issu
 		}
 	}
 
-	// Pre-populate third-party placeholders so templates that depend on them
-	// resolve without error.
+	// Pre-populate third-party placeholders so templates that depend on them resolve without error.
 	for name := range thirdParty {
 		if values[name] == "" {
 			values[name] = secret.ThirdPartyPlaceholder
@@ -287,8 +285,7 @@ func secretSetupFlow(composeData []byte, prod, deployMode bool) ([]resource.Issu
 	}
 
 	// Auto-generate any values that can be derived from x-dargstack.secrets.
-	// Use ResolveAllowPlaceholders so templates referencing unset third-party
-	// secrets resolve with placeholder values instead of failing.
+	// Use ResolveAllowPlaceholders so templates referencing unset third-party secrets resolve with placeholder values instead of failing.
 	values, err = secret.ResolveAllowPlaceholders(templates, values)
 	if err != nil {
 		return nil, err, false

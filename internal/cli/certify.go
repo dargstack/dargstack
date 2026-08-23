@@ -22,9 +22,8 @@ Certificates are stored in ` + "`artifacts/certificates`" + ` and must be truste
 }
 
 func runGenerateCerts(_ *cobra.Command, _ []string) error {
-	// TLS certificate generation is a development-only feature. Always build
-	// development compose to discover domains; production domains are not
-	// applicable here.
+	// TLS certificate generation is a development-only feature.
+	// Always build development compose to discover domains; production domains are not applicable here.
 	composeData, err := buildDevelopmentCompose()
 	if err != nil {
 		return err

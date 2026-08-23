@@ -42,12 +42,13 @@ project/
 - `stack/dargstack.yaml` is the project configuration file
 - Each service gets its own directory under `src/<environment>/`
 - Service directories contain `compose.yaml` plus any config/secret files
-- Production files contain only **differences** from development — they are deep-merged on top
+- Production files contain only **differences** from development: they are deep-merged on top
 - Service source code lives as a sibling to `stack/`, not inside it
 
 ## Spruce Operators
 
-Service files are deep-merged using [spruce](https://github.com/geofffranks/spruce). Production `compose.yaml` files use these operators:
+Service files are deep-merged using [spruce](https://github.com/geofffranks/spruce).
+Production `compose.yaml` files use these operators:
 
 | Operator | Effect |
 |----------|--------|
@@ -58,7 +59,7 @@ Service files are deep-merged using [spruce](https://github.com/geofffranks/spru
 | `(( keep ))` | Keep the original value, ignore the override |
 | `(( ref <path> ))` | Reference a value from another part of the document |
 
-**Example — production override:**
+**Example: production override:**
 
 ```yaml
 services:
@@ -72,7 +73,7 @@ services:
       replicas: 3                     # overwrite: scale up
 ```
 
-**Example — development-only lines:**
+**Example: development-only lines:**
 
 Lines annotated with `# dargstack:dev-only` in development files are stripped before the production merge.
 
@@ -110,12 +111,12 @@ x-dargstack:
 ```
 
 **Secret types:**
-- `random_string` — auto-generated random string (configurable length, special characters)
-- `wordlist_word` — auto-generated word from a wordlist
-- `private_key` — auto-generated private key (ed25519, rsa, ecdsa)
-- `third_party` — requires manual value; `hint` guides the user
-- `insecure_default` — uses the provided default value
-- `template` — composed from tokens like `{{secret:name}}`, `{{random_string}}`, `{{wordlist_word}}`, `{{private_key}}`
+- `random_string`: auto-generated random string (configurable length, special characters)
+- `wordlist_word`: auto-generated word from a wordlist
+- `private_key`: auto-generated private key (ed25519, rsa, ecdsa)
+- `third_party`: requires manual value; `hint` guides the user
+- `insecure_default`: uses the provided default value
+- `template`: composed from tokens like `{{secret:name}}`, `{{random_string}}`, `{{wordlist_word}}`, `{{private_key}}`
 
 Secret files (`.secret` extension) live alongside `compose.yaml` in the service directory.
 
@@ -166,7 +167,8 @@ Git-cloned repositories go to a sibling directory of `stack/`, named after the r
 
 ## Profiles
 
-Services can belong to profiles via `dargstack.profiles` label. Deploy with `--profiles <name>`.
+Services can belong to profiles via `dargstack.profiles` label.
+Deploy with `--profiles <name>`.
 
 - Unlabeled services are always deployed unless any service declares `default`
 - If `default` is declared, only `default`-labeled services deploy by default
@@ -175,14 +177,15 @@ Services can belong to profiles via `dargstack.profiles` label. Deploy with `--p
 
 ## Deploy Workflow
 
-1. `dargstack deploy` — merges compose files, resolves secrets, builds images, deploys to Docker Swarm
-2. `dargstack build` — build development images only
-3. `dargstack validate` — validate compose files and resources
-4. `dargstack secret generate` — generate secrets from templates
-5. `dargstack remove` — remove the deployed stack
-6. `dargstack audit` — view deployment history
+1. `dargstack deploy`: merges compose files, resolves secrets, builds images, deploys to Docker Swarm
+2. `dargstack build`: build development images only
+3. `dargstack validate`: validate compose files and resources
+4. `dargstack secret generate`: generate secrets from templates
+5. `dargstack remove`: remove the deployed stack
+6. `dargstack audit`: view deployment history
 
-Use `--environment production` for production deployments. Use `--dry-run` to trace without executing.
+Use `--environment production` for production deployments.
+Use `--dry-run` to trace without executing.
 
 ## Platform Overrides
 
@@ -199,7 +202,8 @@ x-dargstack:
             - (( prune ))
 ```
 
-Supported platforms: `darwin`, `linux`, `windows`. Active platform is auto-detected or overridden with `--platform`.
+Supported platforms: `darwin`, `linux`, `windows`.
+Active platform is auto-detected or overridden with `--platform`.
 
 ## Recursive Skill Improvement
 
@@ -208,7 +212,7 @@ If this skill does not provide enough information to complete a task, and you re
 1. **After your investigation**, improve this skill by contributing the newly discovered, relevant information back to the dargstack repository.
 2. Base additions on what you found in dargstack's source code, not on assumptions or local project specifics.
 3. Focus on generalizable knowledge: CLI flags not documented here, merge behaviors, error conditions, internal conventions, or any mechanism not covered above.
-4. Open a pull request against the dargstack repository editing `internal/skill/SKILL.md` — add new sections or extend existing ones.
+4. Open a pull request against the dargstack repository editing `internal/skill/SKILL.md`: add new sections or extend existing ones.
 5. Bump the `dargstack_version` in the frontmatter if the information applies to a newer version.
 
 This way the skill shipped with dargstack improves through use, and all future users benefit.

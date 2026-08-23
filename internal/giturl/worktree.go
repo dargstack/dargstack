@@ -6,24 +6,17 @@ import (
 	"strings"
 )
 
-// SiblingParentDir returns the directory that sibling service repositories
-// should be cloned into or resolved relative to.
+// SiblingParentDir returns the directory that sibling service repositories should be cloned into or resolved relative to.
 //
-// It is normally filepath.Dir(stackDir). But if stackDir sits inside a
-// linked git worktree (for example one checked out under a project's
-// .claude/worktrees/<branch> directory), that naive computation would
-// resolve siblings relative to the worktree instead of the original
-// project checkout. This maps stackDir onto the equivalent path in the
-// worktree's main checkout first, so siblings always resolve the same way
-// regardless of which worktree dargstack is run from.
+// It is normally filepath.Dir(stackDir).
+// But if stackDir sits inside a linked git worktree (for example one checked out under a project's .claude/worktrees/<branch> directory), that naive computation would resolve siblings relative to the worktree instead of the original project checkout.
+// This maps stackDir onto the equivalent path in the worktree's main checkout first, so siblings always resolve the same way regardless of which worktree dargstack is run from.
 func SiblingParentDir(stackDir string) string {
 	return filepath.Dir(canonicalStackDir(stackDir))
 }
 
-// canonicalStackDir returns stackDir as it would appear under the main
-// checkout of its git repository. If stackDir is not inside a linked
-// worktree (or git metadata can't be read, e.g. in tests using a plain
-// temp dir), it is returned unchanged.
+// canonicalStackDir returns stackDir as it would appear under the main checkout of its git repository.
+// If stackDir is not inside a linked worktree (or git metadata can't be read, e.g. in tests using a plain temp dir), it is returned unchanged.
 func canonicalStackDir(stackDir string) string {
 	// git resolves symlinks in the paths it reports (e.g. macOS's
 	// /tmp -> /private/tmp), so resolve stackDir the same way before

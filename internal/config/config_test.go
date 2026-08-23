@@ -475,7 +475,7 @@ func TestSkillInstallModeUnmarshal(t *testing.T) {
 }
 
 func TestGlobalConfigLoad(t *testing.T) {
-	// Test with nonexistent file — should return defaults.
+	// Test with nonexistent file: should return defaults.
 	origHome := os.Getenv("HOME")
 	defer func() { _ = os.Setenv("HOME", origHome) }()
 
@@ -523,19 +523,19 @@ func TestEffectiveSkillInstall(t *testing.T) {
 	project := &Config{}
 	project.applyDefaults()
 
-	// Both defaults — should return auto.
+	// Both defaults: should return auto.
 	if EffectiveSkillInstall(global, project) != SkillInstallAuto {
 		t.Error("expected auto when both are defaults")
 	}
 
-	// Global is once, project is default — should return once.
+	// Global is once, project is default: should return once.
 	global.Runtime.Skill.Install = SkillInstallOnce
 	project.Runtime.Skill.Install = SkillInstallAuto
 	if EffectiveSkillInstall(global, project) != SkillInstallOnce {
 		t.Error("expected once when global is once and project is default")
 	}
 
-	// Global is auto, project is off — project wins.
+	// Global is auto, project is off: project wins.
 	global.Runtime.Skill.Install = SkillInstallAuto
 	project.Runtime.Skill.Install = SkillInstallOff
 	if EffectiveSkillInstall(global, project) != SkillInstallOff {

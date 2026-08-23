@@ -32,7 +32,8 @@ func EnsureEnvFile(envPath, templatePath string) error {
 }
 
 // MergeEnvFiles merges .env files from development and production.
-// Production values override development values. Returns merged content.
+// Production values override development values.
+// Returns merged content.
 func MergeEnvFiles(devEnv, prodEnv string) ([]byte, error) {
 	env := make(map[string]string)
 

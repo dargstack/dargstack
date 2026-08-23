@@ -6,9 +6,9 @@ Thank you for your interest in contributing!
 
 **Prerequisites**
 
-- Go — see [go.dev: Download and install](https://go.dev/doc/install)
-- Git — see [git-scm.com: Install](https://git-scm.com/)
-- golangci-lint v2 — see [golangci-lint.run: Local Installation](https://golangci-lint.run/docs/welcome/install/local/)
+- Go: see [go.dev: Download and install](https://go.dev/doc/install)
+- Git: see [git-scm.com: Install](https://git-scm.com/)
+- golangci-lint v2: see [golangci-lint.run: Local Installation](https://golangci-lint.run/docs/welcome/install/local/)
 
 ```bash
 # Clone and build
@@ -36,7 +36,8 @@ Pull requests should:
 
 ## Code Style
 
-- Run `golangci-lint run ./...` before submitting — CI enforces zero issues.
+- Run `golangci-lint run ./...` before submitting.
+  CI enforces zero issues.
 - Use `gofmt` and `goimports` for formatting.
 - Error strings should not be capitalized (per Go conventions).
 - Check all error return values (enforced by `errcheck`).
@@ -45,9 +46,11 @@ Pull requests should:
 
 All colored/styled terminal output goes through `internal/logger` (backed by `lipgloss`), never raw ANSI escape codes (`\033[...`). Raw escapes bypass `NO_COLOR` and non-TTY detection, which lipgloss handles automatically.
 
-- **Semantic status** (error/warning/info/success) — use `logger.L.Error/Warn/Info/Debug` for structured log messages, or `logger.Style{Err,Warn,Info,OK}.Render(...)` / `logger.Success(...)` for one-off lines printed outside the logger (e.g. `fmt.Fprintln(os.Stderr, logger.StyleWarn.Render(...))`). Pick the style by meaning: `StyleErr` for failures, `StyleWarn` for things needing attention, `StyleInfo` for "nothing to do" / general info, `StyleOK`/`Success` for a completed action.
+- **Semantic status** (error/warning/info/success): use `logger.L.Error/Warn/Info/Debug` for structured log messages, or `logger.Style{Err,Warn,Info,OK}.Render(...)` / `logger.Success(...)` for one-off lines printed outside the logger (e.g. `fmt.Fprintln(os.Stderr, logger.StyleWarn.Render(...))`).
+  Pick the style by meaning: `StyleErr` for failures, `StyleWarn` for things needing attention, `StyleInfo` for "nothing to do" / general info, `StyleOK`/`Success` for a completed action.
 - **Non-semantic coloring** (e.g. distinguishing concurrent output streams by identity rather than severity) should still render through `lipgloss.NewStyle().Foreground(lipgloss.Color(...))` rather than hand-rolled escape sequences, so it still degrades correctly under `NO_COLOR`/non-TTY.
-- **Leave plain**: tabular/report output (e.g. `secret list`, `audit` reports), raw passthrough of external tool/process output, and anything piped for machine consumption. Don't colorize these — it would break alignment and scriptability.
+- **Leave plain**: tabular/report output (e.g. `secret list`, `audit` reports), raw passthrough of external tool/process output, and anything piped for machine consumption.
+  Don't colorize these: doing so would break alignment and scriptability.
 
 ## Testing
 
@@ -74,11 +77,11 @@ dargstack is organized into focused packages, each with a clear responsibility:
 
 ## Implementation Reminders
 
-- **CLI changes** — register new commands in `internal/cli/root.go`; regenerate docs with `go run ./internal/tools/docgen`
-- **Config changes** — add defaults in `applyDefaults()` in `internal/config/config.go`
-- **Secret templating changes** — update `TopologicalSort()` if the change introduces new dependencies
-- **TLS changes** — update `ExtractDomains()` in `internal/tls/tls.go` if new domain sources are added
-- **Compose merge** — never parse compose with yaml.v3 before spruce; always use yaml.v2 for the merge pipeline
+- **CLI changes**: register new commands in `internal/cli/root.go`; regenerate docs with `go run ./internal/tools/docgen`
+- **Config changes**: add defaults in `applyDefaults()` in `internal/config/config.go`
+- **Secret templating changes**: update `TopologicalSort()` if the change introduces new dependencies
+- **TLS changes**: update `ExtractDomains()` in `internal/tls/tls.go` if new domain sources are added
+- **Compose merge**: never parse compose with yaml.v3 before spruce; always use yaml.v2 for the merge pipeline
 
 ## Design Decisions
 
@@ -86,5 +89,5 @@ See [docs/architecture.md](docs/architecture.md) for vision, design tenets, and 
 
 ## Getting Help
 
-- [README.md](README.md) — usage documentation and examples
-- [GitHub Issues](https://github.com/dargstack/dargstack/issues) — bug reports and feature requests
+- [README.md](README.md): usage documentation and examples
+- [GitHub Issues](https://github.com/dargstack/dargstack/issues): bug reports and feature requests

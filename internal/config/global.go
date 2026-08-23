@@ -32,7 +32,8 @@ func GlobalConfigPath() string {
 }
 
 // LoadGlobalConfig reads and parses the global config file.
-// Returns a GlobalConfig with defaults applied. Missing file is not an error.
+// Returns a GlobalConfig with defaults applied.
+// Missing file is not an error.
 func LoadGlobalConfig() (*GlobalConfig, error) {
 	cfg := &GlobalConfig{}
 	cfg.applyDefaults()
@@ -65,8 +66,8 @@ func (c *GlobalConfig) applyDefaults() {
 }
 
 // EffectiveSkillInstall returns the effective skill install mode.
-// Project config overrides global config. If the project config has a
-// non-default value, it takes precedence. Otherwise, global config is used.
+// Project config overrides global config.
+// If the project config has a non-default value, it takes precedence; otherwise, global config is used.
 func EffectiveSkillInstall(global *GlobalConfig, project *Config) SkillInstallMode {
 	// If project config explicitly set a non-default value, use it.
 	if project.Runtime.Skill.Install != SkillInstallAuto {

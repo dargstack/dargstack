@@ -10,8 +10,7 @@ import (
 	"strings"
 )
 
-// DerivePublicKeyPEM reads a PEM-encoded private key and returns the public key
-// as a PEM string together with a human-readable algorithm label.
+// DerivePublicKeyPEM reads a PEM-encoded private key and returns the public key as a PEM string together with a human-readable algorithm label.
 func DerivePublicKeyPEM(data []byte) (pubPEM, keyType string, err error) {
 	block, _ := pem.Decode(data)
 	if block == nil {
@@ -53,11 +52,9 @@ func DerivePublicKeyPEM(data []byte) (pubPEM, keyType string, err error) {
 	return pubPEM, keyType, nil
 }
 
-// ResolveConfigs derives values for x-dargstack.configs templates. Currently the
-// only supported type is public_key, which derives a public key PEM from the
-// resolved value of the private_key secret named by Source. Entries whose source
-// secret isn't resolved yet are left out of the result rather than erroring, so
-// callers can retry once the secret is generated.
+// ResolveConfigs derives values for x-dargstack.configs templates.
+// Currently the only supported type is public_key, which derives a public key PEM from the resolved value of the private_key secret named by Source.
+// Entries whose source secret isn't resolved yet are left out of the result rather than erroring, so callers can retry once the secret is generated.
 func ResolveConfigs(configTemplates map[string]Template, secretValues map[string]string) (map[string]string, error) {
 	values := make(map[string]string, len(configTemplates))
 	for name := range configTemplates {
