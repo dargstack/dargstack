@@ -244,6 +244,14 @@ You no longer need `production.sed`.
 The `#DARGSTACK-REMOVE` sed trick is replaced by the `# dargstack:dev-only` label convention.
 Any deploy label ending in `# dargstack:dev-only` is stripped before production deployment.
 
+### Development image names
+
+The development image name format has changed:
+
+| v3                              | v4                                            |
+| ------------------------------- | --------------------------------------------- |
+| `username/repository_name:dev`  | `stack-name/repository-name:development`      |
+
 ### Volumes in production overrides
 
 Spruce replaces lists by default.
@@ -399,6 +407,17 @@ dargstack deploy
 | _(none)_                | `dargstack inspect`                   |
 | _(none)_                | `dargstack profiles`                  |
 | _(none)_                | `dargstack secret`                    |
+
+### New `certify` command
+
+dargstack v4 generates certificates for all project services using `mkcert`.
+Certificates are stored under `artifacts/certificates`.
+You may drop project-specific certificate generation solutions and update certificate mount paths, for example:
+
+| v3                             | v4                                 |
+| ------------------------------ | ---------------------------------- |
+| `/etc/traefik/acme/traefik.crt`  | `/etc/traefik/acme/localhost.pem`       |
+| `/etc/traefik/acme/traefik.key`  | `/etc/traefik/acme/localhost-key.pem`   |
 
 ---
 
