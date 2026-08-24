@@ -198,9 +198,8 @@ func TestLatestGitTagNumericMinorOrdering(t *testing.T) {
 	}
 }
 
-// TestLatestGitTagPrereleaseRanksBelowStable guards against the regression where a naive
-// dot-split comparator treated "v15.0.0-beta.5" as newer than "v15.0.0": the trailing ".5"
-// from the prerelease identifier was read as a phantom 4th version segment.
+// TestLatestGitTagPrereleaseRanksBelowStable guards against the regression where a naive dot-split comparator treated "v15.0.0-beta.5" as newer than "v15.0.0".
+// The trailing ".5" from the prerelease identifier was read as a phantom 4th version segment.
 func TestLatestGitTagPrereleaseRanksBelowStable(t *testing.T) {
 	dir := t.TempDir()
 	setupGitRepo(t, dir)
