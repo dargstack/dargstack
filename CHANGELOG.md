@@ -1,3 +1,9 @@
+## [4.14.0](https://github.com/dargstack/dargstack/compare/v4.13.6...v4.14.0) (2026-08-24)
+
+### Features
+
+* **cli:** fall back to DARGSTACK_ENVIRONMENT when --environment is unset ([#132](https://github.com/dargstack/dargstack/issues/132)) ([8f9d6eb](https://github.com/dargstack/dargstack/commit/8f9d6ebdcc23bbbe91456572380408492cb93579))
+
 ## [4.13.6](https://github.com/dargstack/dargstack/compare/v4.13.5...v4.13.6) (2026-08-23)
 
 ### Bug Fixes
