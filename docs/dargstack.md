@@ -11,7 +11,7 @@ dargstack - simplified, approachable Docker Swarm stack management.
 ```
   -c, --configuration string   path to stack directory (default: auto-detect)
   -d, --dry-run                trace all steps without executing
-  -e, --environment string     environment to operate on: development|production (default "development")
+  -e, --environment string     environment to operate on: development|production (default from DARGSTACK_ENVIRONMENT if unset) (default "development")
   -f, --format string          output format for compatible commands: table|json (default "table")
   -h, --help                   help for dargstack
   -l, --log-level string       log level: error, warn, info, debug (default "info")

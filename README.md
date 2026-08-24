@@ -258,6 +258,9 @@ environment:
     tag: v1.0.0 # optional, pin to a specific tag; unset to auto-detect latest
 ```
 
+The active environment (`development` or `production`) is selected with `--environment`/`-e` and defaults to `development`.
+It can also be set via the `DARGSTACK_ENVIRONMENT` environment variable; the `--environment` flag takes precedence over `DARGSTACK_ENVIRONMENT`.
+
 ### Profiles & Performance
 
 Deploy named groups of services to save resources:

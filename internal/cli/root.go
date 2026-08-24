@@ -60,6 +60,7 @@ var rootCmd = &cobra.Command{
 	Version:      fmt.Sprintf("%s (commit: %s, built: %s)", version.Version, version.Commit, version.Date),
 	SilenceUsage: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		resolveEnvironment(cmd)
 		resolveProfiles()
 
 		// Propagate --no-interaction to the prompt package.
@@ -144,7 +145,7 @@ func applyStackDomainDefault() {
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgPath, "configuration", "c", "", "path to stack directory (default: auto-detect)")
 	rootCmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "d", false, "trace all steps without executing")
-	rootCmd.PersistentFlags().StringVarP(&env, "environment", "e", "development", "environment to operate on: development|production")
+	rootCmd.PersistentFlags().StringVarP(&env, "environment", "e", "development", "environment to operate on: development|production (default from DARGSTACK_ENVIRONMENT if unset)")
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "format", "f", "table", "output format for compatible commands: table|json")
 	rootCmd.PersistentFlags().BoolVarP(&noInteraction, "no-interaction", "n", false, "disable interactive prompts")
 	rootCmd.PersistentFlags().BoolVarP(&offline, "offline", "o", false, "skip fetching remote resources")
@@ -243,6 +244,17 @@ func isProduction() bool { return env == "production" }
 // Uses --platform flag if set, otherwise auto-detects via runtime.GOOS.
 func getPlatform() string {
 	return platform.Get(platformFlag)
+}
+
+// resolveEnvironment reads DARGSTACK_ENVIRONMENT env var into env when
+// --environment was not explicitly passed.
+func resolveEnvironment(cmd *cobra.Command) {
+	if cmd.Flags().Changed("environment") {
+		return
+	}
+	if v := os.Getenv("DARGSTACK_ENVIRONMENT"); v != "" {
+		env = v
+	}
 }
 
 // resolveProfiles reads COMPOSE_PROFILES env var and populates the profiles

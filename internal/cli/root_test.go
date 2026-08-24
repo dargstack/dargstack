@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/spf13/cobra"
+
 	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/logger"
 )
@@ -287,6 +289,56 @@ func TestResolveProfiles(t *testing.T) {
 			want := strings.Join(tt.wantValues, ",")
 			if got != want {
 				t.Errorf("profiles: got %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestResolveEnvironment(t *testing.T) {
+	tests := []struct {
+		name      string
+		envVar    string
+		flagSet   bool
+		flagValue string
+		want      string
+	}{
+		{
+			name:   "env var used when flag not set",
+			envVar: "production",
+			want:   "production",
+		},
+		{
+			name:      "flag overrides env var",
+			envVar:    "production",
+			flagSet:   true,
+			flagValue: "staging",
+			want:      "staging",
+		},
+		{
+			name: "empty env var leaves default",
+			want: "development",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			oldEnv := env
+			defer func() { env = oldEnv }()
+
+			t.Setenv("DARGSTACK_ENVIRONMENT", tt.envVar)
+
+			cmd := &cobra.Command{Use: "test"}
+			cmd.Flags().StringVarP(&env, "environment", "e", "development", "")
+			if tt.flagSet {
+				if err := cmd.Flags().Set("environment", tt.flagValue); err != nil {
+					t.Fatalf("set flag: %v", err)
+				}
+			}
+
+			resolveEnvironment(cmd)
+
+			if env != tt.want {
+				t.Errorf("env: got %q, want %q", env, tt.want)
 			}
 		})
 	}
