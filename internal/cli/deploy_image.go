@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"charm.land/huh/v2/spinner"
+	"github.com/Masterminds/semver/v3"
 	"go.yaml.in/yaml/v3"
 
 	"github.com/dargstack/dargstack/v4/internal/config"
@@ -179,24 +180,23 @@ func latestGitTag(targetMajor int) (string, error) {
 	return candidates[0], nil
 }
 
-// compareSemver compares two tags by their dot-separated numeric segments, ignoring an optional "v" prefix on either side.
-// A plain string or git version-sort comparison gets this wrong in two ways: it buckets "v" prefixed and bare-digit tags separately regardless of actual version, and it compares multi-digit segments lexicographically (making "v2.10.0" sort below "v2.9.0" because '1' < '9').
+// compareSemver compares two tags by semver precedence, ignoring an optional "v" prefix on either side.
+// A plain string or git version-sort comparison gets this wrong: it buckets "v"-prefixed and bare-digit tags separately regardless of actual version, and sorts multi-digit segments lexicographically (making "v2.10.0" sort below "v2.9.0" because '1' < '9').
+// A naive dot-split comparator also has no notion of prerelease precedence, so a tag like "v15.0.0-beta.5" would sort above "v15.0.0".
 func compareSemver(a, b string) int {
-	as := strings.Split(strings.TrimPrefix(a, "v"), ".")
-	bs := strings.Split(strings.TrimPrefix(b, "v"), ".")
-	for i := 0; i < len(as) || i < len(bs); i++ {
-		var an, bn int
-		if i < len(as) {
-			an, _ = strconv.Atoi(as[i])
+	av, aErr := semver.NewVersion(a)
+	bv, bErr := semver.NewVersion(b)
+	if aErr != nil || bErr != nil {
+		// Neither tag reaches here unless it already passed parseMajorVersion, so this only covers a major-only parse succeeding while the full semver parse still fails.
+		if aErr != nil && bErr != nil {
+			return 0
 		}
-		if i < len(bs) {
-			bn, _ = strconv.Atoi(bs[i])
+		if aErr != nil {
+			return -1
 		}
-		if an != bn {
-			return an - bn
-		}
+		return 1
 	}
-	return 0
+	return av.Compare(bv)
 }
 
 // gitWorkingTreeDirty reports whether dir has uncommitted changes to tracked files.

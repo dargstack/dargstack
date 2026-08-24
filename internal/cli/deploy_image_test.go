@@ -198,6 +198,33 @@ func TestLatestGitTagNumericMinorOrdering(t *testing.T) {
 	}
 }
 
+// TestLatestGitTagPrereleaseRanksBelowStable guards against the regression where a naive dot-split comparator treated "v15.0.0-beta.5" as newer than "v15.0.0".
+// The trailing ".5" from the prerelease identifier was read as a phantom 4th version segment.
+func TestLatestGitTagPrereleaseRanksBelowStable(t *testing.T) {
+	dir := t.TempDir()
+	setupGitRepo(t, dir)
+
+	runGit(t, dir, "tag", "v15.0.0-beta.5")
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "second")
+	runGit(t, dir, "tag", "v15.0.0")
+
+	origStackDir := stackDir
+	stackDir = dir
+	defer func() { stackDir = origStackDir }()
+
+	tag, err := latestGitTag(15)
+	if err != nil {
+		t.Fatalf("latestGitTag failed: %v", err)
+	}
+	if tag != "v15.0.0" {
+		t.Errorf("latestGitTag(15) = %q, want v15.0.0 (stable outranks its own prerelease)", tag)
+	}
+}
+
 // TestLatestGitTagIgnoresReachability documents the intentional drop of
 // branch-ancestry filtering: a tag reachable only from a side branch that
 // was never merged into the production branch is still eligible.
