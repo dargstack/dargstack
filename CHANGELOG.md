@@ -1,3 +1,9 @@
+## [4.14.1](https://github.com/dargstack/dargstack/compare/v4.14.0...v4.14.1) (2026-08-24)
+
+### Bug Fixes
+
+* **deploy:** use semver precedence when resolving latest git tag ([#133](https://github.com/dargstack/dargstack/issues/133)) ([38b0fc7](https://github.com/dargstack/dargstack/commit/38b0fc7f4e01f4f0958470b9255cc3adb0215ddb))
+
 ## [4.14.0](https://github.com/dargstack/dargstack/compare/v4.13.6...v4.14.0) (2026-08-24)
 
 ### Features
