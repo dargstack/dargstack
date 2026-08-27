@@ -12,7 +12,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
 
-	"github.com/dargstack/dargstack/v4/internal/logger"
+	"github.com/dargmuesli/dargstack/v4/internal/logger"
 )
 
 // buildLabelColors are ANSI 256-color codes used to distinguish concurrent build streams by label identity (not severity).

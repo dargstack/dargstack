@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dargstack/dargstack/v4/internal/secret"
+	"github.com/dargmuesli/dargstack/v4/internal/secret"
 )
 
 func TestSecretSetupFlow_NoInteractionAutoGenerates(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dargstack/dargstack/v4/internal/audit"
-	"github.com/dargstack/dargstack/v4/internal/logger"
+	"github.com/dargmuesli/dargstack/v4/internal/audit"
+	"github.com/dargmuesli/dargstack/v4/internal/logger"
 )
 
 var (

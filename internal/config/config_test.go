@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/dargstack/dargstack/v4/internal/version"
+	"github.com/dargmuesli/dargstack/v4/internal/version"
 )
 
 func TestLoadConfig(t *testing.T) {

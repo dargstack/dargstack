@@ -14,16 +14,16 @@ import (
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v3"
 
-	"github.com/dargstack/dargstack/v4/internal/audit"
-	"github.com/dargstack/dargstack/v4/internal/compose"
-	"github.com/dargstack/dargstack/v4/internal/config"
-	"github.com/dargstack/dargstack/v4/internal/docker"
-	"github.com/dargstack/dargstack/v4/internal/giturl"
-	"github.com/dargstack/dargstack/v4/internal/logger"
-	"github.com/dargstack/dargstack/v4/internal/prompt"
-	"github.com/dargstack/dargstack/v4/internal/resource"
-	"github.com/dargstack/dargstack/v4/internal/secret"
-	"github.com/dargstack/dargstack/v4/internal/tls"
+	"github.com/dargmuesli/dargstack/v4/internal/audit"
+	"github.com/dargmuesli/dargstack/v4/internal/compose"
+	"github.com/dargmuesli/dargstack/v4/internal/config"
+	"github.com/dargmuesli/dargstack/v4/internal/docker"
+	"github.com/dargmuesli/dargstack/v4/internal/giturl"
+	"github.com/dargmuesli/dargstack/v4/internal/logger"
+	"github.com/dargmuesli/dargstack/v4/internal/prompt"
+	"github.com/dargmuesli/dargstack/v4/internal/resource"
+	"github.com/dargmuesli/dargstack/v4/internal/secret"
+	"github.com/dargmuesli/dargstack/v4/internal/tls"
 )
 
 func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *docker.Client, executor *docker.Executor, env string, dryRun bool) error {

@@ -14,11 +14,11 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"go.yaml.in/yaml/v3"
 
-	"github.com/dargstack/dargstack/v4/internal/config"
-	"github.com/dargstack/dargstack/v4/internal/docker"
-	"github.com/dargstack/dargstack/v4/internal/giturl"
-	"github.com/dargstack/dargstack/v4/internal/logger"
-	"github.com/dargstack/dargstack/v4/internal/prompt"
+	"github.com/dargmuesli/dargstack/v4/internal/config"
+	"github.com/dargmuesli/dargstack/v4/internal/docker"
+	"github.com/dargmuesli/dargstack/v4/internal/giturl"
+	"github.com/dargmuesli/dargstack/v4/internal/logger"
+	"github.com/dargmuesli/dargstack/v4/internal/prompt"
 )
 
 func parseMajorVersion(tag string) (int, error) {

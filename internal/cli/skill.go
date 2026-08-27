@@ -7,9 +7,9 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
-	"github.com/dargstack/dargstack/v4/internal/config"
-	"github.com/dargstack/dargstack/v4/internal/logger"
-	"github.com/dargstack/dargstack/v4/internal/skill"
+	"github.com/dargmuesli/dargstack/v4/internal/config"
+	"github.com/dargmuesli/dargstack/v4/internal/logger"
+	"github.com/dargmuesli/dargstack/v4/internal/skill"
 )
 
 var skillProject bool

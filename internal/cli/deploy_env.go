@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dargstack/dargstack/v4/internal/compose"
-	"github.com/dargstack/dargstack/v4/internal/logger"
-	"github.com/dargstack/dargstack/v4/internal/prompt"
+	"github.com/dargmuesli/dargstack/v4/internal/compose"
+	"github.com/dargmuesli/dargstack/v4/internal/logger"
+	"github.com/dargmuesli/dargstack/v4/internal/prompt"
 )
 
 // applyEnvToProcess loads the resolved .env values and STACK_DOMAIN into the current process environment so that `docker stack deploy -c -` can interpolate them.

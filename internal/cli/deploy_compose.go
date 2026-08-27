@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dargstack/dargstack/v4/internal/compose"
-	"github.com/dargstack/dargstack/v4/internal/config"
-	"github.com/dargstack/dargstack/v4/internal/logger"
-	"github.com/dargstack/dargstack/v4/internal/secret"
+	"github.com/dargmuesli/dargstack/v4/internal/compose"
+	"github.com/dargmuesli/dargstack/v4/internal/config"
+	"github.com/dargmuesli/dargstack/v4/internal/logger"
+	"github.com/dargmuesli/dargstack/v4/internal/secret"
 )
 
 func buildDevelopmentCompose() ([]byte, error) {

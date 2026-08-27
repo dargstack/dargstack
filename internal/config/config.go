@@ -9,8 +9,8 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"go.yaml.in/yaml/v3"
 
-	"github.com/dargstack/dargstack/v4/internal/schema"
-	"github.com/dargstack/dargstack/v4/internal/version"
+	"github.com/dargmuesli/dargstack/v4/internal/schema"
+	"github.com/dargmuesli/dargstack/v4/internal/version"
 )
 
 type SudoMode string

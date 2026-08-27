@@ -22,7 +22,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"go.yaml.in/yaml/v3"
 
-	"github.com/dargstack/dargstack/v4/internal/logger"
+	"github.com/dargmuesli/dargstack/v4/internal/logger"
 )
 
 const renewalThreshold = 30 * 24 * time.Hour // 30 days before expiry

@@ -11,12 +11,12 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
-	"github.com/dargstack/dargstack/v4/internal/config"
-	"github.com/dargstack/dargstack/v4/internal/logger"
-	"github.com/dargstack/dargstack/v4/internal/platform"
-	"github.com/dargstack/dargstack/v4/internal/prompt"
-	"github.com/dargstack/dargstack/v4/internal/update"
-	"github.com/dargstack/dargstack/v4/internal/version"
+	"github.com/dargmuesli/dargstack/v4/internal/config"
+	"github.com/dargmuesli/dargstack/v4/internal/logger"
+	"github.com/dargmuesli/dargstack/v4/internal/platform"
+	"github.com/dargmuesli/dargstack/v4/internal/prompt"
+	"github.com/dargmuesli/dargstack/v4/internal/update"
+	"github.com/dargmuesli/dargstack/v4/internal/version"
 )
 
 // selfUpdateFunc performs a self-update; overridden in tests.
@@ -47,8 +47,8 @@ var (
 )
 
 const (
-	bugReportURL   = "https://github.com/dargstack/dargstack/issues/new?template=bug_report.yaml"
-	discussionsURL = "https://github.com/dargstack/dargstack/discussions"
+	bugReportURL   = "https://github.com/dargmuesli/dargstack/issues/new?template=bug_report.yaml"
+	discussionsURL = "https://github.com/dargmuesli/dargstack/discussions"
 )
 
 var logLevel string

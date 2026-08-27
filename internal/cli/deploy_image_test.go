@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dargstack/dargstack/v4/internal/config"
+	"github.com/dargmuesli/dargstack/v4/internal/config"
 )
 
 func runGit(t *testing.T, dir string, args ...string) {

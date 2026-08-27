@@ -17,12 +17,12 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/creativeprojects/go-selfupdate"
 
-	"github.com/dargstack/dargstack/v4/internal/logger"
-	"github.com/dargstack/dargstack/v4/internal/version"
+	"github.com/dargmuesli/dargstack/v4/internal/logger"
+	"github.com/dargmuesli/dargstack/v4/internal/version"
 )
 
 const (
-	githubOwner = "dargstack"
+	githubOwner = "dargmuesli"
 	githubRepo  = "dargstack"
 	cacheFile   = ".dargstack-update-check"
 	cacheTTL    = 24 * time.Hour

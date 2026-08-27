@@ -43,5 +43,5 @@ COPY --from=test /src/go.mod /.test-stage.go.mod
 COPY --from=build /out/dargstack /usr/local/bin/dargstack
 USER 65532:65532
 ENTRYPOINT ["/usr/local/bin/dargstack"]
-LABEL org.opencontainers.image.source="https://github.com/dargstack/dargstack"
+LABEL org.opencontainers.image.source="https://github.com/dargmuesli/dargstack"
 LABEL org.opencontainers.image.description="Docker Swarm stack helper CLI"

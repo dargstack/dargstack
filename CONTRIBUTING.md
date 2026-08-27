@@ -12,7 +12,7 @@ Thank you for your interest in contributing!
 
 ```bash
 # Clone and build
-git clone https://github.com/dargstack/dargstack.git
+git clone https://github.com/dargmuesli/dargstack.git
 cd dargstack
 go build ./cmd/dargstack
 
@@ -90,4 +90,4 @@ See [docs/architecture.md](docs/architecture.md) for vision, design tenets, and 
 ## Getting Help
 
 - [README.md](README.md): usage documentation and examples
-- [GitHub Issues](https://github.com/dargstack/dargstack/issues): bug reports and feature requests
+- [GitHub Issues](https://github.com/dargmuesli/dargstack/issues): bug reports and feature requests

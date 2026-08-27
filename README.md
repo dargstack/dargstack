@@ -21,6 +21,9 @@ The following projects successfully employ dargstack in production:
 Migrating from v3? See [MIGRATION.md](MIGRATION.md).
 Contributing? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
+This repository moved from `dargstack/dargstack` to `dargmuesli/dargstack`.
+Old repository links redirect, but the Go module path and the container image name changed, so update `go install`, `import` and `FROM` lines to `dargmuesli`.
+
 ---
 
 ## Table of Contents
@@ -64,8 +67,8 @@ On Windows, run this in a POSIX shell (WSL, Git Bash, or Cygwin); it won't work 
 
 ```bash
 ARCHIVE="dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz"
-curl -sfL -o "$ARCHIVE" "https://github.com/dargstack/dargstack/releases/latest/download/$ARCHIVE"
-curl -sfL https://github.com/dargstack/dargstack/releases/latest/download/checksums.txt | sha256sum -c - --ignore-missing
+curl -sfL -o "$ARCHIVE" "https://github.com/dargmuesli/dargstack/releases/latest/download/$ARCHIVE"
+curl -sfL https://github.com/dargmuesli/dargstack/releases/latest/download/checksums.txt | sha256sum -c - --ignore-missing
 tar xzf "$ARCHIVE" && rm "$ARCHIVE"
 mkdir -p "$HOME/.local/bin" && mv dargstack "$HOME/.local/bin/"
 ```
@@ -77,7 +80,7 @@ Ensure `$HOME/.local/bin` is on your `PATH`.
 **Prerequisite**: Go installed, see [go.dev: Download and install](https://go.dev/doc/install).
 
 ```bash
-go install github.com/dargstack/dargstack/v4/cmd/dargstack@latest
+go install github.com/dargmuesli/dargstack/v4/cmd/dargstack@latest
 ```
 
 Package integrity is enforced by the Go module proxy and the module's `go.sum` lockfile.

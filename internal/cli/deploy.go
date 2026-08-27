@@ -9,8 +9,8 @@ import (
 	"github.com/moby/moby/api/types/swarm"
 	"github.com/spf13/cobra"
 
-	"github.com/dargstack/dargstack/v4/internal/docker"
-	"github.com/dargstack/dargstack/v4/internal/logger"
+	"github.com/dargmuesli/dargstack/v4/internal/docker"
+	"github.com/dargmuesli/dargstack/v4/internal/logger"
 )
 
 var (

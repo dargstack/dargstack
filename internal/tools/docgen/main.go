@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra/doc"
 
-	"github.com/dargstack/dargstack/v4/internal/cli"
+	"github.com/dargmuesli/dargstack/v4/internal/cli"
 )
 
 func main() {

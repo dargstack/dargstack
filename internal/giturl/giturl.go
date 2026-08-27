@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dargstack/dargstack/v4/internal/logger"
+	"github.com/dargmuesli/dargstack/v4/internal/logger"
 )
 
 // GitURL holds SSH and HTTPS clone URLs for a service's repository.

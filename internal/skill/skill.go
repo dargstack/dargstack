@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dargstack/dargstack/v4/internal/version"
+	"github.com/dargmuesli/dargstack/v4/internal/version"
 )
 
 //go:embed SKILL.md

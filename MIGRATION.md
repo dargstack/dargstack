@@ -25,8 +25,8 @@ On Windows, run this in a POSIX shell (WSL, Git Bash, or Cygwin); it won't work 
 
 ```bash
 ARCHIVE="dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz"
-curl -sfL -o "$ARCHIVE" "https://github.com/dargstack/dargstack/releases/latest/download/$ARCHIVE"
-curl -sfL https://github.com/dargstack/dargstack/releases/latest/download/checksums.txt | sha256sum -c - --ignore-missing
+curl -sfL -o "$ARCHIVE" "https://github.com/dargmuesli/dargstack/releases/latest/download/$ARCHIVE"
+curl -sfL https://github.com/dargmuesli/dargstack/releases/latest/download/checksums.txt | sha256sum -c - --ignore-missing
 tar xzf "$ARCHIVE" && rm "$ARCHIVE"
 mkdir -p "$HOME/.local/bin" && mv dargstack "$HOME/.local/bin/"
 ```
@@ -36,7 +36,7 @@ Ensure `$HOME/.local/bin` is on your `PATH`.
 **Alternative** (verified via Go module proxy):
 
 ```bash
-go install github.com/dargstack/dargstack/v4/cmd/dargstack@latest
+go install github.com/dargmuesli/dargstack/v4/cmd/dargstack@latest
 ```
 
 Remove the old v3 script:
@@ -51,8 +51,8 @@ The `releases/latest` URL above is suitable for local development where you want
 For CI pipelines, pin to a specific version so that documentation generation and validation output are reproducible:
 
 ```bash
-VERSION="$(sed -n 's#^FROM ghcr\.io/dargstack/dargstack:##p' Dockerfile.md)"
-BASE_URL="https://github.com/dargstack/dargstack/releases/download/v${VERSION}"
+VERSION="$(sed -n 's#^FROM ghcr\.io/dargmuesli/dargstack:##p' Dockerfile.md)"
+BASE_URL="https://github.com/dargmuesli/dargstack/releases/download/v${VERSION}"
 ARCHIVE="dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').tar.gz"
 curl -sfL -o "$ARCHIVE" "${BASE_URL}/$ARCHIVE"
 curl -sfL "${BASE_URL}/checksums.txt" | sha256sum -c - --ignore-missing
@@ -65,7 +65,7 @@ The `.md` extension is intentional: Renovate's docker-manager matches files name
 The file only needs a single `FROM` line:
 
 ```dockerfile
-FROM ghcr.io/dargstack/dargstack:4.0.0
+FROM ghcr.io/dargmuesli/dargstack:4.0.0
 ```
 
 ---
@@ -424,4 +424,4 @@ You may drop project-specific certificate generation solutions and update certif
 ## Getting help
 
 - [README](README.md): project structure, configuration, and all commands
-- [GitHub Issues](https://github.com/dargstack/dargstack/issues): bug reports and questions
+- [GitHub Issues](https://github.com/dargmuesli/dargstack/issues): bug reports and questions

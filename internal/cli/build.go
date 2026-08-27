@@ -10,10 +10,10 @@ import (
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v3"
 
-	"github.com/dargstack/dargstack/v4/internal/compose"
-	"github.com/dargstack/dargstack/v4/internal/docker"
-	"github.com/dargstack/dargstack/v4/internal/logger"
-	"github.com/dargstack/dargstack/v4/internal/prompt"
+	"github.com/dargmuesli/dargstack/v4/internal/compose"
+	"github.com/dargmuesli/dargstack/v4/internal/docker"
+	"github.com/dargmuesli/dargstack/v4/internal/logger"
+	"github.com/dargmuesli/dargstack/v4/internal/prompt"
 )
 
 var buildCmd = &cobra.Command{

@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/dargstack/dargstack/v4/internal/schema"
+	"github.com/dargmuesli/dargstack/v4/internal/schema"
 )
 
 var schemaSave string

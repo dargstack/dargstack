@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/dargstack/dargstack/v4/internal/resource"
-	"github.com/dargstack/dargstack/v4/internal/secret"
+	"github.com/dargmuesli/dargstack/v4/internal/resource"
+	"github.com/dargmuesli/dargstack/v4/internal/secret"
 )
 
 // configSetupFlow derives and writes generated config values declared under x-dargstack.configs (currently only the public_key type, sourced from a private_key secret).

@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dargstack/dargstack/v4/internal/compose"
+	"github.com/dargmuesli/dargstack/v4/internal/compose"
 
 	"go.yaml.in/yaml/v3"
 )

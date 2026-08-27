@@ -1,4 +1,4 @@
-module github.com/dargstack/dargstack/v4
+module github.com/dargmuesli/dargstack/v4
 
 go 1.26.1
 

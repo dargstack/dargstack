@@ -8,9 +8,9 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/dargstack/dargstack/v4/internal/compose"
-	"github.com/dargstack/dargstack/v4/internal/giturl"
-	"github.com/dargstack/dargstack/v4/internal/secret"
+	"github.com/dargmuesli/dargstack/v4/internal/compose"
+	"github.com/dargmuesli/dargstack/v4/internal/giturl"
+	"github.com/dargmuesli/dargstack/v4/internal/secret"
 )
 
 // Issue represents a validation problem with a resource.
