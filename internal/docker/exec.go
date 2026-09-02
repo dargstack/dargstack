@@ -288,6 +288,34 @@ func (e *Executor) RunWithStdin(input []byte, args ...string) error {
 	return nil
 }
 
+// RunWithStdinCapture executes a docker command passing data via stdin and returns captured stdout.
+// Unlike RunWithStdin, output is captured rather than streamed, and any stderr is folded into the returned error, mirroring Run.
+func (e *Executor) RunWithStdinCapture(input []byte, args ...string) (string, error) {
+	if e.useSudo {
+		if err := refreshSudoIfNeeded(); err != nil {
+			return "", fmt.Errorf("sudo authentication failed: %w", err)
+		}
+	}
+	var cmd *exec.Cmd
+	if e.useSudo {
+		fullArgs := append([]string{e.binary}, args...)
+		cmd = exec.Command("sudo", fullArgs...)
+	} else {
+		cmd = exec.Command(e.binary, args...)
+	}
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdin = bytes.NewReader(input)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("docker %s: %s\n%s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
+	}
+
+	return strings.TrimSpace(stdout.String()), nil
+}
+
 // NeedsSudo reports whether the executor uses sudo for commands.
 func (e *Executor) NeedsSudo() bool {
 	return e.useSudo

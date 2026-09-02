@@ -106,6 +106,10 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		return err
 	}
 
+	if err := deployValidateComposeConfig(executor, composeData); err != nil {
+		return err
+	}
+
 	if err := deployExecute(executor, composeData, env, deployedTag, dryRun); err != nil {
 		return err
 	}
@@ -189,6 +193,29 @@ func deployValidateResources(composeData []byte, secretIssues []resource.Issue, 
 		return hintErr(
 			errors.New(ErrValidationFailed),
 			"Fix the errors listed above, then run `dargstack deploy` again.",
+		)
+	}
+	return nil
+}
+
+// deployValidateComposeConfig runs `docker compose config` against the final compose output to catch structural errors invisible to plain YAML parsing, such as a list field collapsed to null by dev-only marker stripping, before they reach `docker stack deploy`.
+// executor may be nil (no docker CLI available, e.g. a dry run on a machine without Docker installed), in which case the check is skipped rather than blocking.
+func deployValidateComposeConfig(executor *docker.Executor, composeData []byte) error {
+	if executor == nil {
+		logger.L.Debug("Skipping `docker compose config` validation: no docker executor available")
+		return nil
+	}
+
+	skipped, err := docker.ComposeConfigValid(executor, composeData)
+	if skipped {
+		logger.L.Debug("Skipping `docker compose config` validation: compose plugin not installed")
+		return nil
+	}
+	if err != nil {
+		logger.L.Error(err.Error())
+		return hintErr(
+			errors.New(ErrValidationFailed),
+			"Fix the compose error above, then run `dargstack deploy` again.",
 		)
 	}
 	return nil

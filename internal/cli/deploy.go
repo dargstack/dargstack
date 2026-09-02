@@ -62,7 +62,7 @@ func runDeploy(cmd *cobra.Command, _ []string) error {
 	}
 
 	if dryRun {
-		return runDeployWithExecutor(ctx, cmd, nil, nil, env, true)
+		return runDeployWithExecutor(ctx, cmd, nil, composeExecutor(), env, true)
 	}
 
 	// Docker prerequisite check: create executor first so sudo is pre-warmed before any Docker socket access.

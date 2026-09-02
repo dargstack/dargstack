@@ -11,6 +11,7 @@ Checks:
 - All secrets files referenced in compose definitions exist
 - All Dockerfile contexts for services with `dargstack.development.build` labels are present
 - TLS certificates directory exists for development
+- The merged compose output passes `docker compose config` (skipped if the compose CLI plugin isn't installed)
 
 ```
 dargstack validate [flags]

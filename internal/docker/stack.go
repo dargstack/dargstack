@@ -18,6 +18,22 @@ func StackDeploy(exec *Executor, stackName string, composeData []byte) error {
 	return nil
 }
 
+// ComposeConfigValid runs `docker compose -f - config` against composeData to catch structural errors that plain YAML parsing can't, such as a list field collapsed to null.
+// It reports skipped=true instead of an error when the docker compose CLI plugin isn't installed, since it isn't required for `docker stack deploy` to work.
+func ComposeConfigValid(exec *Executor, composeData []byte) (skipped bool, err error) {
+	_, err = exec.RunWithStdinCapture(composeData, "compose", "-f", "-", "config", "--quiet")
+	if err != nil && isComposePluginMissing(err) {
+		return true, nil
+	}
+	return false, err
+}
+
+// isComposePluginMissing reports whether err looks like Docker rejecting "compose" as an unknown subcommand, meaning the compose CLI plugin isn't installed.
+func isComposePluginMissing(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "is not a docker command") || strings.Contains(msg, "unknown command")
+}
+
 // StackRemove removes a deployed stack.
 func StackRemove(exec *Executor, stackName string) error {
 	_, err := exec.Run("stack", "rm", stackName)
