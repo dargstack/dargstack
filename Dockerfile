@@ -14,10 +14,9 @@ FROM base AS copy
 COPY . .
 
 # ── lint ────────────────────────────────────────────────────────────────────
-FROM golangci/golangci-lint:v2.13.2-alpine AS lint
-WORKDIR /src
-COPY --from=copy /src .
-RUN golangci-lint run ./...
+FROM copy AS lint
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go tool golangci-lint run ./...
 
 # ── test ────────────────────────────────────────────────────────────────────
 FROM copy AS test

@@ -8,7 +8,8 @@ Thank you for your interest in contributing!
 
 - Go: see [go.dev: Download and install](https://go.dev/doc/install)
 - Git: see [git-scm.com: Install](https://git-scm.com/)
-- golangci-lint v2: see [golangci-lint.run: Local Installation](https://golangci-lint.run/docs/welcome/install/local/)
+
+golangci-lint is pinned in `go.mod` as a tool dependency, no separate install needed.
 
 ```bash
 # Clone and build
@@ -20,7 +21,7 @@ go build ./cmd/dargstack
 go test -race ./...
 
 # Lint
-golangci-lint run ./...
+go tool golangci-lint run ./...
 ```
 
 ## Development Workflow
@@ -31,12 +32,12 @@ Pull requests should:
 
 1. Fork the repository and create a feature branch.
 2. Include tests for new behavior.
-3. Pass `go test -race ./...` and `golangci-lint run ./...`.
+3. Pass `go test -race ./...` and `go tool golangci-lint run ./...`.
 4. Have a clear description of the change and its motivation.
 
 ## Code Style
 
-- Run `golangci-lint run ./...` before submitting.
+- Run `go tool golangci-lint run ./...` before submitting.
   CI enforces zero issues.
 - Use `gofmt` and `goimports` for formatting.
 - Error strings should not be capitalized (per Go conventions).
