@@ -13,7 +13,7 @@ func TestIsComposePluginMissing(t *testing.T) {
 	}{
 		{
 			name: "docker cli rejects compose as unknown",
-			err:  errors.New(`docker compose -f - config --quiet: exit status 1
+			err: errors.New(`docker compose -f - config --quiet: exit status 1
 docker: 'compose' is not a docker command.`),
 			want: true,
 		},
@@ -24,7 +24,7 @@ docker: 'compose' is not a docker command.`),
 		},
 		{
 			name: "actual config error is not a missing plugin",
-			err:  errors.New(`docker compose -f - config --quiet: exit status 15
+			err: errors.New(`docker compose -f - config --quiet: exit status 15
 services.web.volumes must be a list`),
 			want: false,
 		},
