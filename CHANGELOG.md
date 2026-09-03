@@ -1,3 +1,9 @@
+## [4.17.0](https://github.com/dargstack/dargstack/compare/v4.16.0...v4.17.0) (2026-09-03)
+
+### Features
+
+* **secret:** add basic_auth secret type ([#138](https://github.com/dargstack/dargstack/issues/138)) ([7944890](https://github.com/dargstack/dargstack/commit/7944890275bc1f4d4d4884a14d2e3a640d23f62c))
+
 ## [4.16.0](https://github.com/dargstack/dargstack/compare/v4.15.0...v4.16.0) (2026-09-03)
 
 ### Features
