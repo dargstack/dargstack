@@ -306,15 +306,23 @@ x-dargstack:
     dev-only-secret:
       type: insecure_default
       insecure_default: "CHANGE_ME"
+    dashboard-password:
+      type: random_string
+      length: 24
+    dashboard-auth:
+      type: basic_auth
+      username: admin
+      source: dashboard-password
     api-db_url:
       type: template
       template: "postgresql://postgres:{{secret:postgres-password}}@postgres:5432/app"
 ```
 
-`type` controls secret behavior. Supported values: `random_string`, `wordlist_word`, `private_key`, `third_party`, `insecure_default`, `template`.
+`type` controls secret behavior. Supported values: `random_string`, `wordlist_word`, `private_key`, `third_party`, `insecure_default`, `basic_auth`, `template`.
 If omitted, the type is inferred from the fields provided:
 
 - `private_key` if `key_type` or `key_size` is set
+- `basic_auth` if `username` or `algorithm` is set
 - `third_party` if `third_party` is set
 - `template` if `template` is set
 - `insecure_default` if `insecure_default` is set
@@ -337,6 +345,19 @@ If omitted, the type is inferred from the fields provided:
 **`insecure_default` properties:**
 
 - `insecure_default`: default value used for the secret
+
+**`basic_auth` properties:**
+
+- `username`: the username half of the credential, either a literal or a template referencing another secret (for example `{{secret:admin-user}}`)
+- `source`: name of the secret holding the plaintext password to hash
+
+Passwords are hashed with bcrypt, matching `htpasswd -B` output.
+bcrypt refuses passwords longer than 72 bytes, so a `random_string` source has to stay at or below `length: 72`.
+
+The secret file holds a single htpasswd line (`username:hash`), which is what Traefik's basicauth middleware and nginx's `auth_basic_user_file` expect.
+The plaintext password stays in the `source` secret, so it remains readable with `dargstack secret show`.
+The hash is generated once and is not refreshed when the source password changes: delete the basic_auth secret file to have it rebuilt.
+If the source secret is unset (for example an unfilled `third_party` password), no credential is written, since a hash of the placeholder text would be indistinguishable from a real one.
 
 **`template` properties:**
 

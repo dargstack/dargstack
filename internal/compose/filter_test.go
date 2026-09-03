@@ -744,3 +744,68 @@ func TestVolumeNamesNoVolumesSection(t *testing.T) {
 		t.Fatalf("expected no volume names, got %v", names)
 	}
 }
+
+func TestFilterByProfileKeepsBasicAuthSourceSecret(t *testing.T) {
+	// Only the basic_auth secret is mounted by a service.
+	// The plaintext password it hashes and the username it reads must survive filtering so the credential can still be generated.
+	composeYAML := `services:
+  proxy:
+    image: traefik:latest
+    secrets:
+      - admin-auth
+    deploy:
+      labels:
+        dargstack.profiles: default
+secrets:
+  admin-auth:
+    file: ./secrets/admin-auth.secret
+  admin-password:
+    file: ./secrets/admin-password.secret
+  admin-user:
+    file: ./secrets/admin-user.secret
+x-dargstack:
+  secrets:
+    admin-auth:
+      type: basic_auth
+      username: "{{secret:admin-user}}"
+      source: admin-password
+    admin-password:
+      type: random_string
+    admin-user:
+      type: wordlist_word
+`
+
+	result, err := FilterByProfile([]byte(composeYAML), []string{"default"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(result, &doc); err != nil {
+		t.Fatal(err)
+	}
+
+	topSecrets, ok := doc["secrets"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected secrets section")
+	}
+	for _, name := range []string{"admin-auth", "admin-password", "admin-user"} {
+		if _, ok := topSecrets[name]; !ok {
+			t.Errorf("expected %s in secrets", name)
+		}
+	}
+
+	ext, ok := doc["x-dargstack"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected x-dargstack section")
+	}
+	dargSecrets, ok := ext["secrets"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected x-dargstack.secrets section")
+	}
+	for _, name := range []string{"admin-auth", "admin-password", "admin-user"} {
+		if _, ok := dargSecrets[name]; !ok {
+			t.Errorf("expected %s in x-dargstack.secrets", name)
+		}
+	}
+}

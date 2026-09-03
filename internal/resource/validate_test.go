@@ -584,3 +584,113 @@ func TestValidateGitLabelSkippedInProduction(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateDargstackSecretsBasicAuth(t *testing.T) {
+	cases := []struct {
+		name        string
+		definition  string
+		wantIssue   bool
+		wantMessage string
+	}{
+		{
+			name: "valid",
+			definition: `    admin-auth:
+      type: basic_auth
+      username: admin
+      source: admin-password
+    admin-password:
+      type: random_string
+`,
+			wantIssue: false,
+		},
+		{
+			name: "missing source",
+			definition: `    admin-auth:
+      type: basic_auth
+      username: admin
+`,
+			wantIssue:   true,
+			wantMessage: "requires a source",
+		},
+		{
+			name: "unknown source",
+			definition: `    admin-auth:
+      type: basic_auth
+      username: admin
+      source: does-not-exist
+`,
+			wantIssue:   true,
+			wantMessage: "not defined in x-dargstack.secrets",
+		},
+		{
+			name: "missing username",
+			definition: `    admin-auth:
+      type: basic_auth
+      source: admin-password
+    admin-password:
+      type: random_string
+`,
+			wantIssue:   true,
+			wantMessage: "requires a username",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			composeYAML := `services:
+  api:
+    image: api:latest
+x-dargstack:
+  secrets:
+` + c.definition
+
+			issues, err := Validate([]byte(composeYAML), t.TempDir(), false)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			found := false
+			for _, iss := range issues {
+				if iss.Resource == "secret:admin-auth" && iss.Severity == "error" {
+					found = true
+					if c.wantMessage != "" && !strings.Contains(iss.Description, c.wantMessage) {
+						t.Errorf("description = %q, want it to contain %q", iss.Description, c.wantMessage)
+					}
+				}
+			}
+			if found != c.wantIssue {
+				t.Errorf("got issue = %v, want %v (issues: %v)", found, c.wantIssue, issues)
+			}
+		})
+	}
+}
+
+func TestValidateDargstackSecretsBasicAuthPasswordTooLongForBcrypt(t *testing.T) {
+	composeYAML := `services:
+  api:
+    image: api:latest
+x-dargstack:
+  secrets:
+    admin-auth:
+      type: basic_auth
+      username: admin
+      source: admin-password
+    admin-password:
+      type: random_string
+      length: 100
+`
+	issues, err := Validate([]byte(composeYAML), t.TempDir(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	found := false
+	for _, iss := range issues {
+		if iss.Resource == "secret:admin-auth" && iss.Severity == "error" && strings.Contains(iss.Description, "bcrypt cannot hash") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected an error about the bcrypt length limit, got: %v", issues)
+	}
+}

@@ -378,20 +378,32 @@ func expandUsedSecrets(secretsMap map[string]interface{}, usedSecrets map[string
 	}
 }
 
-// extractDargstackSecretRefs extracts secret names referenced via {{secret:name}} or {{name}} from a secret definition's template field.
-// It mirrors the templateDependency logic in the secret package.
+// extractDargstackSecretRefs extracts secret names a secret definition depends on: {{secret:name}} or {{name}} references in its template and username fields, plus the source of a basic_auth secret.
+// It mirrors the templateDeps logic in the secret package.
 func extractDargstackSecretRefs(def map[string]interface{}) []string {
-	var tmpl string
-	switch v := def["template"].(type) {
-	case string:
-		tmpl = v
-	case nil:
-		// No template field; not a template secret.
-		return nil
-	default:
-		return nil
+	var refs []string
+	if source, ok := def["source"].(string); ok && source != "" && isBasicAuthDef(def) {
+		refs = append(refs, source)
 	}
+	for _, field := range []string{"template", "username"} {
+		if tmpl, ok := def[field].(string); ok {
+			refs = append(refs, extractTemplateFieldRefs(tmpl)...)
+		}
+	}
+	return refs
+}
 
+// isBasicAuthDef reports whether a raw x-dargstack.secrets entry is a basic_auth secret, whose source names another secret rather than a file.
+// A public_key source is deliberately not treated as a dependency here: public_key is a config type, handled by resolveConfigSecretDeps.
+func isBasicAuthDef(def map[string]interface{}) bool {
+	if t, ok := def["type"].(string); ok {
+		return strings.EqualFold(strings.TrimSpace(t), "basic_auth")
+	}
+	_, hasUsername := def["username"]
+	return hasUsername
+}
+
+func extractTemplateFieldRefs(tmpl string) []string {
 	var refs []string
 	matches := templateTokenRegex.FindAllStringSubmatch(tmpl, -1)
 	for _, m := range matches {

@@ -108,6 +108,13 @@ x-dargstack:
     dev-secret:
       type: insecure_default
       insecure_default: "CHANGE_ME"
+    dashboard-password:
+      type: random_string
+      length: 24
+    dashboard-auth:
+      type: basic_auth
+      username: admin
+      source: dashboard-password
 ```
 
 **Secret types:**
@@ -116,6 +123,7 @@ x-dargstack:
 - `private_key`: auto-generated private key (ed25519, rsa, ecdsa)
 - `third_party`: requires manual value; `hint` guides the user
 - `insecure_default`: uses the provided default value
+- `basic_auth`: a bcrypt htpasswd line (`username:hash`) hashing the plaintext password held by the `source` secret; `username` may itself reference a secret
 - `template`: composed from tokens like `{{secret:name}}`, `{{random_string}}`, `{{wordlist_word}}`, `{{private_key}}`
 
 Secret files (`.secret` extension) live alongside `compose.yaml` in the service directory.

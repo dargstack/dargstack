@@ -149,6 +149,8 @@ func deploySetupSecrets(composeData []byte, dryRun bool) ([]resource.Issue, erro
 						logger.L.Info(fmt.Sprintf("  %s: generated word", name))
 					case tmpl.Type == secret.TypePrivateKey:
 						logger.L.Info(fmt.Sprintf("  %s: generated private key", name))
+					case tmpl.Type == secret.TypeBasicAuth:
+						logger.L.Info(fmt.Sprintf("  %s: basic auth line for %q (bcrypt hash of secret %s)", name, tmpl.Username, tmpl.Source))
 					case tmpl.Type == secret.TypeInsecureDefault:
 						logger.L.Info(fmt.Sprintf("  %s: insecure default value", name))
 					case secret.IsAutoGeneratable(&tmpl):
