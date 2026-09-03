@@ -52,7 +52,7 @@ var secretGenerateCmd = &cobra.Command{
 
 Reads secret templates from the compose file and generates values for any
 missing secrets. Auto-generatable types (random_string, wordlist_word,
-private_key, insecure_default, template) are created automatically.
+private_key, insecure_default, basic_auth, template) are created automatically.
 Third-party secrets require manual values.
 
 Also derives x-dargstack.configs values (currently public_key, which derives

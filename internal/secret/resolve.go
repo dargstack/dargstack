@@ -13,8 +13,9 @@ func TopologicalSort(templates map[string]Template) ([]string, error) {
 	// Build dependency graph: name -> list of secrets it depends on
 	deps := make(map[string][]string)
 	for name := range templates {
-		if tmpl := templates[name]; tmpl.Template != "" {
-			deps[name] = extractTemplateRefs(tmpl.Template)
+		tmpl := templates[name]
+		if refs := templateDeps(&tmpl); len(refs) > 0 {
+			deps[name] = refs
 		}
 	}
 
@@ -82,6 +83,23 @@ func TopologicalSort(templates map[string]Template) ([]string, error) {
 	}
 
 	return sorted, nil
+}
+
+// templateDeps returns the secrets a template depends on: {{secret:name}} references in its template string, plus the source secret and any username references of a basic_auth secret.
+func templateDeps(tmpl *Template) []string {
+	normalizeTemplate(tmpl)
+
+	var refs []string
+	if tmpl.Template != "" {
+		refs = append(refs, extractTemplateRefs(tmpl.Template)...)
+	}
+	if tmpl.Type == TypeBasicAuth {
+		if source := strings.TrimSpace(tmpl.Source); source != "" {
+			refs = append(refs, source)
+		}
+		refs = append(refs, extractTemplateRefs(tmpl.Username)...)
+	}
+	return refs
 }
 
 func extractTemplateRefs(tmpl string) []string {
@@ -157,6 +175,14 @@ func resolveTemplates(templates map[string]Template, values map[string]string, a
 			}
 		case TypeInsecureDefault:
 			value = tmpl.InsecureDefault
+		case TypeBasicAuth:
+			value, err = resolveBasicAuth(&tmpl, values, allowPlaceholders)
+			if err != nil {
+				return nil, fmt.Errorf("resolve basic auth %s: %w", name, err)
+			}
+			if value == "" {
+				continue // source password not available yet
+			}
 		case TypeThirdParty:
 			continue
 		default:
@@ -167,6 +193,29 @@ func resolveTemplates(templates map[string]Template, values map[string]string, a
 	}
 
 	return values, nil
+}
+
+// resolveBasicAuth renders the htpasswd line for a basic_auth secret from the resolved value of its source secret.
+// Unlike a template secret, it returns an empty string rather than hashing a placeholder when allowPlaceholders is set: a hash of the placeholder text would be indistinguishable from a real credential once written.
+func resolveBasicAuth(tmpl *Template, values map[string]string, allowPlaceholders bool) (string, error) {
+	source := strings.TrimSpace(tmpl.Source)
+	if source == "" {
+		return "", fmt.Errorf("basic_auth type requires a source")
+	}
+
+	password, ok := values[source]
+	if !ok || password == "" || isPlaceholderValue(password) {
+		if allowPlaceholders {
+			return "", nil
+		}
+		return "", fmt.Errorf("source secret %q is not set", source)
+	}
+
+	username, err := resolveTemplate(tmpl.Username, values, allowPlaceholders)
+	if err != nil {
+		return "", err
+	}
+	return formatBasicAuth(strings.TrimSpace(username), password)
 }
 
 // specialCharsEnabled returns the effective special_characters value (default true).

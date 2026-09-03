@@ -14,10 +14,11 @@ type Template struct {
 	KeyType           string `yaml:"key_type"`           // private_key: "ed25519" (default), "rsa", "ecdsa"
 	Length            int    `yaml:"length"`             // >0 enables secret generation
 	SpecialCharacters *bool  `yaml:"special_characters"` // nil = use default (true), false = opt-out
-	Source            string `yaml:"source"`             // public_key: name of the private_key secret to derive from
+	Source            string `yaml:"source"`             // public_key: name of the private_key secret to derive from; basic_auth: name of the secret holding the plaintext password
 	Template          string `yaml:"template"`           // template with {{secret_name}} references
 	ThirdParty        bool   `yaml:"third_party"`
 	Type              string `yaml:"type"`
+	Username          string `yaml:"username"` // basic_auth: literal username, or a template referencing another secret
 }
 
 const (
@@ -28,6 +29,7 @@ const (
 	TypeThirdParty      = "third_party"
 	TypeTemplate        = "template"
 	TypeInsecureDefault = "insecure_default"
+	TypeBasicAuth       = "basic_auth"
 )
 
 const thirdPartyPlaceholder = "UNSET THIRD PARTY SECRET"
@@ -126,7 +128,8 @@ func IsAutoGeneratable(t *Template) bool {
 		t.Type == TypeRandomString ||
 		t.Type == TypeWordlistWord ||
 		t.Type == TypePrivateKey ||
-		t.Type == TypeInsecureDefault
+		t.Type == TypeInsecureDefault ||
+		t.Type == TypeBasicAuth
 }
 
 func normalizeTemplate(t *Template) {
@@ -144,12 +147,16 @@ func normalizeTemplate(t *Template) {
 		t.Type = TypeThirdParty
 	case "insecure_default":
 		t.Type = TypeInsecureDefault
+	case "basic_auth":
+		t.Type = TypeBasicAuth
 	}
 
 	if t.Type == "" {
 		switch {
 		case t.KeyType != "" || t.KeySize > 0:
 			t.Type = TypePrivateKey
+		case t.Username != "":
+			t.Type = TypeBasicAuth
 		case t.Source != "":
 			t.Type = TypePublicKey
 		case t.ThirdParty:

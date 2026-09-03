@@ -50,6 +50,7 @@ func Validate(composeData []byte, stackDir string, production bool) ([]Issue, er
 	}
 	issues = append(issues, validateSecrets(doc, stackDir, production, templates)...)
 	issues = append(issues, validateConfigs(doc, stackDir, production)...)
+	issues = append(issues, validateDargstackSecrets(templates)...)
 	issues = append(issues, validateDargstackConfigs(configTemplates, templates)...)
 	issues = append(issues, validateServices(doc, stackDir, production)...)
 	if !production {
@@ -136,6 +137,57 @@ func validateConfigs(doc map[string]interface{}, stackDir string, production boo
 			}
 		}
 	}
+	return issues
+}
+
+// validateDargstackSecrets checks that basic_auth entries in x-dargstack.secrets are well-formed: a username, and a source naming another secret to take the plaintext password from.
+func validateDargstackSecrets(templates map[string]secret.Template) []Issue {
+	var issues []Issue
+
+	for name := range templates {
+		tmpl := templates[name]
+		if tmpl.Type != secret.TypeBasicAuth {
+			continue
+		}
+
+		res := fmt.Sprintf("secret:%s", name)
+		if strings.TrimSpace(tmpl.Username) == "" {
+			issues = append(issues, Issue{
+				Severity:    "error",
+				Resource:    res,
+				Description: "basic_auth type requires a username",
+			})
+		}
+
+		source := strings.TrimSpace(tmpl.Source)
+		if source == "" {
+			issues = append(issues, Issue{
+				Severity:    "error",
+				Resource:    res,
+				Description: "basic_auth type requires a source naming the secret that holds the plaintext password",
+			})
+			continue
+		}
+		sourceTmpl, ok := templates[source]
+		if !ok {
+			issues = append(issues, Issue{
+				Severity:    "error",
+				Resource:    res,
+				Description: fmt.Sprintf("source %q is not defined in x-dargstack.secrets", source),
+			})
+			continue
+		}
+
+		// bcrypt rejects anything past 72 bytes rather than truncating, which would otherwise surface as an opaque failure at generation time.
+		if sourceTmpl.Type == secret.TypeRandomString && sourceTmpl.Length > secret.MaxPasswordBytes {
+			issues = append(issues, Issue{
+				Severity:    "error",
+				Resource:    res,
+				Description: fmt.Sprintf("source %q generates %d characters, which bcrypt cannot hash (limit is %d bytes): shorten it", source, sourceTmpl.Length, secret.MaxPasswordBytes),
+			})
+		}
+	}
+
 	return issues
 }
 
