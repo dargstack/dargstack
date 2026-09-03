@@ -1,3 +1,9 @@
+## [4.16.0](https://github.com/dargstack/dargstack/compare/v4.15.0...v4.16.0) (2026-09-03)
+
+### Features
+
+* **deploy:** run real checks under deploy --dry-run ([#137](https://github.com/dargstack/dargstack/issues/137)) ([bb6dc58](https://github.com/dargstack/dargstack/commit/bb6dc58c68543255456dc50ce0272d8b9dcfddec))
+
 ## [4.15.0](https://github.com/dargstack/dargstack/compare/v4.14.1...v4.15.0) (2026-09-03)
 
 ### Features
