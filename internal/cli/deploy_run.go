@@ -130,38 +130,54 @@ func deploySetupSecrets(composeData []byte, dryRun bool) ([]resource.Issue, erro
 	if dryRun {
 		templates, templateErr := secret.ExtractTemplates(secretComposeData)
 		if templateErr == nil && len(templates) > 0 {
-			logger.L.Info(fmt.Sprintf("[dry-run] Would set up %d secret(s):", len(templates)))
-			for name := range templates {
-				tmpl := templates[name]
-				switch {
-				case tmpl.Type == secret.TypeThirdParty || tmpl.ThirdParty:
-					msg := fmt.Sprintf("  %s: third-party (provide manually)", name)
-					if tmpl.Hint != "" {
-						msg += fmt.Sprintf(": %s", tmpl.Hint)
+			if isProduction() {
+				logger.L.Info(fmt.Sprintf("[dry-run] Checking %d secret(s) for placeholder values", len(templates)))
+			} else {
+				logger.L.Info(fmt.Sprintf("[dry-run] Would set up %d secret(s):", len(templates)))
+				for name := range templates {
+					tmpl := templates[name]
+					switch {
+					case tmpl.Type == secret.TypeThirdParty || tmpl.ThirdParty:
+						msg := fmt.Sprintf("  %s: third-party (provide manually)", name)
+						if tmpl.Hint != "" {
+							msg += fmt.Sprintf(": %s", tmpl.Hint)
+						}
+						logger.L.Info(msg)
+					case tmpl.Type == secret.TypeTemplate || tmpl.Template != "":
+						logger.L.Info(fmt.Sprintf("  %s: template", name))
+					case tmpl.Type == secret.TypeWordlistWord:
+						logger.L.Info(fmt.Sprintf("  %s: generated word", name))
+					case tmpl.Type == secret.TypePrivateKey:
+						logger.L.Info(fmt.Sprintf("  %s: generated private key", name))
+					case tmpl.Type == secret.TypeInsecureDefault:
+						logger.L.Info(fmt.Sprintf("  %s: insecure default value", name))
+					case secret.IsAutoGeneratable(&tmpl):
+						length := tmpl.Length
+						if length <= 0 {
+							length = 32
+						}
+						logger.L.Info(fmt.Sprintf("  %s: generated (%d chars)", name, length))
+					default:
+						logger.L.Info(fmt.Sprintf("  %s: interactive prompt required", name))
 					}
-					logger.L.Info(msg)
-				case tmpl.Type == secret.TypeTemplate || tmpl.Template != "":
-					logger.L.Info(fmt.Sprintf("  %s: template", name))
-				case tmpl.Type == secret.TypeWordlistWord:
-					logger.L.Info(fmt.Sprintf("  %s: generated word", name))
-				case tmpl.Type == secret.TypePrivateKey:
-					logger.L.Info(fmt.Sprintf("  %s: generated private key", name))
-				case tmpl.Type == secret.TypeInsecureDefault:
-					logger.L.Info(fmt.Sprintf("  %s: insecure default value", name))
-				case secret.IsAutoGeneratable(&tmpl):
-					length := tmpl.Length
-					if length <= 0 {
-						length = 32
-					}
-					logger.L.Info(fmt.Sprintf("  %s: generated (%d chars)", name, length))
-				default:
-					logger.L.Info(fmt.Sprintf("  %s: interactive prompt required", name))
 				}
 			}
 		} else {
 			logger.L.Info("[dry-run] No secrets to set up")
 		}
-		return nil, nil
+
+		if !isProduction() {
+			return nil, nil
+		}
+
+		// Production's secretSetupFlow branch only reads files to check for
+		// leftover third-party placeholders; it never writes, so it's safe to
+		// run for real under dry-run.
+		secretIssues, err, _ := secretSetupFlow(secretComposeData, true, true)
+		if err != nil {
+			return nil, fmt.Errorf("secret setup: %w", err)
+		}
+		return secretIssues, nil
 	}
 
 	secretIssues, err, _ := secretSetupFlow(secretComposeData, isProduction(), true)
@@ -180,11 +196,6 @@ func deploySetupSecrets(composeData []byte, dryRun bool) ([]resource.Issue, erro
 // deployValidateResources runs resource validation and combines results with any pre-existing secret issues.
 // Returns an error if validation fails.
 func deployValidateResources(composeData []byte, secretIssues []resource.Issue, dryRun bool) error {
-	if dryRun {
-		logger.L.Info("[dry-run] Would validate stack resources")
-		return nil
-	}
-
 	issues, err := resource.Validate(composeData, stackDir, isProduction())
 	if err != nil {
 		return wrapWithBugHint(err)
@@ -194,6 +205,9 @@ func deployValidateResources(composeData []byte, secretIssues []resource.Issue, 
 			errors.New(ErrValidationFailed),
 			"Fix the errors listed above, then run `dargstack deploy` again.",
 		)
+	}
+	if dryRun {
+		logger.L.Info("[dry-run] Stack resources validated")
 	}
 	return nil
 }
@@ -319,20 +333,27 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 }
 
 // deployPreDeployChecks validates production image accessibility.
+// Runs for real under dry-run too when a Docker executor is available, since it only reads local image state and registry manifests; skipped (not just narrated) when executor is nil, matching deployValidateComposeConfig's soft-dependency pattern.
 func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun bool) ([]byte, error) {
 	images := compose.ExtractServiceImages(composeData)
 	switch {
-	case dryRun:
+	case executor == nil:
+		// Dry run on a machine without Docker available; composeExecutor already
+		// logged why, so stay quiet here too.
 		if len(images) > 0 {
-			logger.L.Info(fmt.Sprintf("[dry-run] Would check image accessibility for: %s", strings.Join(images, ", ")))
+			logger.L.Debug("Skipping image accessibility check: no docker executor available")
 		}
 	case offline:
 		if len(images) > 0 {
 			logger.L.Info("Skipping image accessibility check (--offline)")
 		}
 	case len(images) > 0:
+		title := "Checking image accessibility"
+		if dryRun {
+			title = "[dry-run] Checking image accessibility"
+		}
 		if verbose {
-			logger.L.Info(fmt.Sprintf("Checking image accessibility for %d image(s) in parallel: %s", len(images), strings.Join(images, ", ")))
+			logger.L.Info(fmt.Sprintf("%s for %d image(s) in parallel: %s", title, len(images), strings.Join(images, ", ")))
 		}
 
 		var unreachable map[string]error
@@ -343,7 +364,7 @@ func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun
 		if verbose {
 			checkImages()
 		} else {
-			if err := spinner.New().Title("Checking image accessibility").Action(checkImages).Run(); err != nil {
+			if err := spinner.New().Title(title).Action(checkImages).Run(); err != nil {
 				return nil, err
 			}
 		}

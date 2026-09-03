@@ -1,10 +1,89 @@
 package cli
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/dargstack/dargstack/v4/internal/docker"
 )
+
+// fakeDockerOnPath puts a stub `docker` binary on PATH for the duration of the
+// test. `docker image inspect` always fails (no image is "local"); `docker
+// manifest inspect <image>` fails only for images listed (comma-separated) in
+// DARGSTACK_TEST_FAIL_IMAGES, simulating registry accessibility.
+func fakeDockerOnPath(t *testing.T) {
+	t.Helper()
+
+	dir := t.TempDir()
+	script := filepath.Join(dir, "docker")
+	const body = `#!/bin/sh
+if [ "$1" = "image" ] && [ "$2" = "inspect" ]; then
+	exit 1
+elif [ "$1" = "manifest" ] && [ "$2" = "inspect" ]; then
+	img="$3"
+	case ",$DARGSTACK_TEST_FAIL_IMAGES," in
+		*",$img,"*) exit 1 ;;
+		*) exit 0 ;;
+	esac
+fi
+exit 1
+`
+	if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
+		t.Fatalf("write fake docker binary: %v", err)
+	}
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+}
+
+func TestDeployPreDeployChecks_NilExecutorSkipsSilently(t *testing.T) {
+	composeYAML := `services:
+  app:
+    image: example/app:latest
+`
+	if _, err := deployPreDeployChecks(nil, []byte(composeYAML), true); err != nil {
+		t.Fatalf("expected nil executor to skip the check rather than fail, got: %v", err)
+	}
+}
+
+func TestDeployPreDeployChecks_DryRunRunsRealCheck(t *testing.T) {
+	fakeDockerOnPath(t)
+	t.Setenv("DARGSTACK_TEST_FAIL_IMAGES", "example/unreachable:latest")
+
+	executor, err := docker.NewExecutor("never")
+	if err != nil {
+		t.Fatalf("NewExecutor: %v", err)
+	}
+
+	composeYAML := `services:
+  app:
+    image: example/unreachable:latest
+`
+
+	if _, err := deployPreDeployChecks(executor, []byte(composeYAML), true); err == nil {
+		t.Fatal("expected dry-run to surface the unreachable image as an error, got nil")
+	}
+}
+
+func TestDeployValidateResources_DryRunActuallyValidates(t *testing.T) {
+	dir := t.TempDir()
+
+	// References a secret file that doesn't exist on disk, which validateSecrets
+	// flags as an error in development mode.
+	composeYAML := `secrets:
+  api-key:
+    file: ` + dir + `/api-key.secret
+`
+
+	origStackDir, origEnv := stackDir, env
+	stackDir, env = dir, ""
+	defer func() { stackDir, env = origStackDir, origEnv }()
+
+	if err := deployValidateResources([]byte(composeYAML), nil, true); err == nil {
+		t.Fatal("expected dry-run to surface the missing secret file as a validation error, got nil")
+	}
+}
 
 func TestFilterVolumesByCompose(t *testing.T) {
 	composeYAML := `services:

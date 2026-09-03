@@ -9,6 +9,65 @@ import (
 	"github.com/dargstack/dargstack/v4/internal/secret"
 )
 
+func TestDeploySetupSecrets_DryRunProductionCatchesPlaceholder(t *testing.T) {
+	dir := t.TempDir()
+
+	secretPath := filepath.Join(dir, "external-token.secret")
+	if err := os.WriteFile(secretPath, []byte(secret.ThirdPartyPlaceholder), 0o600); err != nil {
+		t.Fatalf("write placeholder secret: %v", err)
+	}
+
+	composeYAML := `secrets:
+  external-token:
+    file: ` + secretPath + `
+x-dargstack:
+  secrets:
+    external-token:
+      type: third_party
+`
+
+	env = "production"
+	defer func() { env = "" }()
+
+	issues, err := deploySetupSecrets([]byte(composeYAML), true)
+	if err == nil {
+		t.Fatal("expected dry-run to report the leftover placeholder as an error, got nil")
+	}
+	if issues != nil {
+		t.Errorf("expected no issues on the error path, got %v", issues)
+	}
+}
+
+func TestDeploySetupSecrets_DryRunDevelopmentDoesNotWrite(t *testing.T) {
+	dir := t.TempDir()
+	secretPath := filepath.Join(dir, "api-key.secret")
+
+	composeYAML := `services:
+  app:
+    image: example/app
+secrets:
+  api-key:
+    file: ` + secretPath + `
+x-dargstack:
+  secrets:
+    api-key:
+      type: random_string
+`
+
+	env = ""
+
+	issues, err := deploySetupSecrets([]byte(composeYAML), true)
+	if err != nil {
+		t.Fatalf("deploySetupSecrets: %v", err)
+	}
+	if issues != nil {
+		t.Errorf("expected no issues in dry-run dev mode, got %v", issues)
+	}
+	if _, statErr := os.Stat(secretPath); statErr == nil {
+		t.Error("expected dry-run to not write the secret file in development mode")
+	}
+}
+
 func TestSecretSetupFlow_NoInteractionAutoGenerates(t *testing.T) {
 	dir := t.TempDir()
 
