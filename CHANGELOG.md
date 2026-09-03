@@ -1,3 +1,13 @@
+## [4.15.0](https://github.com/dargstack/dargstack/compare/v4.14.1...v4.15.0) (2026-09-03)
+
+### Features
+
+* **deploy:** validate compose output via docker compose config ([#134](https://github.com/dargstack/dargstack/issues/134)) ([a608d52](https://github.com/dargstack/dargstack/commit/a608d52d80ab91873af6a2aa7784b9288792728e))
+
+### Bug Fixes
+
+* **docker:** skip registry manifest check for images already present locally ([#135](https://github.com/dargstack/dargstack/issues/135)) ([beb0a32](https://github.com/dargstack/dargstack/commit/beb0a3211658d248324cfd762a2b80fe00f0d7a2))
+
 ## [4.14.1](https://github.com/dargstack/dargstack/compare/v4.14.0...v4.14.1) (2026-08-24)
 
 ### Bug Fixes
