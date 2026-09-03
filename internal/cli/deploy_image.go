@@ -303,7 +303,7 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 		tag := fmt.Sprintf("%s/%s:development", cfg.Metadata.Name, name)
 
 		// Skip building if behavior.build.mode is "missing" and image already exists.
-		if cfg.Runtime.Build.Mode == config.BuildMissing && imageExists(executor, tag) {
+		if cfg.Runtime.Build.Mode == config.BuildMissing && docker.ImageExistsLocally(executor, tag) {
 			continue
 		}
 
@@ -545,11 +545,6 @@ func pluralS(n int) string {
 		return ""
 	}
 	return "s"
-}
-
-func imageExists(executor *docker.Executor, tag string) bool {
-	_, err := executor.Run("image", "inspect", "--format", "{{.ID}}", tag)
-	return err == nil
 }
 
 // extractDargstackBuildContext returns the build context from a deploy.labels.dargstack.development.build label, or "" if not present.
