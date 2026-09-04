@@ -12,8 +12,11 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
 
-	"github.com/dargstack/dargstack/v4/internal/logger"
+	"github.com/dargstack/dargstack/v4/internal/sudo"
 )
+
+// sudoReason explains, in the password prompt hint, why dargstack needs elevated privileges for Docker.
+const sudoReason = "Docker requires elevated privileges on this system."
 
 // buildLabelColors are ANSI 256-color codes used to distinguish concurrent build streams by label identity (not severity).
 // Indexed by hash(label) % len.
@@ -111,7 +114,7 @@ func NewExecutor(sudoMode string) (*Executor, error) {
 
 	// Pre-validate sudo credentials so later commands (e.g. RunWithStdin where stdin is piped) don't fail trying to prompt for a password.
 	if e.useSudo {
-		if err := prewarmSudo(); err != nil {
+		if err := refreshSudoIfNeeded(); err != nil {
 			return nil, fmt.Errorf("docker requires elevated privileges but sudo authentication failed: %w\n\n  Either add your user to the docker group (`sudo usermod -aG docker $USER`, then log out and back in)\n  or ensure sudo is configured correctly.", err) //nolint:staticcheck // intentional multi-line user hint
 		}
 	}
@@ -136,7 +139,7 @@ func needsSudo(binary string) bool {
 		}
 		// Credentials may have expired.
 		// Fall back to interactive sudo so the user can authenticate once rather than getting a silent permission error.
-		_, _ = lipgloss.Fprintln(os.Stderr, logger.StyleWarn.Render("sudo: Docker requires elevated privileges on this system. Please authenticate to continue."))
+		sudo.Notify(sudoReason)
 		sudoI := exec.Command("sudo", binary, "info")
 		sudoI.Stdin = os.Stdin
 		sudoI.Stdout = nil
@@ -146,30 +149,10 @@ func needsSudo(binary string) bool {
 	return false
 }
 
-// prewarmSudo prompts the user for sudo credentials when they are not cached.
-// A hint explaining why sudo is needed is printed only when a password prompt is actually about to appear.
-// If credentials are already valid, returns nil immediately without any output.
-func prewarmSudo() error {
-	// Fast non-interactive check: if credentials are cached, skip the prompt.
-	ni := exec.Command("sudo", "-n", "-v")
-	ni.Stdout = nil
-	ni.Stderr = nil
-	if ni.Run() == nil {
-		return nil
-	}
-	// Credentials not cached; a password prompt is about to appear.
-	_, _ = lipgloss.Fprintln(os.Stderr, logger.StyleWarn.Render("sudo: Docker requires elevated privileges on this system. Please authenticate to continue."))
-	cmd := exec.Command("sudo", "-v")
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
-}
-
-// refreshSudoIfNeeded validates sudo credentials and re-prompts if expired.
+// refreshSudoIfNeeded validates sudo credentials and prompts if they are missing or expired.
 // The hint and password prompt are shown only when credentials are not cached.
 func refreshSudoIfNeeded() error {
-	return prewarmSudo()
+	return sudo.Prewarm(sudoReason)
 }
 
 // Run executes a docker CLI command and returns stdout.

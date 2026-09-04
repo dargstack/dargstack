@@ -1,12 +1,14 @@
 package update
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -18,6 +20,7 @@ import (
 	"github.com/creativeprojects/go-selfupdate"
 
 	"github.com/dargstack/dargstack/v4/internal/logger"
+	"github.com/dargstack/dargstack/v4/internal/sudo"
 	"github.com/dargstack/dargstack/v4/internal/version"
 )
 
@@ -151,15 +154,106 @@ func SelfUpdate() error {
 		return fmt.Errorf("find executable path: %w", err)
 	}
 
-	if err := updater.UpdateTo(ctx, latest, exe); err != nil {
+	// Replacing the binary means creating and renaming files in its directory, so directory write access is what decides whether elevation is needed, not write access to the binary itself.
+	if canWriteDir(filepath.Dir(exe)) {
+		err = applyUpdate(ctx, updater, latest, exe)
+	} else {
+		err = applyUpdateElevated(ctx, updater, latest, exe)
+	}
+	if err != nil {
+		return err
+	}
+
+	logger.Success(fmt.Sprintf("Updated to %s", latest.Version()))
+	return nil
+}
+
+// applyUpdate downloads the release and installs it over target.
+func applyUpdate(ctx context.Context, updater *selfupdate.Updater, latest *selfupdate.Release, target string) error {
+	if err := updater.UpdateTo(ctx, latest, target); err != nil {
 		if errors.Is(err, selfupdate.ErrChecksumValidationFailed) {
 			return fmt.Errorf("update failed: checksum verification error, the release binary may be compromised: %w", err)
 		}
 		return fmt.Errorf("update: %w", err)
 	}
-
-	logger.Success(fmt.Sprintf("Updated to %s", latest.Version()))
 	return nil
+}
+
+// applyUpdateElevated installs the new binary when its directory is writable only by root.
+// Download and checksum validation still run unprivileged against a staging copy; only the final swap is elevated, so the release archive is never fetched or unpacked as root.
+func applyUpdateElevated(ctx context.Context, updater *selfupdate.Updater, latest *selfupdate.Release, exe string) error {
+	dir := filepath.Dir(exe)
+	if !sudo.Available() {
+		return fmt.Errorf("update: %s is not writable by the current user; re-run with elevated privileges", dir)
+	}
+
+	// MkdirTemp creates the directory with mode 0700, so no other user can swap the staged binary out before it is installed.
+	stageDir, err := os.MkdirTemp("", "dargstack-update-")
+	if err != nil {
+		return fmt.Errorf("create staging directory: %w", err)
+	}
+	defer func() { _ = os.RemoveAll(stageDir) }()
+
+	// The staging file has to carry the binary's own name because the updater picks the matching entry out of the release archive by it.
+	// It also has to exist already, because the updater renames the file it replaces out of the way before moving the new one in.
+	stage := filepath.Join(stageDir, filepath.Base(exe))
+	if err := os.WriteFile(stage, nil, 0o600); err != nil {
+		return fmt.Errorf("create staging file: %w", err)
+	}
+	if err := applyUpdate(ctx, updater, latest, stage); err != nil {
+		return err
+	}
+
+	if err := sudo.Prewarm(fmt.Sprintf("Updating dargstack requires write access to %s.", dir)); err != nil {
+		return fmt.Errorf("sudo authentication failed: %w", err)
+	}
+
+	// Install into the target directory first and rename within it afterwards: that rename is atomic, and unlike writing over the binary in place it cannot fail with ETXTBSY while that same binary is the running process.
+	incoming := filepath.Join(dir, "."+filepath.Base(exe)+".new")
+	if err := runSudo("install", "-m", executableMode(exe), stage, incoming); err != nil {
+		return err
+	}
+	if err := runSudo("mv", incoming, exe); err != nil {
+		_ = runSudo("rm", "-f", incoming)
+		return err
+	}
+	return nil
+}
+
+// executableMode returns the permission bits of the binary being replaced, as an octal string for install(1).
+// It falls back to 0755 when the binary cannot be stat'ed, which is what a released binary is installed with anyway.
+func executableMode(exe string) string {
+	fi, err := os.Stat(exe)
+	if err != nil {
+		return "0755"
+	}
+	return fmt.Sprintf("%04o", fi.Mode().Perm())
+}
+
+// runSudo runs one command under sudo, folding its stderr into the returned error.
+// Credentials are normally warmed by sudo.Prewarm beforehand, but the terminal stays connected so that a sudo configured without any credential caching can still prompt here.
+func runSudo(args ...string) error {
+	cmd := exec.Command("sudo", args...)
+	var stderr bytes.Buffer
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("sudo %s: %w\n%s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
+	}
+	return nil
+}
+
+// canWriteDir reports whether the current user may create files in dir.
+// It creates and removes a temporary file rather than inspecting permission bits, because that is the very operation the update performs and it accounts for ACLs and read-only mounts too.
+func canWriteDir(dir string) bool {
+	f, err := os.CreateTemp(dir, ".dargstack-write-check-*")
+	if err != nil {
+		return false
+	}
+	name := f.Name()
+	_ = f.Close()
+	_ = os.Remove(name)
+	return true
 }
 
 func checkLatest() (*CheckResult, error) {

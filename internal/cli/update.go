@@ -12,7 +12,7 @@ var updateNoSkill bool
 var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Update dargstack to the latest version",
-	Long:  "Downloads and installs the latest release of dargstack. Requires --self flag.",
+	Long:  "Downloads and installs the latest release of dargstack. Requires --self flag.\n\nWhen the binary sits in a directory the current user cannot write to, the download and its checksum check still run unprivileged and only the final install step asks for sudo.",
 	RunE:  runUpdate,
 }
 

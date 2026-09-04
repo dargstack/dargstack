@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -760,5 +761,55 @@ func TestSelfUpdate_DevBuild(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "development") {
 		t.Errorf("expected 'development' in error, got: %v", err)
+	}
+}
+
+// -------------------------------------------------------------------
+// Elevation decision tests
+// -------------------------------------------------------------------
+
+func TestCanWriteDir(t *testing.T) {
+	dir := t.TempDir()
+
+	if !canWriteDir(dir) {
+		t.Fatal("expected a fresh temp directory to be writable")
+	}
+
+	// The probe must not leave anything behind; a stray dotfile in a directory like /usr/local/bin would be noticed.
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("expected the write probe to clean up after itself, found %d entries", len(entries))
+	}
+
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("permission bits do not restrict file creation here")
+	}
+
+	readOnly := filepath.Join(dir, "readonly")
+	if err := os.Mkdir(readOnly, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	if canWriteDir(readOnly) {
+		t.Error("expected a directory without write permission to be reported unwritable")
+	}
+}
+
+func TestExecutableMode(t *testing.T) {
+	exe := filepath.Join(t.TempDir(), "dargstack")
+	if err := os.WriteFile(exe, nil, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	if runtime.GOOS != "windows" {
+		if got := executableMode(exe); got != "0755" {
+			t.Errorf("expected mode 0755, got %s", got)
+		}
+	}
+
+	if got := executableMode(filepath.Join(t.TempDir(), "missing")); got != "0755" {
+		t.Errorf("expected fallback mode 0755 for a missing binary, got %s", got)
 	}
 }

@@ -6,6 +6,8 @@ Update dargstack to the latest version
 
 Downloads and installs the latest release of dargstack. Requires --self flag.
 
+When the binary sits in a directory the current user cannot write to, the download and its checksum check still run unprivileged and only the final install step asks for sudo.
+
 ```
 dargstack update [flags]
 ```
