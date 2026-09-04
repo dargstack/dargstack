@@ -67,10 +67,16 @@ ARCHIVE="dargstack_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 
 curl -sfL -o "$ARCHIVE" "https://github.com/dargstack/dargstack/releases/latest/download/$ARCHIVE"
 curl -sfL https://github.com/dargstack/dargstack/releases/latest/download/checksums.txt | sha256sum -c - --ignore-missing
 tar xzf "$ARCHIVE" && rm "$ARCHIVE"
-mkdir -p "$HOME/.local/bin" && mv dargstack "$HOME/.local/bin/"
+sudo install -d /usr/local/bin && sudo install -m 0755 dargstack /usr/local/bin/ && rm dargstack
 ```
 
-Ensure `$HOME/.local/bin` is on your `PATH`.
+The last line needs `sudo` because `/usr/local/bin` is root-owned.
+
+To install without root, or in a shell that has no `sudo` (Git Bash, Cygwin), put the binary in a directory you own instead and make sure it is on your `PATH`:
+
+```bash
+mkdir -p "$HOME/.local/bin" && mv dargstack "$HOME/.local/bin/"
+```
 
 ### Alternative: From Source
 
