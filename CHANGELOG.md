@@ -1,3 +1,9 @@
+## [4.18.0](https://github.com/dargstack/dargstack/compare/v4.17.0...v4.18.0) (2026-09-04)
+
+### Features
+
+* **update:** request sudo when self-update needs a root-owned directory ([#139](https://github.com/dargstack/dargstack/issues/139)) ([fdf6b7c](https://github.com/dargstack/dargstack/commit/fdf6b7cb651874ee8e55b042937884d22c108a0f))
+
 ## [4.17.0](https://github.com/dargstack/dargstack/compare/v4.16.0...v4.17.0) (2026-09-03)
 
 ### Features
