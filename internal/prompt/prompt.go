@@ -1,6 +1,8 @@
 package prompt
 
 import (
+	"os"
+
 	"charm.land/huh/v2"
 )
 
@@ -110,4 +112,22 @@ func Password(title string) (string, error) {
 		return "", err
 	}
 	return result, nil
+}
+
+// Interactive reports whether a prompt can actually be answered right now.
+// It is false with --no-interaction and whenever stdin or stdout is not a terminal, which covers pipes, CI runners, and cron jobs.
+func Interactive() bool {
+	if NonInteractive {
+		return false
+	}
+	return isTerminal(os.Stdin) && isTerminal(os.Stdout)
+}
+
+// isTerminal reports whether f is a character device rather than a pipe, a file, or a closed descriptor.
+func isTerminal(f *os.File) bool {
+	info, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return info.Mode()&os.ModeCharDevice != 0
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/creativeprojects/go-selfupdate"
 
 	"github.com/dargstack/dargstack/v4/internal/logger"
+	"github.com/dargstack/dargstack/v4/internal/prompt"
 	"github.com/dargstack/dargstack/v4/internal/sudo"
 	"github.com/dargstack/dargstack/v4/internal/version"
 )
@@ -29,6 +30,13 @@ const (
 	githubRepo  = "dargstack"
 	cacheFile   = ".dargstack-update-check"
 	cacheTTL    = 24 * time.Hour
+
+	// remindInterval is how long "Remind me later" keeps the update notice quiet.
+	remindInterval = 24 * time.Hour
+
+	optionUpdate = "Update now"
+	optionRemind = "Remind me later"
+	optionSkip   = "Skip this version"
 )
 
 // CheckResult holds the outcome of an update check.
@@ -51,6 +59,12 @@ var (
 
 	// currentVersion returns the running version; overridden in tests.
 	currentVersion = func() string { return version.Version }
+
+	// selectOption asks the user to pick one of the offered actions; overridden in tests.
+	selectOption = prompt.Select
+
+	// selfUpdate applies an available update; overridden in tests.
+	selfUpdate = SelfUpdate
 )
 
 func defaultDoHTTPRequest(req *http.Request) (*http.Response, error) {
@@ -97,6 +111,65 @@ func CollectBackgroundCheck() *CheckResult {
 	case <-time.After(50 * time.Millisecond):
 		return nil
 	}
+}
+
+// Notify tells the user that a newer version is available.
+// When the user can answer a prompt, it offers to update right away, to be reminded later, or to ignore this version altogether; everywhere else it falls back to printing the notice.
+func Notify(result *CheckResult, interactive bool) {
+	if result == nil || !result.Available || result.NewVersion == "" {
+		return
+	}
+	if silenced(result.NewVersion) {
+		return
+	}
+	if !interactive {
+		PrintUpdateNotice(result)
+		return
+	}
+
+	current := strings.TrimPrefix(currentVersion(), "v")
+	title := fmt.Sprintf("A new version of dargstack is available: %s -> %s", current, result.NewVersion)
+	choice, err := selectOption(title, []string{optionUpdate, optionRemind, optionSkip})
+	if err != nil {
+		// The prompt could not be shown or was aborted, so leave the user with the plain notice instead of recording a decision they did not make.
+		PrintUpdateNotice(result)
+		return
+	}
+
+	switch choice {
+	case optionUpdate:
+		if err := selfUpdate(); err != nil {
+			logger.L.Warn(fmt.Sprintf("Update failed: %v", err))
+			logger.L.Warn("Run `dargstack update --self` to retry.")
+		}
+	case optionSkip:
+		rememberChoice(result.NewVersion, time.Time{})
+	default:
+		rememberChoice("", time.Now().Add(remindInterval))
+	}
+}
+
+// silenced reports whether the user already told dargstack to stop mentioning this update, either by skipping this exact version or by asking to be reminded later.
+func silenced(newVersion string) bool {
+	entry := readEntry()
+	if entry == nil {
+		return false
+	}
+	if entry.SkippedVersion != "" && entry.SkippedVersion == newVersion {
+		return true
+	}
+	return time.Now().Before(entry.RemindAfter)
+}
+
+// rememberChoice stores the user's answer to the update prompt, keeping the rest of the cache entry intact.
+func rememberChoice(skippedVersion string, remindAfter time.Time) {
+	entry := readEntry()
+	if entry == nil {
+		entry = &cacheEntry{}
+	}
+	entry.SkippedVersion = skippedVersion
+	entry.RemindAfter = remindAfter
+	writeEntry(entry)
 }
 
 // PrintUpdateNotice prints a notice if a newer version is available.
@@ -318,6 +391,10 @@ type cacheEntry struct {
 	Available  bool      `json:"available"`
 	CheckedAt  time.Time `json:"checked_at"`
 	NewVersion string    `json:"new_version"`
+	// RemindAfter is when the update notice may appear again after the user chose to be reminded later.
+	RemindAfter time.Time `json:"remind_after"`
+	// SkippedVersion is the version the user asked never to be notified about again.
+	SkippedVersion string `json:"skipped_version,omitempty"`
 }
 
 // cacheFilePath returns the path to the update-check cache file.
@@ -331,7 +408,9 @@ func cacheFilePath() string {
 	return filepath.Join(dir, cacheFile)
 }
 
-func readCache() *CheckResult {
+// readEntry returns the raw cache entry, or nil when there is none to read.
+// Unlike readCache it applies no freshness rules, because the user's prompt answers stay valid past the check's own TTL.
+func readEntry() *cacheEntry {
 	path := cacheFilePath()
 	if path == "" {
 		return nil
@@ -343,6 +422,14 @@ func readCache() *CheckResult {
 
 	var entry cacheEntry
 	if err := json.Unmarshal(data, &entry); err != nil {
+		return nil
+	}
+	return &entry
+}
+
+func readCache() *CheckResult {
+	entry := readEntry()
+	if entry == nil {
 		return nil
 	}
 
@@ -366,6 +453,18 @@ func readCache() *CheckResult {
 }
 
 func writeCache(result *CheckResult) {
+	// Carry the user's prompt answers over, because a fresh check must not undo a skipped version or an active reminder.
+	entry := readEntry()
+	if entry == nil {
+		entry = &cacheEntry{}
+	}
+	entry.CheckedAt = time.Now()
+	entry.Available = result.Available
+	entry.NewVersion = result.NewVersion
+	writeEntry(entry)
+}
+
+func writeEntry(entry *cacheEntry) {
 	path := cacheFilePath()
 	if path == "" {
 		return
@@ -374,11 +473,6 @@ func writeCache(result *CheckResult) {
 	// Ensure the cache directory is private to this user.
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return
-	}
-	entry := cacheEntry{
-		CheckedAt:  time.Now(),
-		Available:  result.Available,
-		NewVersion: result.NewVersion,
 	}
 	data, err := json.Marshal(entry)
 	if err != nil {

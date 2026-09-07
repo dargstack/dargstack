@@ -20,6 +20,8 @@ func testSetup(t *testing.T) func(t *testing.T) {
 	origDoHTTPRequest := doHTTPRequest
 	origCacheDirFunc := cacheDirFunc
 	origCurrentVersion := currentVersion
+	origSelectOption := selectOption
+	origSelfUpdate := selfUpdate
 	resetBackgroundState()
 	return func(t *testing.T) {
 		// Wait for the background goroutine to finish before restoring package-level variables, preventing data races.
@@ -37,6 +39,8 @@ func testSetup(t *testing.T) func(t *testing.T) {
 		doHTTPRequest = origDoHTTPRequest
 		cacheDirFunc = origCacheDirFunc
 		currentVersion = origCurrentVersion
+		selectOption = origSelectOption
+		selfUpdate = origSelfUpdate
 		resetBackgroundState()
 	}
 }
@@ -811,5 +815,156 @@ func TestExecutableMode(t *testing.T) {
 
 	if got := executableMode(filepath.Join(t.TempDir(), "missing")); got != "0755" {
 		t.Errorf("expected fallback mode 0755 for a missing binary, got %s", got)
+	}
+}
+
+// -------------------------------------------------------------------
+// Notify tests
+// -------------------------------------------------------------------
+
+// captureStderr runs fn with os.Stderr redirected and returns what was written.
+func captureStderr(t *testing.T, fn func()) string {
+	t.Helper()
+	oldStderr := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("create pipe: %v", err)
+	}
+	os.Stderr = w
+	fn()
+	os.Stderr = oldStderr
+	_ = w.Close()
+	buf, _ := io.ReadAll(r)
+	return string(buf)
+}
+
+// notifySetup prepares a Notify test with an isolated cache directory and a prompt that picks the given option.
+func notifySetup(t *testing.T, choice string) *int {
+	t.Helper()
+	currentVersion = func() string { return "1.0.0" }
+	// The directory is resolved once so every read and write in one test hits the same cache file.
+	dir := t.TempDir()
+	cacheDirFunc = func() (string, error) { return dir, nil }
+	calls := 0
+	selectOption = func(_ string, _ []string) (string, error) {
+		calls++
+		return choice, nil
+	}
+	return &calls
+}
+
+func TestNotify_NonInteractivePrintsNotice(t *testing.T) {
+	cleanup := testSetup(t)
+	defer cleanup(t)
+	calls := notifySetup(t, optionUpdate)
+
+	output := captureStderr(t, func() {
+		Notify(&CheckResult{Available: true, NewVersion: "2.0.0"}, false)
+	})
+
+	if *calls != 0 {
+		t.Errorf("expected no prompt without an interactive terminal, got %d", *calls)
+	}
+	if !strings.Contains(output, "dargstack update --self") {
+		t.Errorf("expected the plain notice, got: %q", output)
+	}
+}
+
+func TestNotify_UpdateNow(t *testing.T) {
+	cleanup := testSetup(t)
+	defer cleanup(t)
+	notifySetup(t, optionUpdate)
+	updated := false
+	selfUpdate = func() error {
+		updated = true
+		return nil
+	}
+
+	Notify(&CheckResult{Available: true, NewVersion: "2.0.0"}, true)
+
+	if !updated {
+		t.Error("expected the update to be applied")
+	}
+	if entry := readEntry(); entry != nil && (entry.SkippedVersion != "" || !entry.RemindAfter.IsZero()) {
+		t.Errorf("expected no deferral recorded, got %+v", entry)
+	}
+}
+
+func TestNotify_RemindLater(t *testing.T) {
+	cleanup := testSetup(t)
+	defer cleanup(t)
+	calls := notifySetup(t, optionRemind)
+
+	Notify(&CheckResult{Available: true, NewVersion: "2.0.0"}, true)
+
+	entry := readEntry()
+	if entry == nil || !entry.RemindAfter.After(time.Now()) {
+		t.Fatalf("expected a future reminder, got %+v", entry)
+	}
+
+	// A second run stays silent until the reminder is due.
+	output := captureStderr(t, func() {
+		Notify(&CheckResult{Available: true, NewVersion: "2.0.0"}, true)
+	})
+	if *calls != 1 {
+		t.Errorf("expected exactly one prompt, got %d", *calls)
+	}
+	if output != "" {
+		t.Errorf("expected no output while snoozed, got: %q", output)
+	}
+}
+
+func TestNotify_SkipVersion(t *testing.T) {
+	cleanup := testSetup(t)
+	defer cleanup(t)
+	calls := notifySetup(t, optionSkip)
+
+	Notify(&CheckResult{Available: true, NewVersion: "2.0.0"}, true)
+
+	if entry := readEntry(); entry == nil || entry.SkippedVersion != "2.0.0" {
+		t.Fatalf("expected 2.0.0 to be skipped, got %+v", entry)
+	}
+
+	// The skipped version never comes up again, but a later one does.
+	Notify(&CheckResult{Available: true, NewVersion: "2.0.0"}, true)
+	if *calls != 1 {
+		t.Errorf("expected no prompt for the skipped version, got %d prompts", *calls)
+	}
+	Notify(&CheckResult{Available: true, NewVersion: "3.0.0"}, true)
+	if *calls != 2 {
+		t.Errorf("expected a prompt for the newer version, got %d prompts", *calls)
+	}
+}
+
+func TestNotify_PromptFailureFallsBackToNotice(t *testing.T) {
+	cleanup := testSetup(t)
+	defer cleanup(t)
+	notifySetup(t, "")
+	selectOption = func(_ string, _ []string) (string, error) {
+		return "", fmt.Errorf("no terminal")
+	}
+
+	output := captureStderr(t, func() {
+		Notify(&CheckResult{Available: true, NewVersion: "2.0.0"}, true)
+	})
+
+	if !strings.Contains(output, "dargstack update --self") {
+		t.Errorf("expected the plain notice, got: %q", output)
+	}
+	if entry := readEntry(); entry != nil && (entry.SkippedVersion != "" || !entry.RemindAfter.IsZero()) {
+		t.Errorf("expected no decision recorded on prompt failure, got %+v", entry)
+	}
+}
+
+func TestWriteCache_KeepsUserChoices(t *testing.T) {
+	cleanup := testSetup(t)
+	defer cleanup(t)
+	notifySetup(t, optionSkip)
+
+	Notify(&CheckResult{Available: true, NewVersion: "2.0.0"}, true)
+	writeCache(&CheckResult{Available: true, NewVersion: "2.0.0"})
+
+	if entry := readEntry(); entry == nil || entry.SkippedVersion != "2.0.0" {
+		t.Fatalf("expected the skipped version to survive a fresh check, got %+v", entry)
 	}
 }

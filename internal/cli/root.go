@@ -124,8 +124,14 @@ var rootCmd = &cobra.Command{
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
 		result := update.CollectBackgroundCheck()
-		update.PrintUpdateNotice(result)
+		update.Notify(result, canPromptForUpdate())
 	},
+}
+
+// canPromptForUpdate reports whether the update notice may ask the user what to do instead of just printing a warning.
+// A dry run traces steps rather than performing them, and JSON output is meant to be parsed, so both keep the plain notice.
+func canPromptForUpdate() bool {
+	return prompt.Interactive() && !dryRun && outputFormat != "json"
 }
 
 // applyStackDomainDefault sets STACK_DOMAIN from cfg unless the user explicitly set it in the environment.
