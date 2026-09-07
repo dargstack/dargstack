@@ -1,3 +1,9 @@
+## [4.19.0](https://github.com/dargstack/dargstack/compare/v4.18.0...v4.19.0) (2026-09-07)
+
+### Features
+
+* **update:** ask what to do when a new version is available ([#140](https://github.com/dargstack/dargstack/issues/140)) ([151b6d1](https://github.com/dargstack/dargstack/commit/151b6d14b7f47ffc07276d5b42c3599be6d0fc98))
+
 ## [4.18.0](https://github.com/dargstack/dargstack/compare/v4.17.0...v4.18.0) (2026-09-04)
 
 ### Features
