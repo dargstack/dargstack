@@ -6,5 +6,6 @@
       "matchPackageNames": ["gopkg.in/yaml.v2"],
       "enabled": false
     }
-  ]
+  ],
+  "postUpdateOptions": ["gomodTidy"]
 }
