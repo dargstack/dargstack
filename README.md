@@ -1,10 +1,10 @@
-# dargstack
-
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dargstack/design/main/dargstack-readme-header.png">
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/dargstack/design/main/dargstack-readme-header-light.png">
   <img alt="dargstack: ship the diff, skip the myth" src="https://raw.githubusercontent.com/dargstack/design/main/dargstack-readme-header.png">
 </picture>
+
+# dargstack
 
 Deployment automation for Docker Swarm.
 
