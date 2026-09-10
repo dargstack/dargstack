@@ -1,6 +1,12 @@
 # dargstack
 
-Docker Swarm, made simple. Dev-first deployments, production overlays, built-in audit trail.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dargstack/design/main/dargstack-readme-header.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/dargstack/design/main/dargstack-readme-header-light.png">
+  <img alt="dargstack: ship the diff, skip the myth" src="https://raw.githubusercontent.com/dargstack/design/main/dargstack-readme-header.png">
+</picture>
+
+Deployment automation for Docker Swarm.
 
 dargstack is a **CLI tool and project structure specification** that **reduces Docker Swarm complexity** to a minimal command set.
 Define your development setup as the base, express production as incremental changes on top.
