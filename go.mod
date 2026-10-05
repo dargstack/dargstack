@@ -8,7 +8,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/creativeprojects/go-selfupdate v1.6.0
-	github.com/geofffranks/spruce v1.35.20
+	github.com/geofffranks/spruce v1.35.21
 	github.com/moby/moby/api v1.56.1
 	github.com/moby/moby/client v0.6.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
