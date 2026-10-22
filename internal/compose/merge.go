@@ -267,7 +267,7 @@ func splitVolumeSpec(vol string) (host, rest string) {
 	return vol[:idx], vol[idx+1:]
 }
 
-// resolveFilePaths makes relative file: paths in secrets, configs, and bind mounts absolute.
+// resolveFilePaths makes relative file: paths in secrets, configs, bind mounts, and env_file entries absolute.
 // This is required because after merge, compose is fed to Docker via stdin and Docker cannot resolve paths relative to the original compose file.
 func resolveFilePaths(doc map[interface{}]interface{}, baseDir string) {
 	// Resolve secrets and configs
@@ -308,6 +308,30 @@ func resolveFilePaths(doc map[interface{}]interface{}, baseDir string) {
 		if !ok {
 			continue
 		}
+
+		// Resolve env_file entries in string, list, and object forms.
+		// Only dot-relative paths are resolved; absolute paths and paths
+		// expanded from the stack root prefix are left untouched.
+		switch envFileRaw := svc["env_file"].(type) {
+		case string:
+			if strings.HasPrefix(envFileRaw, ".") {
+				svc["env_file"] = filepath.Join(baseDir, envFileRaw)
+			}
+		case []interface{}:
+			for i, entry := range envFileRaw {
+				switch e := entry.(type) {
+				case string:
+					if strings.HasPrefix(e, ".") {
+						envFileRaw[i] = filepath.Join(baseDir, e)
+					}
+				case map[interface{}]interface{}:
+					if p, ok := e["path"].(string); ok && strings.HasPrefix(p, ".") {
+						e["path"] = filepath.Join(baseDir, p)
+					}
+				}
+			}
+		}
+
 		volumesRaw, ok := svc["volumes"]
 		if !ok {
 			continue
