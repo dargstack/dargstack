@@ -1,3 +1,9 @@
+## [4.20.0](https://github.com/dargstack/dargstack/compare/v4.19.0...v4.20.0) (2026-10-22)
+
+### Features
+
+* **compose:** resolve relative env_file paths ([#143](https://github.com/dargstack/dargstack/issues/143)) ([c35af52](https://github.com/dargstack/dargstack/commit/c35af52018d18430c47a1057d5e80ae57f9a8d2d))
+
 ## [4.19.0](https://github.com/dargstack/dargstack/compare/v4.18.0...v4.19.0) (2026-09-07)
 
 ### Features
