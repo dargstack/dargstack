@@ -496,6 +496,80 @@ func TestResolveFilePathsBindMount(t *testing.T) {
 		t.Errorf("expected named volume unchanged, got %q", got)
 	}
 }
+
+func TestResolveFilePathsEnvFileString(t *testing.T) {
+	base := "/project/stack"
+	svcDef := map[interface{}]interface{}{
+		"env_file": "./configurations/allowlist.env",
+	}
+	doc := map[interface{}]interface{}{
+		"services": map[interface{}]interface{}{
+			"proxy": svcDef,
+		},
+	}
+
+	resolveFilePaths(doc, base)
+
+	got, _ := svcDef["env_file"].(string)
+	want := filepath.Join(base, "configurations", "allowlist.env")
+	if got != want {
+		t.Errorf("expected %q, got %q", want, got)
+	}
+}
+
+func TestResolveFilePathsEnvFileList(t *testing.T) {
+	base := "/project/stack"
+	svcDef := map[interface{}]interface{}{
+		"env_file": []interface{}{
+			"./a.env",
+			"/absolute/b.env",
+			"bare.env",
+		},
+	}
+	doc := map[interface{}]interface{}{
+		"services": map[interface{}]interface{}{
+			"app": svcDef,
+		},
+	}
+
+	resolveFilePaths(doc, base)
+
+	envFiles := svcDef["env_file"].([]interface{})
+	if got := envFiles[0].(string); got != filepath.Join(base, "a.env") {
+		t.Errorf("expected dot-relative path resolved, got %q", got)
+	}
+	if got := envFiles[1].(string); got != "/absolute/b.env" {
+		t.Errorf("expected absolute path unchanged, got %q", got)
+	}
+	if got := envFiles[2].(string); got != "bare.env" {
+		t.Errorf("expected non-dot-relative path unchanged, got %q", got)
+	}
+}
+
+func TestResolveFilePathsEnvFileObject(t *testing.T) {
+	base := "/project/stack"
+	envDef := map[interface{}]interface{}{
+		"path":     "./a.env",
+		"required": true,
+	}
+	svcDef := map[interface{}]interface{}{
+		"env_file": []interface{}{envDef},
+	}
+	doc := map[interface{}]interface{}{
+		"services": map[interface{}]interface{}{
+			"app": svcDef,
+		},
+	}
+
+	resolveFilePaths(doc, base)
+
+	envFiles := svcDef["env_file"].([]interface{})
+	got, _ := envFiles[0].(map[interface{}]interface{})["path"].(string)
+	if want := filepath.Join(base, "a.env"); got != want {
+		t.Errorf("expected %q, got %q", want, got)
+	}
+}
+
 func TestSplitVolumeSpec(t *testing.T) {
 	tests := []struct {
 		host  string
