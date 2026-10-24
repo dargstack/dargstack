@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,7 +11,6 @@ import (
 	"strings"
 	"sync"
 
-	"charm.land/huh/v2/spinner"
 	"github.com/Masterminds/semver/v3"
 	"go.yaml.in/yaml/v3"
 
@@ -347,13 +347,11 @@ func autoBuildServices(executor *docker.Executor, composeData []byte) error {
 		wg.Wait()
 	}
 
-	if !verbose && !noInteraction {
-		err := spinner.New().
-			Title("Building images").
-			Action(func() {
-				runBuilds()
-			}).
-			Run()
+	if !verbose {
+		err := prompt.Spin("Building images", func(context.Context) error {
+			runBuilds()
+			return nil
+		})
 		if err != nil {
 			return err
 		}
@@ -452,14 +450,10 @@ func fetchAndWarnBehind(composeData []byte) []gitBehindInfo {
 		wg.Wait()
 	}
 
-	if !noInteraction {
-		_ = spinner.New().
-			Title("Checking repositories for updates").
-			Action(checkAction).
-			Run()
-	} else {
+	_ = prompt.Spin("Checking repositories for updates", func(context.Context) error {
 		checkAction()
-	}
+		return nil
+	})
 
 	if len(behind) == 0 && len(dirs) > 0 {
 		logger.Success("All repositories are up to date")
@@ -605,16 +599,14 @@ func offerRuntimeCleanup(executor *docker.Executor) {
 	var containerOut, imageOut string
 	var containerErr, imageErr error
 
-	_ = spinner.New().
-		Title("Cleaning up").
-		Action(func() {
-			containerOut, containerErr = executor.Run("container", "prune", "-f")
-			if containerErr != nil {
-				return
-			}
-			imageOut, imageErr = executor.Run("image", "prune", "-af")
-		}).
-		Run()
+	_ = prompt.Spin("Cleaning up", func(context.Context) error {
+		containerOut, containerErr = executor.Run("container", "prune", "-f")
+		if containerErr != nil {
+			return nil
+		}
+		imageOut, imageErr = executor.Run("image", "prune", "-af")
+		return nil
+	})
 
 	if containerErr != nil {
 		logger.L.Warn(fmt.Sprintf("Container cleanup failed: %v", containerErr))

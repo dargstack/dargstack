@@ -1,9 +1,11 @@
 package prompt
 
 import (
+	"context"
 	"os"
 
 	"charm.land/huh/v2"
+	"charm.land/huh/v2/spinner"
 )
 
 // NonInteractive disables all prompts when set to true.
@@ -112,6 +114,15 @@ func Password(title string) (string, error) {
 		return "", err
 	}
 	return result, nil
+}
+
+// Spin runs action behind a spinner titled title.
+// Without an interactive terminal it runs action directly, since the spinner needs a TTY and fails to start without one.
+func Spin(title string, action func(context.Context) error) error {
+	if !Interactive() {
+		return action(context.Background())
+	}
+	return spinner.New().Title(title).ActionWithErr(action).Run()
 }
 
 // Interactive reports whether a prompt can actually be answered right now.
