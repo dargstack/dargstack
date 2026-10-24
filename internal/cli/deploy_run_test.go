@@ -85,6 +85,27 @@ func TestDeployValidateResources_DryRunActuallyValidates(t *testing.T) {
 	}
 }
 
+func TestDeployValidateResources_DryRunSkipsGeneratedSecrets(t *testing.T) {
+	dir := t.TempDir()
+
+	composeYAML := `secrets:
+  api-key:
+    file: ` + dir + `/api-key.secret
+x-dargstack:
+  secrets:
+    api-key:
+      length: 32
+`
+
+	origStackDir, origEnv := stackDir, env
+	stackDir, env = dir, ""
+	defer func() { stackDir, env = origStackDir, origEnv }()
+
+	if err := deployValidateResources([]byte(composeYAML), nil, true); err != nil {
+		t.Fatalf("expected dry-run to accept a missing secret file that deploy would generate, got %v", err)
+	}
+}
+
 func TestFilterVolumesByCompose(t *testing.T) {
 	composeYAML := `services:
   postgres:

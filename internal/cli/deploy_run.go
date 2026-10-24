@@ -202,6 +202,9 @@ func deployValidateResources(composeData []byte, secretIssues []resource.Issue, 
 	if err != nil {
 		return wrapWithBugHint(err)
 	}
+	if dryRun && !isProduction() {
+		issues = dropWouldBeGenerated(composeData, issues)
+	}
 	if printIssues(append(secretIssues, issues...)) {
 		return hintErr(
 			errors.New(ErrValidationFailed),
@@ -212,6 +215,34 @@ func deployValidateResources(composeData []byte, secretIssues []resource.Issue, 
 		logger.L.Info("[dry-run] Stack resources validated")
 	}
 	return nil
+}
+
+// dropWouldBeGenerated removes the missing-file issues of secrets and configs that a real development deploy generates before validating, since a dry run skips that generation step.
+func dropWouldBeGenerated(composeData []byte, issues []resource.Issue) []resource.Issue {
+	generated := make(map[string]bool)
+	if templates, err := secret.ExtractTemplates(composeData); err == nil {
+		for name := range templates {
+			tmpl := templates[name]
+			if secret.IsAutoGeneratable(&tmpl) {
+				generated["secret:"+name] = true
+			}
+		}
+	}
+	if templates, err := secret.ExtractConfigTemplates(composeData); err == nil {
+		for name := range templates {
+			generated["config:"+name] = true
+		}
+	}
+
+	kept := issues[:0]
+	for _, issue := range issues {
+		if generated[issue.Resource] && strings.HasPrefix(issue.Description, "file not found: ") {
+			logger.L.Info(fmt.Sprintf("[dry-run] %s: would be generated", issue.Resource))
+			continue
+		}
+		kept = append(kept, issue)
+	}
+	return kept
 }
 
 // deployValidateComposeConfig runs `docker compose config` against the final compose output to catch structural errors invisible to plain YAML parsing, such as a list field collapsed to null by dev-only marker stripping, before they reach `docker stack deploy`.
