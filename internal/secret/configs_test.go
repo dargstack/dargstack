@@ -78,8 +78,14 @@ func TestExtractConfigPaths(t *testing.T) {
 
 func TestRewriteConfigFilePaths(t *testing.T) {
 	composeYAML := `configs:
+  plain:
+    file: /abs/path/plain.yaml
   signing-key-pub:
     file: /abs/path/signing-key-pub.pub
+x-dargstack:
+  configs:
+    signing-key-pub:
+      source: signing-key
 `
 	configsDir := filepath.Join(string(filepath.Separator), "artifacts", "configs")
 	out, err := RewriteConfigFilePaths([]byte(composeYAML), configsDir)
@@ -88,6 +94,9 @@ func TestRewriteConfigFilePaths(t *testing.T) {
 	}
 	if !strings.Contains(string(out), filepath.Join(configsDir, "signing-key-pub")) {
 		t.Errorf("expected rewritten path in output, got: %s", out)
+	}
+	if !strings.Contains(string(out), "/abs/path/plain.yaml") {
+		t.Errorf("expected plain config path to stay unchanged, got: %s", out)
 	}
 }
 

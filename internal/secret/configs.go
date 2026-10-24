@@ -11,9 +11,17 @@ func ExtractConfigPaths(composeData []byte) map[string]string {
 	return extractResourcePaths(composeData, "configs")
 }
 
-// RewriteConfigFilePaths rewrites every configs.NAME.file: entry in composeData to point to configsDir/NAME (flat hierarchy), mirroring RewriteSecretFilePaths.
+// RewriteConfigFilePaths rewrites the configs.NAME.file: entry of every config derived through x-dargstack.configs to point to configsDir/NAME (flat hierarchy), mirroring RewriteSecretFilePaths.
+// Plain file-based configs keep their path, since nothing writes them to configsDir.
 func RewriteConfigFilePaths(composeData []byte, configsDir string) ([]byte, error) {
-	return rewriteResourceFilePaths(composeData, configsDir, "configs", "config")
+	templates, err := ExtractConfigTemplates(composeData)
+	if err != nil {
+		return nil, err
+	}
+	if len(templates) == 0 {
+		return composeData, nil
+	}
+	return rewriteResourceFilePaths(composeData, configsDir, "configs", "config", templates)
 }
 
 // WriteConfigs writes resolved config values to their compose-declared file paths.
