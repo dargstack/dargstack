@@ -67,7 +67,7 @@ dargstack is organized into focused packages, each with a clear responsibility:
 | Package              | Responsibility                                                                           |
 | -------------------- | ---------------------------------------------------------------------------------------- |
 | `cmd/dargstack/`     | Entry point and CLI bootstrapping                                                        |
-| `internal/cli/`      | Cobra commands: deploy, rm, build, certificates, docs, validate, inspect, secret, update |
+| `internal/cli/`      | Cobra commands: deploy, rm, build, certificates, docs, validate, audit, secret, update   |
 | `internal/compose/`  | Spruce-based YAML deep merge, profile filtering, env file helpers                        |
 | `internal/config/`   | `dargstack.yaml` parsing, stack directory detection, semver compatibility                |
 | `internal/docker/`   | Docker SDK client for queries; CLI executor for `docker stack deploy/rm`                 |

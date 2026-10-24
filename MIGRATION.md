@@ -360,7 +360,7 @@ It only creates new secrets, it never deletes or modifies the old ones, so remov
 
 ## Step 5: Remove the `derive` step
 
-If your CI/CD pipeline or deployment scripts ran `dargstack derive` before `dargstack deploy --production`, remove that step.
+If your CI/CD pipeline or deployment scripts ran `dargstack derive` before `dargstack deploy -e production`, remove that step.
 v4 performs the merge automatically during deploy.
 
 ---
@@ -371,14 +371,14 @@ Run validation against your migrated stack:
 
 ```bash
 dargstack validate
-dargstack validate --production
+dargstack validate -e production
 ```
 
 Then do a dry-run deploy to see the merged compose output without touching the daemon:
 
 ```bash
 dargstack deploy --dry-run
-dargstack deploy --production --dry-run
+dargstack deploy -e production --dry-run
 ```
 
 If both look correct, deploy:
@@ -405,9 +405,10 @@ dargstack deploy
 | _(none)_                | `dargstack certify`                   |
 | _(none)_                | `dargstack clone`                     |
 | _(none)_                | `dargstack initialize`                |
-| _(none)_                | `dargstack inspect`                   |
 | _(none)_                | `dargstack profiles`                  |
+| _(none)_                | `dargstack schema`                    |
 | _(none)_                | `dargstack secret`                    |
+| _(none)_                | `dargstack skill`                     |
 
 ### New `certify` command
 

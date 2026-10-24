@@ -18,7 +18,7 @@ The development environment is the base layer; production is expressed as an inc
 **Vision Goals:**
 
 - Reduce cognitive overhead compared to plain `docker stack`
-- Maintain minimal command set (deploy, remove, build, validate, document, inspect)
+- Maintain minimal command set (deploy, remove, build, validate, document, audit)
 - Enable development as the source of truth with production as a small delta
 - Build in audit trails (deployment snapshots) and validation
 - Simplify secret management via templating and smart regeneration
@@ -67,5 +67,5 @@ Understanding these decisions will help you make changes that align with dargsta
      Written as a plain Docker config (`artifacts/configs/`, world-readable) rather than a secret, since a public key is not sensitive.
 
 13. **Audit trail**: each deployment saves a timestamped snapshot to `artifacts/audit-log/`.
-    `inspect` lists, diffs, and displays past snapshots.
+    `audit` lists, diffs, and displays past snapshots.
     `--dry-run` traces all steps without deploying.
