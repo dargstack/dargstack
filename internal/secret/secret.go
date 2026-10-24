@@ -52,7 +52,7 @@ func ExtractSecretPaths(composeData []byte) map[string]string {
 // RewriteSecretFilePaths rewrites every secrets.NAME.file: entry in composeData to point to secretsDir/NAME (flat hierarchy).
 // The returned bytes are the modified compose document; all existing file: values are replaced regardless of their original path.
 func RewriteSecretFilePaths(composeData []byte, secretsDir string) ([]byte, error) {
-	return rewriteResourceFilePaths(composeData, secretsDir, "secrets", "secret")
+	return rewriteResourceFilePaths(composeData, secretsDir, "secrets", "secret", nil)
 }
 
 // ReadSecretValues reads existing secret values from their compose-declared file paths.

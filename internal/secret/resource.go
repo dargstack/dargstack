@@ -83,9 +83,10 @@ func extractResourcePaths(composeData []byte, section string) map[string]string 
 }
 
 // rewriteResourceFilePaths rewrites every <section>.NAME.file: entry in composeData to point to dir/NAME (flat hierarchy).
-// The returned bytes are the modified compose document; all existing file: values are replaced regardless of their original path.
+// The returned bytes are the modified compose document; existing file: values are replaced regardless of their original path.
+// When only is non-nil, just the names it contains are rewritten.
 // label identifies the resource kind in error messages.
-func rewriteResourceFilePaths(composeData []byte, dir, section, label string) ([]byte, error) {
+func rewriteResourceFilePaths(composeData []byte, dir, section, label string, only map[string]Template) ([]byte, error) {
 	var doc map[string]interface{}
 	if err := yaml.Unmarshal(composeData, &doc); err != nil {
 		return nil, fmt.Errorf("parse compose for %s path rewrite: %w", label, err)
@@ -101,6 +102,9 @@ func rewriteResourceFilePaths(composeData []byte, dir, section, label string) ([
 	}
 
 	for name, def := range sectionMap {
+		if _, listed := only[name]; only != nil && !listed {
+			continue
+		}
 		defMap, ok := def.(map[string]interface{})
 		if !ok {
 			continue
