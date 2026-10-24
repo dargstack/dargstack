@@ -1,3 +1,11 @@
+## [4.20.1](https://github.com/dargstack/dargstack/compare/v4.20.0...v4.20.1) (2026-10-24)
+
+### Bug Fixes
+
+* **compose:** keep paths of plain file-based configs ([#149](https://github.com/dargstack/dargstack/issues/149)) ([5882fb6](https://github.com/dargstack/dargstack/commit/5882fb6ff45c99db7f4bc3233466a3e100acf608))
+* **deploy:** accept missing files of secrets a dry run would generate ([#150](https://github.com/dargstack/dargstack/issues/150)) ([f213bc7](https://github.com/dargstack/dargstack/commit/f213bc795d91df8561b76d55a889ca52679efc1e))
+* **deploy:** skip spinners without an interactive terminal ([#151](https://github.com/dargstack/dargstack/issues/151)) ([e049368](https://github.com/dargstack/dargstack/commit/e0493682ab1a8eb7fa1dbf8e4cb8ecd51b1e92c7))
+
 ## [4.20.0](https://github.com/dargstack/dargstack/compare/v4.19.0...v4.20.0) (2026-10-22)
 
 ### Features
