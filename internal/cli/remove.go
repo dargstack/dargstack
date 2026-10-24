@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/huh/v2/spinner"
 	"github.com/spf13/cobra"
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
@@ -71,16 +70,9 @@ func runRemove(cmd *cobra.Command, args []string) error {
 
 	logger.L.Info(fmt.Sprintf("Waiting for stack %q services to stop...", cfg.Metadata.Name))
 
-	if noInteraction {
-		err = docker.WaitForStackRemoval(executor, cfg.Metadata.Name, 60*time.Second, nil)
-	} else {
-		err = spinner.New().
-			Title("Removing stack").
-			ActionWithErr(func(ctx context.Context) error {
-				return docker.WaitForStackRemoval(executor, cfg.Metadata.Name, 60*time.Second, nil)
-			}).
-			Run()
-	}
+	err = prompt.Spin("Removing stack", func(context.Context) error {
+		return docker.WaitForStackRemoval(executor, cfg.Metadata.Name, 60*time.Second, nil)
+	})
 
 	if err != nil {
 		logger.L.Warn(err.Error())
@@ -172,16 +164,9 @@ func runRemoveTargeted(executor *docker.Executor) error {
 
 	logger.L.Info("Waiting for services to stop...")
 
-	if noInteraction {
-		err = docker.WaitForServicesRemoval(executor, fullNames, 60*time.Second, nil)
-	} else {
-		err = spinner.New().
-			Title("Removing services").
-			ActionWithErr(func(ctx context.Context) error {
-				return docker.WaitForServicesRemoval(executor, fullNames, 60*time.Second, nil)
-			}).
-			Run()
-	}
+	err = prompt.Spin("Removing services", func(context.Context) error {
+		return docker.WaitForServicesRemoval(executor, fullNames, 60*time.Second, nil)
+	})
 
 	if err != nil {
 		logger.L.Warn(err.Error())

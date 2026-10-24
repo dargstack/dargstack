@@ -1,6 +1,8 @@
 package prompt
 
 import (
+	"context"
+	"errors"
 	"testing"
 )
 
@@ -162,5 +164,23 @@ func TestNonInteractiveReset(t *testing.T) {
 	NonInteractive = false
 	if NonInteractive {
 		t.Error("NonInteractive should be false after resetting")
+	}
+}
+
+func TestSpinNonInteractive(t *testing.T) {
+	NonInteractive = true
+	defer func() { NonInteractive = false }()
+
+	want := errors.New("action failed")
+	ran := false
+	err := Spin("Working", func(context.Context) error {
+		ran = true
+		return want
+	})
+	if !ran {
+		t.Error("Spin() did not run the action")
+	}
+	if !errors.Is(err, want) {
+		t.Errorf("Spin() error = %v, want %v", err, want)
 	}
 }

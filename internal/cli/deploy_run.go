@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	"charm.land/huh/v2/spinner"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v3"
 
@@ -366,7 +365,10 @@ func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun
 		if verbose {
 			checkImages()
 		} else {
-			if err := spinner.New().Title(title).Action(checkImages).Run(); err != nil {
+			if err := prompt.Spin(title, func(context.Context) error {
+				checkImages()
+				return nil
+			}); err != nil {
 				return nil, err
 			}
 		}
@@ -651,19 +653,9 @@ func cloneGitRepos(stackDir string, composeData []byte) ([]byte, error) {
 		return nil
 	}
 
-	if noInteraction {
-		if err := cloneRepos(); err != nil {
-			return nil, err
-		}
-		return result, nil
-	}
-
-	err := spinner.New().
-		Title("Cloning repositories").
-		ActionWithErr(func(ctx context.Context) error {
-			return cloneRepos()
-		}).
-		Run()
+	err := prompt.Spin("Cloning repositories", func(context.Context) error {
+		return cloneRepos()
+	})
 	if err != nil {
 		return nil, err
 	}
