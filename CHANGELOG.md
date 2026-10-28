@@ -1,3 +1,9 @@
+## [4.21.1](https://github.com/dargstack/dargstack/compare/v4.21.0...v4.21.1) (2026-10-28)
+
+### Bug Fixes
+
+* **compose:** rename config references following a long-form list item ([#157](https://github.com/dargstack/dargstack/issues/157)) ([25a9597](https://github.com/dargstack/dargstack/commit/25a959715fa03a46eff22dc829b4f7ead4da1196))
+
 ## [4.21.0](https://github.com/dargstack/dargstack/compare/v4.20.2...v4.21.0) (2026-10-28)
 
 ### Features
