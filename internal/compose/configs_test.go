@@ -250,6 +250,123 @@ configs:
 	}
 }
 
+func TestRenameConfigInComposeTextSharedDefinition(t *testing.T) {
+	// Services inherit the configs list through a YAML anchor and merge key; the renamer rewrites the shared
+	// definition's list, the only place the reference text exists.
+	const input = `x-shared:
+  base:
+    &base
+    image: example/app:1.0.0
+    configs:
+      - source: app-config
+        target: /etc/app/config.yaml
+        mode: "0444"
+      - source: app-config-two
+        target: /etc/app/config2.yaml
+        mode: "0444"
+services:
+  one:
+    <<: *base
+    command: ["one"]
+  two:
+    <<: *base
+    command: ["two"]
+configs:
+  app-config:
+    file: ./config.yaml
+  app-config-two:
+    file: ./config2.yaml
+`
+	got, changed := RenameConfigInComposeText(input, "app-config-two", "app-config-two-b2c3d4e5")
+	if !changed {
+		t.Fatal("expected changes")
+	}
+	want := `x-shared:
+  base:
+    &base
+    image: example/app:1.0.0
+    configs:
+      - source: app-config
+        target: /etc/app/config.yaml
+        mode: "0444"
+      - source: app-config-two-b2c3d4e5
+        target: /etc/app/config2.yaml
+        mode: "0444"
+services:
+  one:
+    <<: *base
+    command: ["one"]
+  two:
+    <<: *base
+    command: ["two"]
+configs:
+  app-config:
+    file: ./config.yaml
+  app-config-two-b2c3d4e5:
+    file: ./config2.yaml
+`
+	if got != want {
+		t.Errorf("unexpected output:\n--- got ---\n%s\n--- want ---\n%s", got, want)
+	}
+}
+
+func TestRenameConfigInComposeTextSharedFlowList(t *testing.T) {
+	const input = `x-shared:
+  base:
+    &base
+    image: example/app:1.0.0
+    configs: [app-config, other-config]
+services:
+  one:
+    <<: *base
+configs:
+  app-config:
+    file: ./config.yaml
+`
+	got, changed := RenameConfigInComposeText(input, "app-config", "app-config-b2c3d4e5")
+	if !changed {
+		t.Fatal("expected changes")
+	}
+	want := `x-shared:
+  base:
+    &base
+    image: example/app:1.0.0
+    configs: [app-config-b2c3d4e5, other-config]
+services:
+  one:
+    <<: *base
+configs:
+  app-config-b2c3d4e5:
+    file: ./config.yaml
+`
+	if got != want {
+		t.Errorf("unexpected output:\n--- got ---\n%s\n--- want ---\n%s", got, want)
+	}
+}
+
+func TestRenameConfigInComposeTextDeepNestedNoMatch(t *testing.T) {
+	// A configs list deeper than a direct child of a top-level section is not a rename site.
+	const input = `x-shared:
+  base:
+    nested:
+      configs:
+        - app-config
+configs:
+  app-config:
+    file: ./config.yaml
+`
+	got, changed := RenameConfigInComposeText(input, "app-config", "app-config-b2c3d4e5")
+	if !changed {
+		t.Fatal("expected the top-level key to be renamed")
+	}
+	if strings.Contains(got, "- app-config-b2c3d4e5") {
+		t.Errorf("deep nested reference must not be renamed:\n%s", got)
+	}
+	if !strings.Contains(got, "  app-config-b2c3d4e5:") {
+		t.Errorf("expected top-level key renamed in:\n%s", got)
+	}
+}
+
 func TestRenameConfigInComposeTextFlowListNoMatch(t *testing.T) {
 	const input = `services:
   api:

@@ -44,7 +44,8 @@ func frameKeys(stack []yamlFrame) []string {
 }
 
 // RenameConfigInComposeText renames a config in a compose source document: the top-level configs map key and
-// every service configs reference (short and long form, block and flow style).
+// every configs reference under a service or a shared (anchor-inherited) definition (short and long form,
+// block and flow style).
 // It works line by line on the raw text so comments (including dargstack:dev-only markers) and formatting
 // are preserved; a plain YAML round trip would discard them.
 // Returns the modified text and whether anything changed.
@@ -89,8 +90,8 @@ func RenameConfigInComposeText(text, oldName, newName string) (string, bool) {
 			// Top-level config key: rename the key token at the indent position.
 			lines[i] = line[:indent] + newName + line[indent+len(key):]
 			changed = true
-		case key == "configs" && isServicePath(path) && strings.HasPrefix(strings.TrimSpace(rest), "["):
-			// Flow-style service config list: configs: [old, other]
+		case key == "configs" && isTopLevelSectionPath(path) && strings.HasPrefix(strings.TrimSpace(rest), "["):
+			// Flow-style config list under a service or shared definition: configs: [old, other]
 			if flow := renameFlowList(line, oldName, newName); flow != line {
 				lines[i] = flow
 				changed = true
@@ -109,13 +110,14 @@ func isListItem(trimmed string) bool {
 
 // configItemRenameOffset returns the offset within the trimmed line (starting with "- ") of the oldName token
 // that should be renamed, or -1 when the item does not reference oldName.
-// Only list items under a service configs key are considered.
+// Only list items under a configs key that is a direct child of a top-level section (a service or a shared
+// definition) are considered.
 func configItemRenameOffset(trimmed string, stack []yamlFrame, oldName string) int {
 	if trimmed == "-" {
 		return -1
 	}
 	path := frameKeys(stack)
-	if len(path) != 3 || path[0] != "services" || path[2] != "configs" {
+	if len(path) != 3 || path[2] != "configs" {
 		return -1
 	}
 
@@ -171,8 +173,10 @@ func renameFlowList(line, oldName, newName string) string {
 	return line[:start+1] + strings.Join(items, ",") + line[end:]
 }
 
-func isServicePath(path []string) bool {
-	return len(path) == 2 && path[0] == "services"
+// isTopLevelSectionPath reports whether the key about to be pushed sits in a direct child of a top-level
+// section, e.g. services.<name>.configs or x-shared.<anchor>.configs.
+func isTopLevelSectionPath(path []string) bool {
+	return len(path) == 2
 }
 
 // splitSimpleKey splits a trimmed line into key and rest when it starts with a simple mapping key.
