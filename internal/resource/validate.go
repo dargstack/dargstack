@@ -134,10 +134,40 @@ func validateConfigs(doc map[string]interface{}, stackDir string, production boo
 					Resource:    fmt.Sprintf("config:%s", name),
 					Description: desc,
 				})
+				continue
 			}
+			issues = append(issues, validateConfigHashSuffix(name, filePath)...)
 		}
 	}
 	return issues
+}
+
+// validateConfigHashSuffix checks the content hash suffix convention for file based configs.
+// A config whose name carries a <base>-<8 hex> suffix must have content whose SHA-256 starts with that suffix;
+// the check is local (no Docker required) so it can run in CI.
+// Names without a suffix are not policed: adoption of the convention is opt-in via the suffix.
+func validateConfigHashSuffix(name, filePath string) []Issue {
+	_, nameHash, ok := secret.SplitConfigName(name)
+	if !ok {
+		return nil
+	}
+
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil
+	}
+	contentHash := secret.ConfigContentHash(data)
+	if contentHash == nameHash {
+		return nil
+	}
+	return []Issue{{
+		Severity: "error",
+		Resource: fmt.Sprintf("config:%s", name),
+		Description: fmt.Sprintf(
+			"content hash mismatch: name has %s, content hashes to %s. Run 'dargstack config rotate %s'",
+			nameHash, contentHash, name,
+		),
+	}}
 }
 
 // validateDargstackSecrets checks that basic_auth entries in x-dargstack.secrets are well-formed: a username, and a source naming another secret to take the plaintext password from.

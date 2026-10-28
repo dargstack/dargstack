@@ -40,6 +40,7 @@ Contributing? See [CONTRIBUTING.md](CONTRIBUTING.md).
   - [Configuration: dargstack.yaml](#configuration-dargstackyaml)
   - [Profiles & Performance](#profiles--performance)
   - [Secret Templating](#secret-templating)
+  - [Config Content Hash Suffixes](#config-content-hash-suffixes)
   - [Environment Files](#environment-files)
   - [Platform Overrides](#platform-overrides)
 - [Commands](#commands)
@@ -379,6 +380,15 @@ If the source secret is unset (for example an unfilled `third_party` password), 
   - `{{wordlist_word}}`: inline word generation
   - `{{private_key}}`: inline private key generation
 
+### Config Content Hash Suffixes
+
+Docker only allows label updates on existing config objects: a content update with the same name fails the deploy.
+dargstack works around this with an optional naming convention: a config named `<base>-<hash>` carries the first 8 hex characters of the SHA-256 of its file content, for example `prometheus-yaml-a1b2c3d4`.
+When the content changes, `dargstack config rotate <name>` recomputes the suffix and renames the config in the source compose files; the deploy then creates the new config object and dargstack prunes the old one.
+`dargstack validate` fails on mismatch, so a stale suffix is caught locally (no Docker needed).
+
+Only names that already carry a suffix are validated and pruned, so existing stacks are unaffected; derived configs (`x-dargstack.configs`) get the suffix at deploy time and keep the bare name in the repo.
+
 ### Environment Files
 
 `.env.template` files (tracked in version control) define the keys your stack needs.
@@ -434,6 +444,7 @@ The active platform is auto-detected via `runtime.GOOS`, or overridden with `--p
 | [dargstack build](docs/dargstack_build.md)           | Build development Dockerfiles          |
 | [dargstack certify](docs/dargstack_certify.md)       | Generate TLS certificates              |
 | [dargstack clone](docs/dargstack_clone.md)           | Clone an existing dargstack project    |
+| [dargstack config](docs/dargstack_config.md)         | Manage stack configs                   |
 | [dargstack deploy](docs/dargstack_deploy.md)         | Deploy the stack                       |
 | [dargstack document](docs/dargstack_document.md)     | Generate the stack documentation       |
 | [dargstack initialize](docs/dargstack_initialize.md) | Bootstrap a new dargstack project      |

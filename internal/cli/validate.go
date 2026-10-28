@@ -19,6 +19,8 @@ var validateCmd = &cobra.Command{
 Checks:
 - dargstack.yaml matches the JSON Schema
 - All secrets files referenced in compose definitions exist
+- All config files referenced in compose definitions exist
+- Config names that carry a content hash suffix match the hash of their file content
 - All Dockerfile contexts for services with ` + "`dargstack.development.build`" + ` labels are present
 - TLS certificates directory exists for development
 - The merged compose output passes ` + "`docker compose config`" + ` (skipped if the compose CLI plugin isn't installed)`,

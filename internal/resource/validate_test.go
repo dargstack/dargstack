@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
@@ -692,5 +694,124 @@ x-dargstack:
 	}
 	if !found {
 		t.Errorf("expected an error about the bcrypt length limit, got: %v", issues)
+	}
+}
+
+func TestValidateConfigHashSuffixMismatch(t *testing.T) {
+	stackDir := t.TempDir()
+	cfgFile := filepath.Join(stackDir, "prometheus.yaml")
+	if err := os.WriteFile(cfgFile, []byte("global:\n  scrape_interval: 30s\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	composeYAML := `configs:
+  prometheus-yaml-a1b2c3d4:
+    file: ` + cfgFile + `
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    configs: [prometheus-yaml-a1b2c3d4]
+`
+	issues, err := Validate([]byte(composeYAML), stackDir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	found := false
+	for _, iss := range issues {
+		if iss.Severity != "error" || iss.Resource != "config:prometheus-yaml-a1b2c3d4" {
+			continue
+		}
+		found = true
+		if !strings.Contains(iss.Description, "content hash mismatch") {
+			t.Errorf("unexpected description: %s", iss.Description)
+		}
+		if !strings.Contains(iss.Description, "name has a1b2c3d4") {
+			t.Errorf("expected old hash in message: %s", iss.Description)
+		}
+		if !strings.Contains(iss.Description, "dargstack config rotate prometheus-yaml-a1b2c3d4") {
+			t.Errorf("expected rotate hint: %s", iss.Description)
+		}
+	}
+	if !found {
+		t.Fatalf("expected hash mismatch error, got %v", issues)
+	}
+}
+
+func TestValidateConfigHashSuffixMatch(t *testing.T) {
+	stackDir := t.TempDir()
+	content := []byte("global:\n  scrape_interval: 30s\n")
+	cfgFile := filepath.Join(stackDir, "prometheus.yaml")
+	if err := os.WriteFile(cfgFile, content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	hash := ""
+	{
+		sum := sha256.Sum256(content)
+		hash = hex.EncodeToString(sum[:])[:8]
+	}
+
+	composeYAML := "configs:\n  prometheus-yaml-" + hash + ":\n    file: " + cfgFile + "\nservices:\n  prometheus:\n    image: prom/prometheus:latest\n    configs: [prometheus-yaml-" + hash + "]\n"
+	issues, err := Validate([]byte(composeYAML), stackDir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, iss := range issues {
+		if strings.Contains(iss.Description, "content hash mismatch") {
+			t.Fatalf("expected no hash mismatch, got %v", issues)
+		}
+	}
+}
+
+func TestValidateConfigWithoutSuffixNotPoliced(t *testing.T) {
+	stackDir := t.TempDir()
+	cfgFile := filepath.Join(stackDir, "prometheus.yaml")
+	if err := os.WriteFile(cfgFile, []byte("anything\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	composeYAML := `configs:
+  prometheus-yaml:
+    file: ` + cfgFile + `
+`
+	issues, err := Validate([]byte(composeYAML), stackDir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, iss := range issues {
+		if strings.Contains(iss.Description, "content hash mismatch") {
+			t.Fatalf("names without a suffix must not be policed, got %v", issues)
+		}
+	}
+}
+
+func TestValidateConfigHashSuffixMissingFile(t *testing.T) {
+	stackDir := t.TempDir()
+
+	composeYAML := `configs:
+  prometheus-yaml-a1b2c3d4:
+    file: ` + filepath.Join(stackDir, "missing.yaml") + `
+`
+	issues, err := Validate([]byte(composeYAML), stackDir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var missing, mismatch int
+	for _, iss := range issues {
+		if iss.Severity != "error" || iss.Resource != "config:prometheus-yaml-a1b2c3d4" {
+			continue
+		}
+		switch {
+		case strings.Contains(iss.Description, "file not found"):
+			missing++
+		case strings.Contains(iss.Description, "content hash mismatch"):
+			mismatch++
+		}
+	}
+	if missing != 1 {
+		t.Errorf("expected exactly one file-not-found error, got %v", issues)
+	}
+	if mismatch != 0 {
+		t.Errorf("no hash check possible for a missing file, got %v", issues)
 	}
 }

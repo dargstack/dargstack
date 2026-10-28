@@ -58,6 +58,9 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 	if err != nil {
 		return wrapWithBugHint(err)
 	}
+	// The unfiltered compose is kept for post-deploy orphan pruning: a profile-filtered deploy must not prune
+	// configs that only belong to services outside the active filter.
+	fullCompose := composeData
 
 	// Extract TLS domains from all services before profile filtering, so certificates cover every domain regardless of which profile is active.
 	allDomains := tls.FilterDomains(tls.ExtractDomains(composeData, cfg.Environment.Development.Domain), cfg.Environment.Development.Certificate.Include, cfg.Environment.Development.Certificate.Exclude)
@@ -100,6 +103,21 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		}
 	}
 
+	// Append content hash suffixes to derived config names. Runs after secret/config setup (which writes the
+	// derived files the suffix is computed from) and before validation (the renamed artifact paths must exist).
+	// Skipped in dry runs: no files are written, so no suffix would be true for this run.
+	if dryRun {
+		if hasDerivedConfigs(composeData) {
+			logger.L.Info("[dry-run] Would append content hash suffixes to derived config names")
+		}
+	} else {
+		var suffixErr error
+		composeData, fullCompose, suffixErr = applyDerivedConfigHashSuffixes(composeData, fullCompose)
+		if suffixErr != nil {
+			return wrapWithBugHint(suffixErr)
+		}
+	}
+
 	// Validate resources after preparation so generated certs and cloned repos are visible to the validator.
 	if err := deployValidateResources(composeData, secretIssues, dryRun); err != nil {
 		return err
@@ -113,7 +131,7 @@ func runDeployWithExecutor(ctx context.Context, _ *cobra.Command, dockerClient *
 		return err
 	}
 
-	deployPostDeploy(ctx, dockerClient, executor, composeData, dryRun)
+	deployPostDeploy(ctx, dockerClient, executor, composeData, fullCompose, dryRun)
 
 	return nil
 }
@@ -471,8 +489,8 @@ func deployExecute(executor *docker.Executor, composeData []byte, env, tag strin
 	return nil
 }
 
-// deployPostDeploy prints service count and offers runtime cleanup.
-func deployPostDeploy(ctx context.Context, dockerClient *docker.Client, executor *docker.Executor, composeData []byte, dryRun bool) {
+// deployPostDeploy prints service count, prunes orphaned config objects, and offers runtime cleanup.
+func deployPostDeploy(ctx context.Context, dockerClient *docker.Client, executor *docker.Executor, composeData, fullCompose []byte, dryRun bool) {
 	if dryRun {
 		svcCount := countComposeServices(composeData)
 		logger.L.Info(fmt.Sprintf("[dry-run] Would have %d service(s) running", svcCount))
@@ -480,6 +498,7 @@ func deployPostDeploy(ctx context.Context, dockerClient *docker.Client, executor
 		if count, err := countStackServices(ctx, dockerClient, executor); err == nil {
 			logger.Success(fmt.Sprintf("Stack %q deployed with %d service(s)", cfg.Metadata.Name, count))
 		}
+		pruneConfigOrphans(executor, fullCompose)
 	}
 
 	if isProduction() {

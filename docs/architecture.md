@@ -66,6 +66,14 @@ Understanding these decisions will help you make changes that align with dargsta
 12a. **Config derivation**: `x-dargstack.configs` derives non-secret values that pair with a secret, currently `public_key`, which derives a public key from a `source` `private_key` secret.
      Written as a plain Docker config (`artifacts/configs/`, world-readable) rather than a secret, since a public key is not sensitive.
 
+12b. **Config content hash suffixes**: Docker only allows label updates on existing config objects; a content update with the same name fails `docker stack deploy`.
+      dargstack works around this with an optional naming convention: `<base>-<hash>` where `<hash>` is the first 8 hex chars of the SHA-256 of the file content.
+      Changed content gets a new name, the deploy creates a new config object, and dargstack prunes the previous object after the deploy.
+      Adoption is by suffix detection: `validate` only polices suffixed names (recomputing the hash locally, so it runs in CI without Docker) and deploy only prunes suffixed orphans, so existing stacks are unaffected.
+      `dargstack config rotate <name>` recomputes the suffix and renames the config in the source compose files (top-level key and service references, comment-preserving line edit).
+      Derived configs get the suffix at deploy time from the exact bytes written (or the previous run's artifact in production, where the source secret is external); the repo keeps the bare name, so no rotate command exists for them.
+      One name carries one content hash; per-environment content differences require per-environment config names.
+
 13. **Audit trail**: each deployment saves a timestamped snapshot to `artifacts/audit-log/`.
     `audit` lists, diffs, and displays past snapshots.
     `--dry-run` traces all steps without deploying.

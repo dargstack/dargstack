@@ -166,6 +166,7 @@ func init() {
 	rootCmd.AddCommand(buildCmd)
 	rootCmd.AddCommand(certificatesCmd)
 	rootCmd.AddCommand(cloneCmd)
+	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(deployCmd)
 	rootCmd.AddCommand(docsCmd)
 	rootCmd.AddCommand(initCmd)

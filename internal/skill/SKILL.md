@@ -2,7 +2,7 @@
 name: dargstack
 description: Understand dargstack project structure, spruce operators, secret templating, label conventions, and deploy workflow for AI agents working in dargstack-managed Docker Swarm projects.
 metadata:
-  dargstack_version: "4.20.1"
+  dargstack_version: "4.21.0"
 ---
 
 # Dargstack Agent Skill
@@ -186,6 +186,14 @@ services:
 `dargstack secret generate` (and deploy) derives the value and writes it to `artifacts/configs/<name>` (gitignored, world-readable); the compose `configs.<name>.file:` path is rewritten to point there, exactly as for secrets.
 `source` must name a `private_key` secret; `public_key` is currently the only supported config type.
 
+## Config Content Hash Suffixes
+
+Optional convention around Docker's no-content-update rule (a content change with the same config name fails `docker stack deploy`): name the config `<base>-<hash>`, first 8 hex of the SHA-256 of its file content.
+Changed content gets a new name; the deploy creates the new config object and dargstack prunes the old one afterwards.
+After editing a config's content, run `dargstack config rotate <name>` (with or without the current suffix); it renames the config in the source compose files, never the content file.
+Only suffixed names are validated and pruned (opt-in per config); derived configs get the suffix at deploy time and keep the bare name in the repo.
+Per-environment content differences need per-environment config names; rotate warns on drift.
+
 ## Label Conventions
 
 Special labels in `deploy.labels` control dargstack behavior:
@@ -215,9 +223,10 @@ Deploy with `--profiles <name>`.
 |---------|---------|
 | `dargstack deploy` | merge, generate secrets/certs, clone+build dev images, deploy to Swarm |
 | `dargstack build [svc...]` | build dev images, tagged `<stack>/<svc>:development` |
-| `dargstack validate` | validate compose + resources |
+| `dargstack validate` | validate compose + resources (including config content hash suffixes) |
 | `dargstack certify` (=`tls`) | generate self-signed dev TLS certs in `artifacts/certificates` |
 | `dargstack secret show\|generate\|status` | show values, generate from templates, report set/missing/placeholder |
+| `dargstack config rotate <name>` | recompute a config's content hash suffix after its content changed |
 | `dargstack remove` (=`rm`) | remove the stack; `--volumes` also drops volumes; `--profiles`/`--services` for a subset |
 | `dargstack audit [ts]` | show the last composed YAML deployed; `--list`, `--difference` |
 | `dargstack document` (=`docs`) | generate `artifacts/docs/README.md` from compose + comments |
