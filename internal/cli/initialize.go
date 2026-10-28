@@ -335,7 +335,7 @@ Service source code lives as siblings to ` + "`stack/`" + `.
 │       │       └── config.yaml    # development config mounted into the container
 │       └── production/
 │           └── hello/             # production overrides
-│               ├── compose.yaml   # Spruce operators: purge ports, append labels, external secret
+│               ├── compose.yaml   # Spruce operators: purge ports, merge labels, external secret
 │               └── config.yaml    # production config replaces the development one
 ├── hello/                         # example service source (build this with Docker)
 │   ├── Dockerfile
@@ -451,23 +451,22 @@ greeting: Hello from dargstack!
 `
 
 // initHelloProdCompose is the production overlay for the example hello service.
-// It demonstrates the three most useful Spruce merge operators:
+// It demonstrates the most common merge behaviors:
 //   - plain key overwrite (image tag)
 //   - (( prune )) to remove a development-only key
-//   - (( append )) to extend a list without replacing it
+//   - map deep merge to add labels next to the development ones
+//
+// (( append )) only applies to lists, so it can't extend the development labels, which are a map.
 const initHelloProdCompose = `# Production overrides for the hello service.
 # Spruce operators used here:
 #   (( prune ))  : remove this key from the merged result
-#   (( append )) : append to the list instead of replacing it
-# All other keys simply overwrite the development value.
+# Maps are merged key by key, all other values simply overwrite the development value.
+# Secrets with file: in development are automatically converted to external: true
+# in production. No manual override needed.
 
 configs:
   hello-config:
     file: ./config.yaml      # overwrite: use the production config file
-
-secrets:
-  # Secrets with file: in development are automatically converted to external: true
-  # in production. No manual override needed.
 
 services:
   hello:
@@ -475,8 +474,7 @@ services:
     ports: (( prune ))       # purge: no direct port binding in production (use an ingress)
     deploy:
       labels:
-        - (( append ))       # append: keep existing dev labels and add new ones
-        - "traefik.enable=true"
+        traefik.enable: "true" # merge: keep existing dev labels and add this one
 `
 
 const initHelloProdConfig = `# Production configuration for the hello service.
