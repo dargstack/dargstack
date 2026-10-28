@@ -40,8 +40,8 @@ var configRotateCmd = &cobra.Command{
 
 Reads the config's file content, computes the first 8 hex characters of its SHA-256, and
 renames the config to ` + "`<base>-<hash>`" + ` in every source compose file: the top-level
-configs key and all service references. The name may be given with or without the current
-suffix.
+configs key and all service and shared-definition references. The name may be given with
+or without the current suffix.
 
 If the config's file is a dargstack artifact under ` + "`artifacts/configs/`" + ` (a derived
 config), the artifact file is renamed to match the new name.`,

@@ -44,15 +44,19 @@ func frameKeys(stack []yamlFrame) []string {
 }
 
 // RenameConfigInComposeText renames a config in a compose source document: the top-level configs map key and
-// every service configs reference (short and long form, block and flow style).
+// every configs reference under a service or a shared (anchor-inherited) definition (short and long form,
+// block and flow style).
 // It works line by line on the raw text so comments (including dargstack:dev-only markers) and formatting
 // are preserved; a plain YAML round trip would discard them.
+// Block scalar contents (| and >) are data, not references, and are skipped.
 // Returns the modified text and whether anything changed.
 func RenameConfigInComposeText(text, oldName, newName string) (string, bool) {
 	lines := strings.Split(text, "\n")
 
 	// stack tracks the mapping key path by indentation.
 	var stack []yamlFrame
+	// blockIndent is the indent of the line that opened a block scalar, or -1 when none is open.
+	blockIndent := -1
 	changed := false
 
 	for i, line := range lines {
@@ -61,6 +65,14 @@ func RenameConfigInComposeText(text, oldName, newName string) (string, bool) {
 			continue
 		}
 		indent := len(line) - len(trimmed)
+
+		if blockIndent >= 0 {
+			// Deeper lines are scalar content; a shallower or equal line ends the scalar and is processed.
+			if indent > blockIndent {
+				continue
+			}
+			blockIndent = -1
+		}
 
 		if isListItem(trimmed) {
 			// A list item ends any deeper mapping, e.g. the target/mode keys of a preceding
@@ -71,6 +83,9 @@ func RenameConfigInComposeText(text, oldName, newName string) (string, bool) {
 			if off := configItemRenameOffset(trimmed, stack, oldName); off >= 0 {
 				lines[i] = renameInLine(line, oldName, newName, indent+off)
 				changed = true
+			}
+			if isBlockScalar(strings.TrimPrefix(trimmed, "- ")) {
+				blockIndent = indent
 			}
 			continue
 		}
@@ -89,17 +104,43 @@ func RenameConfigInComposeText(text, oldName, newName string) (string, bool) {
 			// Top-level config key: rename the key token at the indent position.
 			lines[i] = line[:indent] + newName + line[indent+len(key):]
 			changed = true
-		case key == "configs" && isServicePath(path) && strings.HasPrefix(strings.TrimSpace(rest), "["):
-			// Flow-style service config list: configs: [old, other]
+		case key == "configs" && isTopLevelSectionPath(path) && strings.HasPrefix(strings.TrimSpace(rest), "["):
+			// Flow-style config list under a service or shared definition: configs: [old, other]
 			if flow := renameFlowList(line, oldName, newName); flow != line {
 				lines[i] = flow
 				changed = true
 			}
 		}
 		stack = append(stack, yamlFrame{indent: indent, key: key})
+		if isBlockScalar(rest) {
+			blockIndent = indent
+		}
 	}
 
 	return strings.Join(lines, "\n"), changed
+}
+
+// isBlockScalar reports whether value is a block scalar header: | or > with an optional chomping or
+// indentation indicator, optionally preceded by an anchor and followed by a comment.
+// A tag in front of the header is not recognized; it would require a real YAML scanner.
+func isBlockScalar(value string) bool {
+	v := strings.TrimSpace(value)
+	if strings.HasPrefix(v, "&") {
+		if j := strings.IndexAny(v, " \t"); j >= 0 {
+			v = strings.TrimSpace(v[j:])
+		} else {
+			return false
+		}
+	}
+	if v == "" || (v[0] != '|' && v[0] != '>') {
+		return false
+	}
+	i := 1
+	for i < len(v) && (v[i] == '+' || v[i] == '-' || (v[i] >= '1' && v[i] <= '9')) {
+		i++
+	}
+	rest := strings.TrimSpace(v[i:])
+	return rest == "" || strings.HasPrefix(rest, "#")
 }
 
 // isListItem reports whether a trimmed line is a YAML list item.
@@ -109,13 +150,14 @@ func isListItem(trimmed string) bool {
 
 // configItemRenameOffset returns the offset within the trimmed line (starting with "- ") of the oldName token
 // that should be renamed, or -1 when the item does not reference oldName.
-// Only list items under a service configs key are considered.
+// Only list items under a configs key that is a direct child of a top-level section (a service or a shared
+// definition) are considered.
 func configItemRenameOffset(trimmed string, stack []yamlFrame, oldName string) int {
 	if trimmed == "-" {
 		return -1
 	}
 	path := frameKeys(stack)
-	if len(path) != 3 || path[0] != "services" || path[2] != "configs" {
+	if len(path) != 3 || path[2] != "configs" {
 		return -1
 	}
 
@@ -171,8 +213,10 @@ func renameFlowList(line, oldName, newName string) string {
 	return line[:start+1] + strings.Join(items, ",") + line[end:]
 }
 
-func isServicePath(path []string) bool {
-	return len(path) == 2 && path[0] == "services"
+// isTopLevelSectionPath reports whether the key about to be pushed sits in a direct child of a top-level
+// section, e.g. services.<name>.configs or x-shared.<anchor>.configs.
+func isTopLevelSectionPath(path []string) bool {
+	return len(path) == 2
 }
 
 // splitSimpleKey splits a trimmed line into key and rest when it starts with a simple mapping key.

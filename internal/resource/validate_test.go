@@ -815,3 +815,119 @@ func TestValidateConfigHashSuffixMissingFile(t *testing.T) {
 		t.Errorf("no hash check possible for a missing file, got %v", issues)
 	}
 }
+
+func TestValidateServiceReferencesStale(t *testing.T) {
+	// A reference inherited from a shared definition (anchor/merge key) is explicit in the merged document,
+	// because the YAML merge resolves it before this check runs. A stale one must be flagged even though the
+	// top-level section only carries the rotated name, and the same applies to secrets.
+	composeYAML := `services:
+  one:
+    image: example/app:1.0.0
+    configs:
+      - source: app-config
+        target: /etc/app/config.yaml
+    secrets: [app-secret]
+  two:
+    image: example/app:1.0.0
+    configs: [other-config]
+    secrets:
+      - source: other-secret
+        target: /etc/other/secret
+configs:
+  app-config-b2c3d4e5:
+    file: ./config.yaml
+  other-config:
+    file: ./other.yaml
+secrets:
+  other-secret:
+    file: ./other.secret
+`
+	issues, err := ValidateServiceReferences([]byte(composeYAML))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(issues) != 2 {
+		t.Fatalf("expected exactly 2 issues, got %v", issues)
+	}
+	foundConfig, foundSecret := false, false
+	for _, iss := range issues {
+		if iss.Severity != "error" {
+			t.Errorf("expected error severity, got %s", iss.Severity)
+		}
+		if iss.Resource != "service:one" {
+			t.Errorf("expected resource service:one, got %s", iss.Resource)
+		}
+		switch {
+		case strings.Contains(iss.Description, `"app-config"`):
+			foundConfig = true
+		case strings.Contains(iss.Description, `"app-secret"`):
+			foundSecret = true
+		default:
+			t.Errorf("unexpected description: %s", iss.Description)
+		}
+	}
+	if !foundConfig || !foundSecret {
+		t.Errorf("expected a stale config and a stale secret, got %v", issues)
+	}
+}
+
+func TestValidateServiceReferencesInterpolatedSkipped(t *testing.T) {
+	// Compose interpolation resolves against the deployment environment, which dargstack does not see; such
+	// references are left to `docker compose config` and must not be reported as undefined.
+	composeYAML := `services:
+  one:
+    image: example/app:1.0.0
+    configs:
+      - "${CONFIG_NAME:-app-config}"
+    secrets:
+      - source: "${SECRET_NAME}"
+        target: /etc/secret
+configs:
+  app-config:
+    file: ./config.yaml
+secrets:
+  app-secret:
+    file: ./app.secret
+`
+	issues, err := ValidateServiceReferences([]byte(composeYAML))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(issues) != 0 {
+		t.Errorf("expected no issues for interpolated references, got %v", issues)
+	}
+}
+
+func TestValidateServiceReferencesAllDefined(t *testing.T) {
+	composeYAML := `services:
+  one:
+    image: example/app:1.0.0
+    configs: [app-config]
+    secrets: [app-secret]
+  two:
+    image: example/app:1.0.0
+    configs:
+      - source: other-config
+        target: /etc/other.yaml
+    secrets:
+      - source: other-secret
+        target: /etc/other/secret
+configs:
+  app-config:
+    file: ./config.yaml
+  other-config:
+    file: ./other.yaml
+secrets:
+  app-secret:
+    file: ./app.secret
+  other-secret:
+    file: ./other.secret
+`
+	issues, err := ValidateServiceReferences([]byte(composeYAML))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(issues) != 0 {
+		t.Errorf("expected no issues, got %v", issues)
+	}
+}

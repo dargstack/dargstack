@@ -21,6 +21,7 @@ Checks:
 - All secrets files referenced in compose definitions exist
 - All config files referenced in compose definitions exist
 - Config names that carry a content hash suffix match the hash of their file content
+- Every service config and secret reference resolves to a top-level configs or secrets entry (interpolated ${...} names are left to docker compose config)
 - All Dockerfile contexts for services with ` + "`dargstack.development.build`" + ` labels are present
 - TLS certificates directory exists for development
 - The merged compose output passes ` + "`docker compose config`" + ` (skipped if the compose CLI plugin isn't installed)`,
@@ -53,6 +54,14 @@ func runValidate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Config and secret references are checked on the pre-filter document, because services the profile
+	// filter drops (e.g. unlabeled services when a default profile exists) still fail `docker compose config`
+	// at deploy time with a stale reference, and validate would otherwise surface it late or not at all.
+	refIssues, err := resource.ValidateServiceReferences(composeData)
+	if err != nil {
+		return err
+	}
+
 	composeData, filterMsg, err := applyProfileFilter(composeData)
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrFilterComposeByProfile, err)
@@ -63,6 +72,7 @@ func runValidate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	issues = append(issues, refIssues...)
 
 	composeErr := deployValidateComposeConfig(composeExecutor(), composeData)
 

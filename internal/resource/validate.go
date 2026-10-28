@@ -170,6 +170,83 @@ func validateConfigHashSuffix(name, filePath string) []Issue {
 	}}
 }
 
+// ValidateServiceReferences reports services that reference a config or secret name with no entry in the
+// document's top-level configs or secrets map. It must run on the pre-profile-filter document, because
+// services the filter drops (e.g. unlabeled services when a default profile exists) still fail
+// `docker compose config` at deploy time with a stale reference, and validate would otherwise surface it
+// late, or not at all when the compose CLI is absent. A stale reference typically comes from a shared
+// (anchor-inherited) definition that `dargstack config rotate` did not rewrite.
+func ValidateServiceReferences(composeData []byte) ([]Issue, error) {
+	var doc map[string]interface{}
+	if err := yaml.Unmarshal(composeData, &doc); err != nil {
+		return nil, fmt.Errorf("%s: %w", compose.ErrParseCompose, err)
+	}
+
+	services, ok := doc["services"].(map[string]interface{})
+	if !ok {
+		return nil, nil
+	}
+
+	sections := []struct{ key, kind string }{
+		{"configs", "config"},
+		{"secrets", "secret"},
+	}
+	var issues []Issue
+	for name, def := range services {
+		svc, ok := def.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		for _, s := range sections {
+			issues = append(issues, checkServiceReferences(svc, s.key, s.kind, name, doc[s.key])...)
+		}
+	}
+	return issues, nil
+}
+
+// checkServiceReferences reports the service's references to one top-level resource section that have no
+// matching entry in that section.
+func checkServiceReferences(svc map[string]interface{}, section, kind, service string, top interface{}) []Issue {
+	defined, _ := top.(map[string]interface{})
+	var issues []Issue
+	for _, ref := range serviceResourceRefs(svc, section) {
+		// Compose interpolation (${VAR}, ${VAR:-default}) resolves against the deployment environment,
+		// which dargstack does not see; leave the effective name to `docker compose config`.
+		if strings.Contains(ref, "${") {
+			continue
+		}
+		if _, ok := defined[ref]; !ok {
+			issues = append(issues, Issue{
+				Severity:    "error",
+				Resource:    fmt.Sprintf("service:%s", service),
+				Description: fmt.Sprintf("references undefined %s %q; if the reference is inherited from a shared definition, update the %s name in that definition", kind, ref, kind),
+			})
+		}
+	}
+	return issues
+}
+
+// serviceResourceRefs returns the names a service references in one top-level resource section (configs or
+// secrets), from short-form list items and the source field of long-form items.
+func serviceResourceRefs(svc map[string]interface{}, section string) []string {
+	raw, ok := svc[section].([]interface{})
+	if !ok {
+		return nil
+	}
+	var refs []string
+	for _, item := range raw {
+		switch ref := item.(type) {
+		case string:
+			refs = append(refs, ref)
+		case map[string]interface{}:
+			if source, ok := ref["source"].(string); ok && source != "" {
+				refs = append(refs, source)
+			}
+		}
+	}
+	return refs
+}
+
 // validateDargstackSecrets checks that basic_auth entries in x-dargstack.secrets are well-formed: a username, and a source naming another secret to take the plaintext password from.
 func validateDargstackSecrets(templates map[string]secret.Template) []Issue {
 	var issues []Issue
