@@ -1,3 +1,9 @@
+## [4.20.2](https://github.com/dargstack/dargstack/compare/v4.20.1...v4.20.2) (2026-10-28)
+
+### Bug Fixes
+
+* **skill:** correct file locations and add missing agent-skill coverage ([#154](https://github.com/dargstack/dargstack/issues/154)) ([4510d5e](https://github.com/dargstack/dargstack/commit/4510d5ec0eeea61b0c2a07402fa9b4da7df22e47))
+
 ## [4.20.1](https://github.com/dargstack/dargstack/compare/v4.20.0...v4.20.1) (2026-10-24)
 
 ### Bug Fixes
