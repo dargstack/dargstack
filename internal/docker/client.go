@@ -3,6 +3,9 @@ package docker
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/moby/moby/api/types/swarm"
 	"github.com/moby/moby/client"
@@ -15,11 +18,29 @@ type Client struct {
 
 // NewClient creates a new Docker SDK client.
 func NewClient() (*Client, error) {
-	cli, err := client.New(client.FromEnv)
+	opts := []client.Opt{client.FromEnv}
+	if host := contextHost(); host != "" {
+		opts = append(opts, client.WithHost(host))
+	}
+	cli, err := client.New(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("create Docker client: %w", err)
 	}
 	return &Client{api: cli}, nil
+}
+
+// contextHost returns the endpoint of the docker CLI's current context, or "" when DOCKER_HOST is set or the CLI cannot tell.
+// client.FromEnv ignores CLI contexts, so without this the SDK falls back to /var/run/docker.sock while needsSudo probes the context's daemon via `docker info`, and the two disagree.
+// Only the host is taken over: a tcp context's TLS material and the connection helper an ssh:// context needs are not, so those still fail at Ping.
+func contextHost() string {
+	if os.Getenv("DOCKER_HOST") != "" {
+		return ""
+	}
+	out, err := exec.Command("docker", "context", "inspect", "--format", "{{.Endpoints.docker.Host}}").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
 // Close releases the Docker client resources.
