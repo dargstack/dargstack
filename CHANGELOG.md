@@ -1,3 +1,9 @@
+## [4.22.0](https://github.com/dargstack/dargstack/compare/v4.21.3...v4.22.0) (2026-10-28)
+
+### Features
+
+* **initialize:** serve hello over https through traefik ([#162](https://github.com/dargstack/dargstack/issues/162)) ([5d06105](https://github.com/dargstack/dargstack/commit/5d061053ccc262d32bd05de510694983c507efcd))
+
 ## [4.21.3](https://github.com/dargstack/dargstack/compare/v4.21.2...v4.21.3) (2026-10-28)
 
 ### Bug Fixes
