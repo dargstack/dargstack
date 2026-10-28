@@ -1,3 +1,9 @@
+## [4.22.1](https://github.com/dargstack/dargstack/compare/v4.22.0...v4.22.1) (2026-10-28)
+
+### Bug Fixes
+
+* **initialize:** make production hello overlay deployable ([#163](https://github.com/dargstack/dargstack/issues/163)) ([ef59c15](https://github.com/dargstack/dargstack/commit/ef59c15d13c167bbe40d79db671d0286900fbeab))
+
 ## [4.22.0](https://github.com/dargstack/dargstack/compare/v4.21.3...v4.22.0) (2026-10-28)
 
 ### Features
