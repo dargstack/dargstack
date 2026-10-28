@@ -210,6 +210,11 @@ func checkServiceReferences(svc map[string]interface{}, section, kind, service s
 	defined, _ := top.(map[string]interface{})
 	var issues []Issue
 	for _, ref := range serviceResourceRefs(svc, section) {
+		// Compose interpolation (${VAR}, ${VAR:-default}) resolves against the deployment environment,
+		// which dargstack does not see; leave the effective name to `docker compose config`.
+		if strings.Contains(ref, "${") {
+			continue
+		}
 		if _, ok := defined[ref]; !ok {
 			issues = append(issues, Issue{
 				Severity:    "error",

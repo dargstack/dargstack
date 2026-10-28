@@ -11,7 +11,7 @@ Checks:
 - All secrets files referenced in compose definitions exist
 - All config files referenced in compose definitions exist
 - Config names that carry a content hash suffix match the hash of their file content
-- Every service config and secret reference resolves to a top-level configs or secrets entry
+- Every service config and secret reference resolves to a top-level configs or secrets entry (interpolated ${...} names are left to docker compose config)
 - All Dockerfile contexts for services with `dargstack.development.build` labels are present
 - TLS certificates directory exists for development
 - The merged compose output passes `docker compose config` (skipped if the compose CLI plugin isn't installed)

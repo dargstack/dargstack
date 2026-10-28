@@ -871,6 +871,33 @@ secrets:
 	}
 }
 
+func TestValidateServiceReferencesInterpolatedSkipped(t *testing.T) {
+	// Compose interpolation resolves against the deployment environment, which dargstack does not see; such
+	// references are left to `docker compose config` and must not be reported as undefined.
+	composeYAML := `services:
+  one:
+    image: example/app:1.0.0
+    configs:
+      - "${CONFIG_NAME:-app-config}"
+    secrets:
+      - source: "${SECRET_NAME}"
+        target: /etc/secret
+configs:
+  app-config:
+    file: ./config.yaml
+secrets:
+  app-secret:
+    file: ./app.secret
+`
+	issues, err := ValidateServiceReferences([]byte(composeYAML))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(issues) != 0 {
+		t.Errorf("expected no issues for interpolated references, got %v", issues)
+	}
+}
+
 func TestValidateServiceReferencesAllDefined(t *testing.T) {
 	composeYAML := `services:
   one:
