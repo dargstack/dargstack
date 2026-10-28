@@ -170,6 +170,86 @@ configs:
 	}
 }
 
+func TestRenameConfigInComposeTextLongFormItems(t *testing.T) {
+	// The child keys of a long-form item (target, mode) must not hide the following list items.
+	const input = `configs:
+  alpha:
+    file: ./alpha.conf
+  beta:
+    file: ./beta.conf
+services:
+  demo:
+    image: demo:latest
+    configs:
+      - source: alpha
+        target: /etc/alpha.conf
+        mode: "0444"
+      - source: beta
+        target: /etc/beta.conf
+        mode: "0444"
+`
+	got, changed := RenameConfigInComposeText(input, "beta", "beta-b2c3d4e5")
+	if !changed {
+		t.Fatal("expected changes")
+	}
+	want := `configs:
+  alpha:
+    file: ./alpha.conf
+  beta-b2c3d4e5:
+    file: ./beta.conf
+services:
+  demo:
+    image: demo:latest
+    configs:
+      - source: alpha
+        target: /etc/alpha.conf
+        mode: "0444"
+      - source: beta-b2c3d4e5
+        target: /etc/beta.conf
+        mode: "0444"
+`
+	if got != want {
+		t.Errorf("unexpected output:\n--- got ---\n%s\n--- want ---\n%s", got, want)
+	}
+}
+
+func TestRenameConfigInComposeTextSameIndentItems(t *testing.T) {
+	// List items may sit at the same indent as the configs key; the configs frame must survive the pop.
+	const input = `services:
+  demo:
+    image: demo:latest
+    configs:
+    - alpha
+    - source: beta
+      target: /etc/beta.conf
+configs:
+  alpha:
+    file: ./alpha.conf
+  beta:
+    file: ./beta.conf
+`
+	got, changed := RenameConfigInComposeText(input, "beta", "beta-b2c3d4e5")
+	if !changed {
+		t.Fatal("expected changes")
+	}
+	want := `services:
+  demo:
+    image: demo:latest
+    configs:
+    - alpha
+    - source: beta-b2c3d4e5
+      target: /etc/beta.conf
+configs:
+  alpha:
+    file: ./alpha.conf
+  beta-b2c3d4e5:
+    file: ./beta.conf
+`
+	if got != want {
+		t.Errorf("unexpected output:\n--- got ---\n%s\n--- want ---\n%s", got, want)
+	}
+}
+
 func TestRenameConfigInComposeTextFlowListNoMatch(t *testing.T) {
 	const input = `services:
   api:
