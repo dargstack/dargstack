@@ -40,6 +40,7 @@ Contributing? See [CONTRIBUTING.md](CONTRIBUTING.md).
   - [Configuration: dargstack.yaml](#configuration-dargstackyaml)
   - [Profiles & Performance](#profiles--performance)
   - [Secret Templating](#secret-templating)
+  - [Config Content Hash Suffixes](#config-content-hash-suffixes)
   - [Environment Files](#environment-files)
   - [Platform Overrides](#platform-overrides)
 - [Commands](#commands)
@@ -379,6 +380,28 @@ If the source secret is unset (for example an unfilled `third_party` password), 
   - `{{wordlist_word}}`: inline word generation
   - `{{private_key}}`: inline private key generation
 
+### Config Content Hash Suffixes
+
+Docker only allows label updates on existing config objects: a content update with the same name fails the entire deploy.
+dargstack works around this with an optional content hash suffix convention: a config named `<base>-<hash>` carries the first 8 hex characters of the SHA-256 of its file content, for example `prometheus-yaml-a1b2c3d4`.
+When the content changes, the name changes with it, so `docker stack deploy` creates a new config object instead of failing, the services roll to the new name, and the old object is pruned by dargstack after the deploy.
+
+The convention is opt-in per config: `dargstack validate` only polices names that already carry a suffix, and `dargstack deploy` only prunes suffix-named orphans. Existing stacks are unaffected until you migrate a config name by name.
+
+Workflow:
+
+1. Edit the config file content.
+2. `dargstack validate` fails with a clear mismatch:
+   `content hash mismatch: name has a1b2c3d4, content hashes to 9f8e7d6c. Run 'dargstack config rotate <name>'`.
+   The check is local, so it runs in CI without Docker.
+3. `dargstack config rotate <name>` recomputes the suffix and renames the config in every source compose file (top-level `configs` key and all service references; the name may be given with or without the current suffix).
+4. `dargstack deploy` deploys the new name and prunes the previous, now unreferenced, config object.
+
+Derived configs (`x-dargstack.configs`) adopt the same convention automatically: since their content is only known when dargstack writes it, the suffix is computed at deploy time from the exact bytes about to be deployed and appended to the name in the in-memory compose (e.g. `signing-key-pub-a1b2c3d4` in `docker config ls`). The repo keeps the bare name, so there is nothing for `validate` to check and no rotate command is needed.
+In production, where the source secret is external and the value is not re-derived, the suffix is computed from the artifact file of the previous run, which is the exact content that is about to be deployed.
+
+One name can only carry one content hash. If development and production use different content for the same config, give each environment its own config name (declare and reference it in the environment-specific sources); `dargstack config rotate` warns when the other environment's content hashes differently.
+
 ### Environment Files
 
 `.env.template` files (tracked in version control) define the keys your stack needs.
@@ -434,6 +457,7 @@ The active platform is auto-detected via `runtime.GOOS`, or overridden with `--p
 | [dargstack build](docs/dargstack_build.md)           | Build development Dockerfiles          |
 | [dargstack certify](docs/dargstack_certify.md)       | Generate TLS certificates              |
 | [dargstack clone](docs/dargstack_clone.md)           | Clone an existing dargstack project    |
+| [dargstack config](docs/dargstack_config.md)         | Manage stack configs                   |
 | [dargstack deploy](docs/dargstack_deploy.md)         | Deploy the stack                       |
 | [dargstack document](docs/dargstack_document.md)     | Generate the stack documentation       |
 | [dargstack initialize](docs/dargstack_initialize.md) | Bootstrap a new dargstack project      |

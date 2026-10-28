@@ -161,6 +161,42 @@ func VolumeRemove(exec *Executor, volumes []string) error {
 	return err
 }
 
+// ConfigList lists config names in a stack namespace, returning only the bare config name without the "<stack>_" prefix.
+// Configs created by `docker stack deploy` are labeled com.docker.stack.namespace=<stack> and named <stack>_<name>.
+func ConfigList(exec *Executor, stackName string) ([]string, error) {
+	out, err := exec.Run("config", "ls", "--filter", fmt.Sprintf("label=com.docker.stack.namespace=%s", stackName), "--format", "{{.Name}}")
+	if err != nil {
+		return nil, fmt.Errorf("list configs in stack %q: %w", stackName, err)
+	}
+	if out == "" {
+		return nil, nil
+	}
+	prefix := stackName + "_"
+	raw := strings.Split(out, "\n")
+	names := make([]string, 0, len(raw))
+	for _, s := range raw {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		names = append(names, strings.TrimPrefix(s, prefix))
+	}
+	return names, nil
+}
+
+// ConfigRemove removes the specified configs by their full Docker config names (<stack>_<name>).
+func ConfigRemove(exec *Executor, configs []string) error {
+	if len(configs) == 0 {
+		return nil
+	}
+	args := append([]string{"config", "rm"}, configs...)
+	_, err := exec.Run(args...)
+	if err != nil {
+		return fmt.Errorf("remove configs: %w", err)
+	}
+	return nil
+}
+
 // StackBuild builds a service image from a Dockerfile.
 // If verbose is true, build output is streamed to the terminal.
 // If verbose is false, output is suppressed unless the build fails.

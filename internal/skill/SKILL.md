@@ -2,7 +2,7 @@
 name: dargstack
 description: Understand dargstack project structure, spruce operators, secret templating, label conventions, and deploy workflow for AI agents working in dargstack-managed Docker Swarm projects.
 metadata:
-  dargstack_version: "4.0.0"
+  dargstack_version: "4.21.0"
 ---
 
 # Dargstack Agent Skill
@@ -160,6 +160,19 @@ services:
 `dargstack secret generate` (and deploy) derives the value and writes it to the compose-declared `configs.<name>.file` path with normal (world-readable) permissions, mirroring how `secrets` are written to their `file:` path.
 `source` must name a `private_key` secret; `public_key` is currently the only supported config type.
 
+## Config Content Hash Suffixes
+
+Docker only allows label updates on existing config objects: a content update with the same name fails `docker stack deploy`.
+dargstack works around this with an optional convention: a config named `<base>-<hash>` carries the first 8 hex characters of the SHA-256 of its file content, e.g. `prometheus-yaml-a1b2c3d4`.
+Changed content gets a new name; the deploy creates the new config object, services roll, and dargstack prunes the old object after the deploy.
+
+- The convention is opt-in per config: only names that already carry an 8-hex suffix are policed and pruned.
+- `dargstack validate` recomputes the hash locally (works in CI without Docker) and fails on mismatch with a message pointing at the rotate command.
+- `dargstack config rotate <name>` recomputes the suffix and renames the config in the source compose files (top-level `configs` key and all service references). The name may be given with or without the current suffix. It does not rename committed content files.
+- `dargstack deploy` prunes stack-namespace config objects matching `<base>-<hash>` that the full stack no longer declares.
+- Derived configs (`x-dargstack.configs`) get the suffix at deploy time from the exact bytes written; the repo keeps the bare name and there is no rotate command for them. In production the suffix is computed from the previous run's artifact file, which is what gets deployed.
+- One name carries one content hash. If development and production use different content for the same config, each environment needs its own config name; rotate warns when the other environment's content hashes differently.
+
 ## Label Conventions
 
 Special labels in `deploy.labels` control dargstack behavior:
@@ -187,10 +200,11 @@ Deploy with `--profiles <name>`.
 
 1. `dargstack deploy`: merges compose files, resolves secrets, builds images, deploys to Docker Swarm
 2. `dargstack build`: build development images only
-3. `dargstack validate`: validate compose files and resources
+3. `dargstack validate`: validate compose files and resources (including config content hash suffixes)
 4. `dargstack secret generate`: generate secrets from templates
-5. `dargstack remove`: remove the deployed stack
-6. `dargstack audit`: view deployment history
+5. `dargstack config rotate <name>`: recompute a config's content hash suffix after its content changed
+6. `dargstack remove`: remove the deployed stack
+7. `dargstack audit`: view deployment history
 
 Use `--environment production` for production deployments.
 Use `--dry-run` to trace without executing.
