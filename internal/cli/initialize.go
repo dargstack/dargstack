@@ -377,7 +377,7 @@ WORKDIR /app
 COPY main.go .
 RUN go mod init hello && go build -o hello .
 
-FROM alpine
+FROM alpine AS development
 COPY --from=builder /app/hello /usr/local/bin/hello
 EXPOSE 8080
 CMD ["hello"]
