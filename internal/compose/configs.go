@@ -63,6 +63,11 @@ func RenameConfigInComposeText(text, oldName, newName string) (string, bool) {
 		indent := len(line) - len(trimmed)
 
 		if isListItem(trimmed) {
+			// A list item ends any deeper mapping, e.g. the target/mode keys of a preceding
+			// long-form item, or the rename path check below sees a stale frame and bails.
+			for len(stack) > 0 && stack[len(stack)-1].indent > indent {
+				stack = stack[:len(stack)-1]
+			}
 			if off := configItemRenameOffset(trimmed, stack, oldName); off >= 0 {
 				lines[i] = renameInLine(line, oldName, newName, indent+off)
 				changed = true
