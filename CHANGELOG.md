@@ -1,3 +1,9 @@
+## [4.21.0](https://github.com/dargstack/dargstack/compare/v4.20.2...v4.21.0) (2026-10-28)
+
+### Features
+
+* **configs:** content hash suffix convention for file based configs ([#155](https://github.com/dargstack/dargstack/issues/155)) ([6b554bb](https://github.com/dargstack/dargstack/commit/6b554bbd3a10f6ab31707f996c7a7762257aab84))
+
 ## [4.20.2](https://github.com/dargstack/dargstack/compare/v4.20.1...v4.20.2) (2026-10-28)
 
 ### Bug Fixes
