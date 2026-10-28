@@ -382,22 +382,12 @@ If the source secret is unset (for example an unfilled `third_party` password), 
 
 ### Config Content Hash Suffixes
 
-Docker only allows label updates on existing config objects: a content update with the same name fails the entire deploy.
-dargstack works around this with an optional content hash suffix convention: a config named `<base>-<hash>` carries the first 8 hex characters of the SHA-256 of its file content, for example `prometheus-yaml-a1b2c3d4`.
-When the content changes, the name changes with it, so `docker stack deploy` creates a new config object instead of failing, the services roll to the new name, and the old object is pruned by dargstack after the deploy.
+Docker only allows label updates on existing config objects: a content update with the same name fails the deploy.
+dargstack works around this with an optional naming convention: a config named `<base>-<hash>` carries the first 8 hex characters of the SHA-256 of its file content, for example `prometheus-yaml-a1b2c3d4`.
+When the content changes, `dargstack config rotate <name>` recomputes the suffix and renames the config in the source compose files; the deploy then creates the new config object and dargstack prunes the old one.
+`dargstack validate` fails on mismatch, so a stale suffix is caught locally (no Docker needed).
 
-The convention is opt-in per config: only names that already carry a suffix are validated and pruned, so existing stacks are unaffected.
-
-Workflow:
-
-1. Edit the config file content.
-2. `dargstack validate` fails with a hash mismatch message pointing at the rotate command (local check, no Docker needed).
-3. `dargstack config rotate <name>` recomputes the suffix and renames the config in every source compose file (top-level `configs` key and all service references; the name may be given with or without the current suffix).
-4. `dargstack deploy` deploys the new name and prunes the previous, now unreferenced, config object.
-
-Derived configs (`x-dargstack.configs`) adopt the convention automatically: their content is only known when dargstack writes it, so the suffix is computed at deploy time and appended to the deployed name (`docker config ls` shows the suffixed name). The repo keeps the bare name, so there is nothing for `validate` to check and no rotate command is needed.
-
-One name can only carry one content hash. If development and production use different content for the same config, give each environment its own config name; `dargstack config rotate` warns when the other environment's content hashes differently.
+Only names that already carry a suffix are validated and pruned, so existing stacks are unaffected; derived configs (`x-dargstack.configs`) get the suffix at deploy time and keep the bare name in the repo.
 
 ### Environment Files
 

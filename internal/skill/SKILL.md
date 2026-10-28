@@ -188,16 +188,11 @@ services:
 
 ## Config Content Hash Suffixes
 
-Docker only allows label updates on existing config objects: a content update with the same name fails `docker stack deploy`.
-dargstack works around this with an optional convention: a config named `<base>-<hash>` carries the first 8 hex characters of the SHA-256 of its file content, e.g. `prometheus-yaml-a1b2c3d4`.
-Changed content gets a new name; the deploy creates the new config object, services roll, and dargstack prunes the old object after the deploy.
-
-- The convention is opt-in per config: only names that already carry an 8-hex suffix are validated and pruned.
-- `dargstack validate` fails on hash mismatch (local check, no Docker needed), pointing at the rotate command.
-- `dargstack config rotate <name>` recomputes the suffix and renames the config in the source compose files (top-level `configs` key and all service references); the argument may carry the suffix or not, and content files are never renamed.
-- `dargstack deploy` prunes suffixed config objects in the stack namespace that the stack no longer declares.
-- Derived configs (`x-dargstack.configs`) get the suffix at deploy time; the repo keeps the bare name, so there is no rotate for them.
-- One name carries one content hash; per-environment content differences need per-environment config names (rotate warns on drift).
+Optional convention around Docker's no-content-update rule (a content change with the same config name fails `docker stack deploy`): name the config `<base>-<hash>`, first 8 hex of the SHA-256 of its file content.
+Changed content gets a new name; the deploy creates the new config object and dargstack prunes the old one afterwards.
+After editing a config's content, run `dargstack config rotate <name>` (with or without the current suffix); it renames the config in the source compose files, never the content file.
+Only suffixed names are validated and pruned (opt-in per config); derived configs get the suffix at deploy time and keep the bare name in the repo.
+Per-environment content differences need per-environment config names; rotate warns on drift.
 
 ## Label Conventions
 
