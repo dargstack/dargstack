@@ -1,3 +1,10 @@
+## [4.21.3](https://github.com/dargstack/dargstack/compare/v4.21.2...v4.21.3) (2026-10-28)
+
+### Bug Fixes
+
+* **docker:** connect the sdk client to the cli context's endpoint ([#161](https://github.com/dargstack/dargstack/issues/161)) ([39d0823](https://github.com/dargstack/dargstack/commit/39d0823e91a8c47264219d17bfe61a57163f88b9))
+* **initialize:** name hello runtime stage development ([#160](https://github.com/dargstack/dargstack/issues/160)) ([5e1322e](https://github.com/dargstack/dargstack/commit/5e1322e9b365b06977c535b1bcea9816d96d728f))
+
 ## [4.21.2](https://github.com/dargstack/dargstack/compare/v4.21.1...v4.21.2) (2026-10-28)
 
 ### Bug Fixes

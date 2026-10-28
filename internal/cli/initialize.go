@@ -162,6 +162,7 @@ func bootstrapProject(name, target string) error {
 	dirs := []string{
 		filepath.Join(stackDir, "src", "development", "hello"),
 		filepath.Join(stackDir, "src", "production", "hello"),
+		filepath.Join(stackDir, "src", "development", "traefik"),
 		filepath.Join(stackDir, "artifacts", "docs"),
 		filepath.Join(stackDir, "artifacts", "audit-log"),
 		filepath.Join(stackDir, "artifacts", "certificates"),
@@ -217,6 +218,15 @@ func bootstrapProject(name, target string) error {
 	}
 	if err := os.WriteFile(filepath.Join(stackDir, "src", "development", "hello", "config.yaml"), []byte(initHelloDevConfig), 0o644); err != nil {
 		return fmt.Errorf("write hello config.yaml: %w", err)
+	}
+
+	// Example ingress: serves the generated development certificate over HTTPS
+	traefikCompose := fmt.Sprintf(initTraefikCompose, name)
+	if err := os.WriteFile(filepath.Join(stackDir, "src", "development", "traefik", "compose.yaml"), []byte(traefikCompose), 0o644); err != nil {
+		return fmt.Errorf("write traefik compose.yaml: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(stackDir, "src", "development", "traefik", "dynamic.yaml"), []byte(initTraefikDynamic), 0o644); err != nil {
+		return fmt.Errorf("write traefik dynamic.yaml: %w", err)
 	}
 
 	helloProdCompose := fmt.Sprintf(initHelloProdCompose, name)
@@ -330,9 +340,12 @@ Service source code lives as siblings to ` + "`stack/`" + `.
 ├── stack/                         # dargstack project (compose files, config, secrets)
 │   └── src/
 │       ├── development/
-│       │   └── hello/             # development service definition
-│       │       ├── compose.yaml   # service spec (build label, port, config, secret)
-│       │       └── config.yaml    # development config mounted into the container
+│       │   ├── hello/             # development service definition
+│       │   │   ├── compose.yaml   # service spec (build label, port, config, secret, ingress labels)
+│       │   │   └── config.yaml    # development config mounted into the container
+│       │   └── traefik/           # HTTPS ingress serving the generated development certificate
+│       │       ├── compose.yaml   # Traefik service spec
+│       │       └── dynamic.yaml   # default TLS certificate configuration
 │       └── production/
 │           └── hello/             # production overrides
 │               ├── compose.yaml   # Spruce operators: purge ports, merge labels, external secret
@@ -350,7 +363,7 @@ cd stack
 dargstack deploy
 ` + "```" + `
 
-The ` + "`hello`" + ` service is built automatically from ` + "`hello/`" + ` and served on port 8080.
+The ` + "`hello`" + ` service is built automatically from ` + "`hello/`" + ` and served on port 8080 as well as on https://hello.app.localhost through Traefik.
 Replace it with your own services: clone source repositories next to ` + "`stack/`" + ` and
 add service directories in ` + "`stack/src/development/`" + ` and ` + "`stack/src/production/`" + `.
 `
@@ -432,6 +445,10 @@ services:
         # Alternatively, clone from a git repo (clones to sibling of stack directory):
         # dargstack.development.git.ssh: "git@github.com:yourorg/hello.git"
         # dargstack.development.git.https: "https://github.com/yourorg/hello.git"
+        traefik.enable: "true"
+        traefik.http.routers.hello.entrypoints: web-secure
+        traefik.http.routers.hello.rule: Host(` + "`hello.app.localhost`" + `)
+        traefik.http.services.hello.loadbalancer.server.port: "8080"
     image: %s/hello:development
     ports:
       - "8080:8080"
@@ -443,6 +460,48 @@ x-dargstack:
     hello-api-key:
       length: 32
       special_characters: false
+`
+
+// initTraefikCompose is the development ingress that terminates TLS with the certificate dargstack generates in
+// artifacts/certificates. The certificate wiring is dev-only, as production needs real certificates. Traefik v3.6+ is required to talk to Docker Engine 29+, which rejects older API versions.
+const initTraefikCompose = `configs: # dargstack:dev-only
+  traefik-dynamic: # dargstack:dev-only
+    file: ./dynamic.yaml # dargstack:dev-only
+
+services:
+  traefik:
+    command:
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=web-secure
+      - --entrypoints.web-secure.address=:443
+      - --entrypoints.web-secure.http.tls=true
+      - --providers.swarm.exposedByDefault=false
+      # Services publishing ports also join the ingress network, which Traefik can't reach
+      - --providers.swarm.network=%s_default
+      - --providers.file.filename=/etc/traefik/dynamic.yaml # dargstack:dev-only
+    configs: # dargstack:dev-only
+      - source: traefik-dynamic # dargstack:dev-only
+        target: /etc/traefik/dynamic.yaml # dargstack:dev-only
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+    image: traefik:v3.6
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Certificates generated by dargstack (mkcert-trusted when mkcert is installed)
+      - ../../../artifacts/certificates:/etc/traefik/certificates:ro # dargstack:dev-only
+`
+
+const initTraefikDynamic = `tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/certificates/localhost.pem
+        keyFile: /etc/traefik/certificates/localhost-key.pem
 `
 
 const initHelloDevConfig = `# Development configuration for the hello service.
