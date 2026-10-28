@@ -1,3 +1,9 @@
+## [4.21.2](https://github.com/dargstack/dargstack/compare/v4.21.1...v4.21.2) (2026-10-28)
+
+### Bug Fixes
+
+* rename shared config definitions and fail on undefined service references ([#159](https://github.com/dargstack/dargstack/issues/159)) ([8071292](https://github.com/dargstack/dargstack/commit/80712923c7220467d5cd93f2f2c244e374d1432c))
+
 ## [4.21.1](https://github.com/dargstack/dargstack/compare/v4.21.0...v4.21.1) (2026-10-28)
 
 ### Bug Fixes
