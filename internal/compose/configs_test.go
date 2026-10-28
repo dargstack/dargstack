@@ -344,6 +344,54 @@ configs:
 	}
 }
 
+func TestRenameConfigInComposeTextBlockScalarContentNotRenamed(t *testing.T) {
+	// Block scalar payloads may contain lines that look like config references; they are data and must
+	// survive rotation untouched, while real references outside the scalars are still renamed.
+	const input = `x-payloads:
+  doc:
+    configs: |
+      - app-config
+      - other
+  template: &tpl >
+    configs: [app-config]
+    note: keep this
+services:
+  demo:
+    image: demo:latest
+    configs:
+      - source: app-config
+        target: /etc/app/config.yaml
+configs:
+  app-config:
+    file: ./app.yaml
+`
+	got, changed := RenameConfigInComposeText(input, "app-config", "app-config-b2c3d4e5")
+	if !changed {
+		t.Fatal("expected changes")
+	}
+	want := `x-payloads:
+  doc:
+    configs: |
+      - app-config
+      - other
+  template: &tpl >
+    configs: [app-config]
+    note: keep this
+services:
+  demo:
+    image: demo:latest
+    configs:
+      - source: app-config-b2c3d4e5
+        target: /etc/app/config.yaml
+configs:
+  app-config-b2c3d4e5:
+    file: ./app.yaml
+`
+	if got != want {
+		t.Errorf("unexpected output:\n--- got ---\n%s\n--- want ---\n%s", got, want)
+	}
+}
+
 func TestRenameConfigInComposeTextDeepNestedNoMatch(t *testing.T) {
 	// A configs list deeper than a direct child of a top-level section is not a rename site.
 	const input = `x-shared:
