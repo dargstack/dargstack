@@ -70,7 +70,8 @@ Understanding these decisions will help you make changes that align with dargsta
       dargstack works around this with an optional naming convention: `<base>-<hash>` where `<hash>` is the first 8 hex chars of the SHA-256 of the file content.
       Changed content gets a new name, the deploy creates a new config object, and dargstack prunes the previous object after the deploy.
       Adoption is by suffix detection: `validate` only polices suffixed names (recomputing the hash locally, so it runs in CI without Docker) and deploy only prunes suffixed orphans, so existing stacks are unaffected.
-      `dargstack config rotate <name>` recomputes the suffix and renames the config in the source compose files (top-level key and service references, comment-preserving line edit).
+      `dargstack config rotate <name>` recomputes the suffix and renames the config in the source compose files (top-level key and config references under services and shared anchor definitions, comment-preserving line edit).
+The renamer is not alias-aware: a reference reachable only through a YAML alias node is left unrewritten, and `dargstack validate` fails when a service references a config or secret that has no top-level entry.
       Derived configs get the suffix at deploy time from the exact bytes written (or the previous run's artifact in production, where the source secret is external); the repo keeps the bare name, so no rotate command exists for them.
       One name carries one content hash; per-environment content differences require per-environment config names.
 
