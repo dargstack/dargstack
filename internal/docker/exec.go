@@ -123,12 +123,16 @@ func NewExecutor(sudoMode string) (*Executor, error) {
 }
 
 func needsSudo(binary string) bool {
+	var stderr bytes.Buffer
 	cmd := exec.Command(binary, "info")
 	cmd.Stdout = nil
-	cmd.Stderr = nil
+	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		// Only use sudo when it actually fixes the problem (permission denied).
 		// If the daemon is down or Docker is broken, sudo won't help and we should let the underlying error surface via the normal command path.
+		if !permissionDenied(stderr.String()) {
+			return false
+		}
 
 		// First try non-interactive (fast, no prompt) to see if credentials are cached.
 		sudoNI := exec.Command("sudo", "-n", binary, "info")
@@ -147,6 +151,12 @@ func needsSudo(binary string) bool {
 		return sudoI.Run() == nil
 	}
 	return false
+}
+
+// permissionDenied reports whether the docker CLI's error output is a socket permission error, the one failure mode sudo fixes.
+// The phrase appears in the CLI's EACCES error in both current ("permission denied while trying to connect to the docker API at ...") and older ("Got permission denied while trying to connect to the Docker daemon socket at ...") message formats, so the match is stable across wording changes.
+func permissionDenied(output string) bool {
+	return strings.Contains(strings.ToLower(output), "permission denied")
 }
 
 // refreshSudoIfNeeded validates sudo credentials and prompts if they are missing or expired.
