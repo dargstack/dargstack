@@ -1,3 +1,9 @@
+## [4.22.2](https://github.com/dargstack/dargstack/compare/v4.22.1...v4.22.2) (2026-11-01)
+
+### Bug Fixes
+
+* **tls:** announce the mkcert CA installation ([#165](https://github.com/dargstack/dargstack/issues/165)) ([f7ad27c](https://github.com/dargstack/dargstack/commit/f7ad27cae4e76e4ad99282eb71aabd48d8d7acff))
+
 ## [4.22.1](https://github.com/dargstack/dargstack/compare/v4.22.0...v4.22.1) (2026-10-28)
 
 ### Bug Fixes
