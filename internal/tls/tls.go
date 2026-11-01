@@ -181,6 +181,7 @@ func hasMkcert() bool {
 }
 
 func generateWithMkcert(certDir string, domains []string) error {
+	_, _ = lipgloss.Println(logger.StyleInfo.Render("Installing the mkcert CA into the system trust store; a password prompt may appear."))
 	installCA := exec.Command("mkcert", "-install")
 	var caStdout, caStderr bytes.Buffer
 	installCA.Stdout = &caStdout
