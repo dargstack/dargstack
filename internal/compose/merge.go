@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/geofffranks/spruce"
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 	yamlv2 "gopkg.in/yaml.v2"
 )
 
@@ -159,18 +159,18 @@ func mergeFiles(preProcess func([]byte) []byte, stackDir, platform string, paths
 	}
 
 	// Marshal with yaml.v2 to keep map[interface{}]interface{} roundtrip intact,
-	// then re-parse with v3 for clean output formatting.
+	// then re-parse with v4 for clean output formatting.
 	v2out, err := yamlv2.Marshal(ev.Tree)
 	if err != nil {
 		return nil, fmt.Errorf("serialize merged compose: %w", err)
 	}
 
-	// Re-marshal through yaml.v3 for consistent output style
-	var v3doc interface{}
-	if err := yaml.Unmarshal(v2out, &v3doc); err != nil {
+	// Re-marshal through yaml v4 for consistent output style
+	var v4doc interface{}
+	if err := yaml.Unmarshal(v2out, &v4doc); err != nil {
 		return nil, fmt.Errorf("re-parse merged compose: %w", err)
 	}
-	result, err := yaml.Marshal(v3doc)
+	result, err := yaml.Marshal(v4doc)
 	if err != nil {
 		return nil, fmt.Errorf("format merged compose: %w", err)
 	}
@@ -215,11 +215,11 @@ func LoadSingle(stackDir, platform, path string) ([]byte, error) {
 			if err != nil {
 				return nil, fmt.Errorf("serialize %s: %w", path, err)
 			}
-			var v3doc interface{}
-			if err := yaml.Unmarshal(v2out, &v3doc); err != nil {
+			var v4doc interface{}
+			if err := yaml.Unmarshal(v2out, &v4doc); err != nil {
 				return nil, fmt.Errorf("re-parse %s: %w", path, err)
 			}
-			return yaml.Marshal(v3doc)
+			return yaml.Marshal(v4doc)
 		}
 	}
 
@@ -228,11 +228,11 @@ func LoadSingle(stackDir, platform, path string) ([]byte, error) {
 		return nil, fmt.Errorf("serialize %s: %w", path, err)
 	}
 
-	var v3doc interface{}
-	if err := yaml.Unmarshal(v2out, &v3doc); err != nil {
+	var v4doc interface{}
+	if err := yaml.Unmarshal(v2out, &v4doc); err != nil {
 		return nil, fmt.Errorf("re-parse %s: %w", path, err)
 	}
-	result, err := yaml.Marshal(v3doc)
+	result, err := yaml.Marshal(v4doc)
 	if err != nil {
 		return nil, fmt.Errorf("format %s: %w", path, err)
 	}

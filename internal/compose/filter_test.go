@@ -3,7 +3,7 @@ package compose
 import (
 	"testing"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 func TestFilterByProfile(t *testing.T) {

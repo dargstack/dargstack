@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // DocsConfig controls the output of GenerateDocumentation.
@@ -218,12 +218,12 @@ func extractServiceCommentAny(baseDir, serviceName string) string {
 	return ""
 }
 
-// extractServiceComment reads baseDir/dirName/compose.yaml and extracts the YAML comment for serviceName using the yaml.v3 Node API.
+// extractServiceComment reads baseDir/dirName/compose.yaml and extracts the YAML comment for serviceName using the yaml Node API.
 func extractServiceComment(baseDir, dirName, serviceName string) string {
 	return extractServiceCommentFromFile(filepath.Join(baseDir, dirName, "compose.yaml"), serviceName)
 }
 
-// extractServiceCommentFromFile reads composePath and extracts the YAML comment associated with the named service using the yaml.v3 Node API.
+// extractServiceCommentFromFile reads composePath and extracts the YAML comment associated with the named service using the yaml Node API.
 func extractServiceCommentFromFile(composePath, serviceName string) string {
 	data, err := os.ReadFile(composePath)
 	if err != nil {
