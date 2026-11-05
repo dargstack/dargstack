@@ -158,19 +158,8 @@ func mergeFiles(preProcess func([]byte) []byte, stackDir, platform string, paths
 		return nil, fmt.Errorf("evaluate spruce operators: %w", err)
 	}
 
-	// Marshal with yaml.v2 to keep map[interface{}]interface{} roundtrip intact,
-	// then re-parse with v4 for clean output formatting.
-	v2out, err := yamlv2.Marshal(ev.Tree)
-	if err != nil {
-		return nil, fmt.Errorf("serialize merged compose: %w", err)
-	}
-
-	// Re-marshal through yaml v4 for consistent output style
-	var v4doc interface{}
-	if err := yaml.Unmarshal(v2out, &v4doc); err != nil {
-		return nil, fmt.Errorf("re-parse merged compose: %w", err)
-	}
-	result, err := yaml.Marshal(v4doc)
+	// Serialize with yaml v4 rather than yaml.v2 to get its output style.
+	result, err := yaml.Marshal(ev.Tree)
 	if err != nil {
 		return nil, fmt.Errorf("format merged compose: %w", err)
 	}
@@ -191,7 +180,7 @@ func LoadSingle(stackDir, platform, path string) ([]byte, error) {
 		data = PreprocessStackRoot(stackDir)(data)
 	}
 
-	// Parse with v2 to resolve paths, then re-marshal
+	// Parse with yaml.v2 so the tree has the map[interface{}]interface{} shape spruce traverses.
 	var v2doc map[interface{}]interface{}
 	if err := yamlv2.Unmarshal(data, &v2doc); err != nil {
 		return nil, fmt.Errorf("parse %s: %w", path, err)
@@ -211,28 +200,11 @@ func LoadSingle(stackDir, platform, path string) ([]byte, error) {
 			if err := ev.Run(nil, nil); err != nil {
 				return nil, fmt.Errorf("evaluate platform overlay %s: %w", path, err)
 			}
-			v2out, err := yamlv2.Marshal(ev.Tree)
-			if err != nil {
-				return nil, fmt.Errorf("serialize %s: %w", path, err)
-			}
-			var v4doc interface{}
-			if err := yaml.Unmarshal(v2out, &v4doc); err != nil {
-				return nil, fmt.Errorf("re-parse %s: %w", path, err)
-			}
-			return yaml.Marshal(v4doc)
+			v2doc = ev.Tree
 		}
 	}
 
-	v2out, err := yamlv2.Marshal(v2doc)
-	if err != nil {
-		return nil, fmt.Errorf("serialize %s: %w", path, err)
-	}
-
-	var v4doc interface{}
-	if err := yaml.Unmarshal(v2out, &v4doc); err != nil {
-		return nil, fmt.Errorf("re-parse %s: %w", path, err)
-	}
-	result, err := yaml.Marshal(v4doc)
+	result, err := yaml.Marshal(v2doc)
 	if err != nil {
 		return nil, fmt.Errorf("format %s: %w", path, err)
 	}
