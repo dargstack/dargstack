@@ -1,3 +1,9 @@
+## [4.22.4](https://github.com/dargstack/dargstack/compare/v4.22.3...v4.22.4) (2026-11-05)
+
+### Bug Fixes
+
+* **compose:** parse yaml 1.2 so unquoted yes, no, on and off stay strings ([#168](https://github.com/dargstack/dargstack/issues/168)) ([68004bc](https://github.com/dargstack/dargstack/commit/68004bc4fe4e86547e7a56d1e035058712400d97))
+
 ## [4.22.3](https://github.com/dargstack/dargstack/compare/v4.22.2...v4.22.3) (2026-11-05)
 
 ### Bug Fixes
