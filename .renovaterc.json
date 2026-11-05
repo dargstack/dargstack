@@ -1,11 +1,5 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>dargmuesli/renovate-config"],
-  "packageRules": [
-    {
-      "matchPackageNames": ["gopkg.in/yaml.v2"],
-      "enabled": false
-    }
-  ],
   "postUpdateOptions": ["gomodTidy"]
 }

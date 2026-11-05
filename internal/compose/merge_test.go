@@ -83,9 +83,8 @@ func TestMergeFilesPruneOperator(t *testing.T) {
 	}
 }
 
-// Pins the output style: yaml.v2 parses for spruce, but yaml v4 serializes,
-// keeping YAML 1.1 lookalike strings quoted so Docker does not read them as
-// booleans.
+// Pins the output style: 4-space indentation, and YAML 1.1 lookalike strings
+// stay quoted so Docker does not read them as booleans.
 func TestMergeFilesOutputStyle(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "base.yaml")
@@ -119,6 +118,60 @@ func TestMergeFilesOutputStyle(t *testing.T) {
 	}
 	if want := strings.Replace(want, "        hostname: nginx\n", "", 1); string(out) != want {
 		t.Errorf("LoadSingle output:\n%s\nwant:\n%s", out, want)
+	}
+}
+
+// Compose files resolve under YAML 1.2 like Docker reads them: unquoted
+// yes/no/on/off/y/n stay strings rather than becoming booleans that collide as
+// keys. Duplicate keys keep the last value and plain dates stay text, as
+// before.
+func TestMergeFilesYAML12Scalars(t *testing.T) {
+	dir := t.TempDir()
+	base := filepath.Join(dir, "base.yaml")
+	overlay := filepath.Join(dir, "overlay.yaml")
+
+	writeTestFile(t, base, "services:\n  web:\n    environment:\n      ON: a\n      Y: b\n      N: no\n      FLAG: yes\n      MODE: off\n      DATE: 2001-12-14\n      DUP: first\n      DUP: last\n")
+	writeTestFile(t, overlay, "services:\n  web:\n    environment:\n      OFF: (( grab services.web.environment.MODE ))\n")
+
+	want := `services:
+    web:
+        environment:
+            DATE: "2001-12-14"
+            DUP: last
+            FLAG: "yes"
+            MODE: "off"
+            "N": "no"
+            "OFF": "off"
+            "ON": a
+            "Y": b
+`
+
+	out, err := MergeFiles("", "", base, overlay)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(out) != want {
+		t.Errorf("MergeFiles output:\n%s\nwant:\n%s", out, want)
+	}
+}
+
+func TestMergeFilesEmptyAndNonMapping(t *testing.T) {
+	dir := t.TempDir()
+	empty := filepath.Join(dir, "empty.yaml")
+	list := filepath.Join(dir, "list.yaml")
+	writeTestFile(t, empty, "# nothing yet\n")
+	writeTestFile(t, list, "- a\n")
+
+	out, err := MergeFiles("", "", empty)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(out) != "{}\n" {
+		t.Errorf("empty file output = %q, want %q", out, "{}\n")
+	}
+
+	if _, err := MergeFiles("", "", list); err == nil {
+		t.Error("expected error for a top-level sequence")
 	}
 }
 

@@ -82,7 +82,7 @@ dargstack is organized into focused packages, each with a clear responsibility:
 - **Config changes**: add defaults in `applyDefaults()` in `internal/config/config.go`
 - **Secret templating changes**: update `TopologicalSort()` if the change introduces new dependencies
 - **TLS changes**: update `ExtractDomains()` in `internal/tls/tls.go` if new domain sources are added
-- **Compose merge**: never parse compose with yaml v4 before spruce; always use yaml.v2 for the merge pipeline
+- **Compose merge**: parse compose for spruce only through `parseSpruceTree()` in `internal/compose/merge.go`, which keeps YAML 1.2 scalar semantics
 
 ## Design Decisions
 
