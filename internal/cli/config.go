@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/config"

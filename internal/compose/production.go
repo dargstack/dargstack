@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // DevOnlyMarker is the trailing comment directive that marks a line as development-only.

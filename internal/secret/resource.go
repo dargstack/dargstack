@@ -7,7 +7,7 @@ import (
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // extractDargstackSection extracts a named subsection of x-dargstack (e.g. "secrets" or "configs") from compose data into a map of Template definitions. label is used only to identify the resource kind in error messages.

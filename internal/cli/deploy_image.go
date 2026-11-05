@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"github.com/Masterminds/semver/v3"
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/docker"

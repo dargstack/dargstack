@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 func TestMergeFilesNoFiles(t *testing.T) {
@@ -80,6 +80,45 @@ func TestMergeFilesPruneOperator(t *testing.T) {
 
 	if strings.Contains(string(out), "DEBUG") {
 		t.Error("expected DEBUG to be pruned from output")
+	}
+}
+
+// Pins the output style: yaml.v2 parses for spruce, but yaml v4 serializes,
+// keeping YAML 1.1 lookalike strings quoted so Docker does not read them as
+// booleans.
+func TestMergeFilesOutputStyle(t *testing.T) {
+	dir := t.TempDir()
+	base := filepath.Join(dir, "base.yaml")
+	overlay := filepath.Join(dir, "overlay.yaml")
+
+	writeTestFile(t, base, "services:\n  web:\n    image: nginx\n    environment:\n      A: \"on\"\n      B: \"yes\"\n    ports:\n    - \"8080:80\"\n")
+	writeTestFile(t, overlay, "services:\n  web:\n    hostname: (( grab services.web.image ))\n")
+
+	want := `services:
+    web:
+        environment:
+            A: "on"
+            B: "yes"
+        hostname: nginx
+        image: nginx
+        ports:
+            - 8080:80
+`
+
+	out, err := MergeFiles("", "", base, overlay)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(out) != want {
+		t.Errorf("MergeFiles output:\n%s\nwant:\n%s", out, want)
+	}
+
+	out, err = LoadSingle("", "", base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := strings.Replace(want, "        hostname: nginx\n", "", 1); string(out) != want {
+		t.Errorf("LoadSingle output:\n%s\nwant:\n%s", out, want)
 	}
 }
 

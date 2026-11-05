@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // ConfigNames returns the names of all top-level configs in the compose document.
