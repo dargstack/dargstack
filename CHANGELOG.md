@@ -1,3 +1,9 @@
+## [4.22.3](https://github.com/dargstack/dargstack/compare/v4.22.2...v4.22.3) (2026-11-05)
+
+### Bug Fixes
+
+* **deps:** migrate go.yaml.in/yaml from v3 to v4 ([#167](https://github.com/dargstack/dargstack/issues/167)) ([5d1bda4](https://github.com/dargstack/dargstack/commit/5d1bda4319accf877ccb6153e7c4de8d3e573af1))
+
 ## [4.22.2](https://github.com/dargstack/dargstack/compare/v4.22.1...v4.22.2) (2026-11-01)
 
 ### Bug Fixes
