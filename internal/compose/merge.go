@@ -9,7 +9,6 @@ import (
 
 	"github.com/geofffranks/spruce"
 	"go.yaml.in/yaml/v4"
-	yamlv2 "gopkg.in/yaml.v2"
 )
 
 // StackRootPrefix is the "~~" prefix that expands to the stack project root directory.
@@ -43,6 +42,73 @@ func PreprocessStackRoot(stackDir string) func([]byte) []byte {
 		}
 		return []byte(strings.Join(result, "\n") + "\n")
 	}
+}
+
+// parseSpruceTree parses a compose document under YAML 1.2, as Docker reads
+// it, so unquoted yes/no/on/off/y/n stay strings instead of turning into
+// booleans that collide as map keys. The result has the
+// map[interface{}]interface{} shape spruce traverses. Duplicate keys are
+// allowed with the last one winning, and plain timestamps stay text, both to
+// keep existing compose files rendering unchanged. An empty document yields
+// a nil map.
+func parseSpruceTree(data []byte) (map[interface{}]interface{}, error) {
+	var node yaml.Node
+	if err := yaml.Unmarshal(data, &node); err != nil {
+		return nil, err
+	}
+	if node.Kind == 0 || (node.Kind == yaml.DocumentNode && len(node.Content) == 0) {
+		return nil, nil
+	}
+	keepTimestampsAsText(&node)
+
+	var raw interface{}
+	if err := node.Load(&raw, yaml.WithV3Defaults(), yaml.WithUniqueKeys(false)); err != nil {
+		return nil, err
+	}
+	if raw == nil {
+		return nil, nil
+	}
+	doc, ok := toSpruceTree(raw).(map[interface{}]interface{})
+	if !ok {
+		return nil, fmt.Errorf("expected a mapping at the top level, got %T", raw)
+	}
+	return doc, nil
+}
+
+// keepTimestampsAsText retags plain scalars that resolve to !!timestamp as
+// !!str, since decoding them into time.Time would re-render a date such as
+// 2001-12-14 as 2001-12-14T00:00:00Z.
+func keepTimestampsAsText(n *yaml.Node) {
+	if n.Kind == yaml.ScalarNode && n.Style&yaml.TaggedStyle == 0 && n.ShortTag() == "!!timestamp" {
+		n.Tag = "!!str"
+	}
+	for _, c := range n.Content {
+		keepTimestampsAsText(c)
+	}
+}
+
+// toSpruceTree converts the map[string]interface{} maps yaml v4 produces into
+// map[interface{}]interface{}, recursing through maps and sequences.
+func toSpruceTree(v interface{}) interface{} {
+	switch t := v.(type) {
+	case map[string]interface{}:
+		m := make(map[interface{}]interface{}, len(t))
+		for k, val := range t {
+			m[k] = toSpruceTree(val)
+		}
+		return m
+	case map[interface{}]interface{}:
+		for k, val := range t {
+			t[k] = toSpruceTree(val)
+		}
+		return t
+	case []interface{}:
+		for i, val := range t {
+			t[i] = toSpruceTree(val)
+		}
+		return t
+	}
+	return v
 }
 
 // extractPlatformOverlay extracts the x-dargstack.platform.<platform> section from a parsed compose document and returns it as a standalone document with its contents promoted to root level.
@@ -125,9 +191,8 @@ func mergeFiles(preProcess func([]byte) []byte, stackDir, platform string, paths
 			data = preProcess(data)
 		}
 
-		// Use yaml.v2 for spruce compatibility (spruce traverses map[interface{}]interface{})
-		var doc map[interface{}]interface{}
-		if err := yamlv2.Unmarshal(data, &doc); err != nil {
+		doc, err := parseSpruceTree(data)
+		if err != nil {
 			return nil, fmt.Errorf("parse %s: %w", p, err)
 		}
 
@@ -180,19 +245,18 @@ func LoadSingle(stackDir, platform, path string) ([]byte, error) {
 		data = PreprocessStackRoot(stackDir)(data)
 	}
 
-	// Parse with yaml.v2 so the tree has the map[interface{}]interface{} shape spruce traverses.
-	var v2doc map[interface{}]interface{}
-	if err := yamlv2.Unmarshal(data, &v2doc); err != nil {
+	doc, err := parseSpruceTree(data)
+	if err != nil {
 		return nil, fmt.Errorf("parse %s: %w", path, err)
 	}
 
-	resolveFilePaths(v2doc, filepath.Dir(path))
+	resolveFilePaths(doc, filepath.Dir(path))
 
 	// Apply platform overlay if specified.
 	if platform != "" {
-		if overlay := extractPlatformOverlay(v2doc, platform); overlay != nil {
+		if overlay := extractPlatformOverlay(doc, platform); overlay != nil {
 			resolveFilePaths(overlay, filepath.Dir(path))
-			merged, err := spruce.Merge(v2doc, overlay)
+			merged, err := spruce.Merge(doc, overlay)
 			if err != nil {
 				return nil, fmt.Errorf("merge platform overlay %s: %w", path, err)
 			}
@@ -200,11 +264,11 @@ func LoadSingle(stackDir, platform, path string) ([]byte, error) {
 			if err := ev.Run(nil, nil); err != nil {
 				return nil, fmt.Errorf("evaluate platform overlay %s: %w", path, err)
 			}
-			v2doc = ev.Tree
+			doc = ev.Tree
 		}
 	}
 
-	result, err := yaml.Marshal(v2doc)
+	result, err := yaml.Marshal(doc)
 	if err != nil {
 		return nil, fmt.Errorf("format %s: %w", path, err)
 	}

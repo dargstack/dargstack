@@ -27,9 +27,10 @@ The development environment is the base layer; production is expressed as an inc
 
 Understanding these decisions will help you make changes that align with dargstack's architecture:
 
-1. **YAML merge uses yaml.v2 for spruce compatibility**: spruce traverses `map[interface{}]interface{}` trees; yaml v4 produces `map[string]interface{}`.
-   Pipeline: yaml.v2 parse → spruce merge/eval → yaml v4 marshal for clean output.
-   **Never** parse compose with yaml v4 before passing to spruce.
+1. **YAML merge parses under YAML 1.2, the way Docker reads compose files**: unquoted `yes`, `no`, `on`, `off`, `y` and `n` stay strings.
+   Spruce traverses `map[interface{}]interface{}` trees, so `parseSpruceTree()` in `internal/compose/merge.go` converts the `map[string]interface{}` maps yaml v4 produces.
+   Pipeline: `parseSpruceTree()` → spruce merge/eval → yaml v4 marshal.
+   **Never** hand spruce a tree that has not gone through `parseSpruceTree()`, and never reintroduce a YAML 1.1 parser such as yaml.v2, which turns those scalars into booleans that collide as map keys.
 
 2. **Docker Swarm only**: no `docker compose up` path; always `docker stack deploy`.
    `build:` is handled before deploy (auto-build in dev mode).
