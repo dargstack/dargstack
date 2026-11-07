@@ -61,6 +61,8 @@ jobs:
     uses: dargmuesli/github-actions/.github/workflows/docker.yml@a6f1094d5440ad0158a4c6f10d1c43109a4c983b # 5.9.12
     needs: release_semantic_dry
     permissions:
+      attestations: write
+      id-token: write
       packages: write
     with:
       BUILD_ARGUMENTS: ${{ (needs.release_semantic_dry.outputs.new_release_version != null) && format('RELEASE_NAME={0}', needs.release_semantic_dry.outputs.new_release_version) || '' }}
