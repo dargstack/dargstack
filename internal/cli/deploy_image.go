@@ -243,7 +243,10 @@ func checkoutDeployTag() (string, error) {
 		return "", fmt.Errorf("check git working tree status: %w", err)
 	}
 	if dirty {
-		return "", fmt.Errorf("stack directory has uncommitted changes to tracked files: commit or stash them before deploying to production")
+		return "", hintErr(
+			fmt.Errorf("stack directory has uncommitted changes to tracked files: commit or stash them before deploying to production"),
+			"To deploy the local working tree as-is without checking out the tag, pass --offline (-o). Otherwise run `git stash` before deploying and `git stash pop` afterwards, after switching back to your branch since the deploy leaves the tag checked out.",
+		)
 	}
 
 	if err := gitCheckout(stackDir, tag); err != nil {
