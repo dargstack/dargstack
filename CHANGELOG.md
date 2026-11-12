@@ -1,3 +1,9 @@
+## [4.23.0](https://github.com/dargstack/dargstack/compare/v4.22.4...v4.23.0) (2026-11-12)
+
+### Features
+
+* **deploy:** hint at --offline on dirty production stack ([#171](https://github.com/dargstack/dargstack/issues/171)) ([044c165](https://github.com/dargstack/dargstack/commit/044c16569f21e83a306a8112d6147bc3ca147a38))
+
 ## [4.22.4](https://github.com/dargstack/dargstack/compare/v4.22.3...v4.22.4) (2026-11-05)
 
 ### Bug Fixes
