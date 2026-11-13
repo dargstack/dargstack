@@ -9,8 +9,8 @@ require (
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/creativeprojects/go-selfupdate v1.7.1
 	github.com/geofffranks/spruce v1.35.26
-	github.com/moby/moby/api v1.56.1
-	github.com/moby/moby/client v0.6.2
+	github.com/moby/moby/api v1.57.0
+	github.com/moby/moby/client v0.6.3
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2
 	go.yaml.in/yaml/v4 v4.0.0
