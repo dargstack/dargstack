@@ -172,6 +172,7 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(inspectCmd)
 	rootCmd.AddCommand(profilesCmd)
+	rootCmd.AddCommand(pruneCmd)
 	rootCmd.AddCommand(rmCmd)
 	rootCmd.AddCommand(secretCmd)
 	rootCmd.AddCommand(schemaCmd)

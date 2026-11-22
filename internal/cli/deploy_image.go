@@ -591,38 +591,3 @@ func resolveBuildContext(svc map[string]interface{}, stackDir string) string {
 	parentDir := giturl.SiblingParentDir(stackDir)
 	return filepath.Join(parentDir, repoName)
 }
-
-// offerRuntimeCleanup prompts to remove stopped containers and then unused images.
-func offerRuntimeCleanup(executor *docker.Executor) {
-	ok, err := prompt.Confirm("Remove stopped containers and unused images now?", false)
-	if err != nil || !ok {
-		return
-	}
-
-	var containerOut, imageOut string
-	var containerErr, imageErr error
-
-	_ = prompt.Spin("Cleaning up", func(context.Context) error {
-		containerOut, containerErr = executor.Run("container", "prune", "-f")
-		if containerErr != nil {
-			return nil
-		}
-		imageOut, imageErr = executor.Run("image", "prune", "-af")
-		return nil
-	})
-
-	if containerErr != nil {
-		logger.L.Warn(fmt.Sprintf("Container cleanup failed: %v", containerErr))
-		return
-	}
-	if imageErr != nil {
-		logger.L.Warn(fmt.Sprintf("Image cleanup failed: %v", imageErr))
-		return
-	}
-
-	logger.Success(fmt.Sprintf(
-		"Cleanup complete. Containers: %s | Images: %s",
-		strings.TrimSpace(containerOut),
-		strings.TrimSpace(imageOut),
-	))
-}
