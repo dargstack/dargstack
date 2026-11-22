@@ -1,3 +1,9 @@
+## [4.24.0](https://github.com/dargstack/dargstack/compare/v4.23.0...v4.24.0) (2026-11-22)
+
+### Features
+
+* **cli:** add prune command ([#173](https://github.com/dargstack/dargstack/issues/173)) ([32ca156](https://github.com/dargstack/dargstack/commit/32ca1563807685b02e1409c135bbb654dad65ff2))
+
 ## [4.23.0](https://github.com/dargstack/dargstack/compare/v4.22.4...v4.23.0) (2026-11-12)
 
 ### Features
