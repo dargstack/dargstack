@@ -1,3 +1,9 @@
+## [4.26.0](https://github.com/dargstack/dargstack/compare/v4.25.2...v4.26.0) (2026-11-25)
+
+### Features
+
+* **prune:** clean up every swarm node ([#177](https://github.com/dargstack/dargstack/issues/177)) ([088e2a9](https://github.com/dargstack/dargstack/commit/088e2a97f12a1ae78a4963c26b3a0f0fc385ffa5))
+
 ## [4.25.2](https://github.com/dargstack/dargstack/compare/v4.25.1...v4.25.2) (2026-11-25)
 
 ### Performance Improvements
