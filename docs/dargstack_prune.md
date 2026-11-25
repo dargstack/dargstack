@@ -1,14 +1,15 @@
 ## dargstack prune
 
-Remove stopped containers and unused images
+Remove stopped containers and unused images on all swarm nodes
 
 ### Synopsis
 
-Remove stopped containers and unused images.
+Remove stopped containers and unused images on all swarm nodes.
 
 Runs the same cleanup that `dargstack deploy` offers after a production deploy, without deploying.
 Stopped containers are removed first, so images only they referenced count as unused.
 All images not used by a container are removed, not only dangling ones.
+When dargstack runs on a swarm manager, the other nodes are pruned too, through a one-off global job running `docker:cli` with the node's Docker socket mounted.
 Volumes are never touched: use `dargstack remove --volumes` for those.
 Asks for confirmation unless `--no-interaction` is set.
 
