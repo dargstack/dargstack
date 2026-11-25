@@ -1,3 +1,9 @@
+## [4.25.0](https://github.com/dargstack/dargstack/compare/v4.24.0...v4.25.0) (2026-11-25)
+
+### Features
+
+* **deploy:** pull images on every eligible swarm node before deploying ([#175](https://github.com/dargstack/dargstack/issues/175)) ([94979d5](https://github.com/dargstack/dargstack/commit/94979d5656e7ef6d16ba22bc8e3352917651d430))
+
 ## [4.24.0](https://github.com/dargstack/dargstack/compare/v4.23.0...v4.24.0) (2026-11-22)
 
 ### Features
