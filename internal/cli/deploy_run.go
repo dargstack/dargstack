@@ -573,7 +573,7 @@ func deployPostDeploy(ctx context.Context, dockerClient *docker.Client, executor
 		if dryRun {
 			logger.L.Info("[dry-run] Would offer runtime cleanup of stopped containers and unused images")
 		} else if !noInteraction {
-			offerRuntimeCleanup(executor)
+			offerRuntimeCleanup(executor, compose.ExtractServiceImages(fullCompose))
 		}
 	}
 }
