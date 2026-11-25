@@ -231,7 +231,7 @@ Deploy with `--profiles <name>`.
 | `dargstack audit [ts]` | show the last composed YAML deployed; `--list`, `--difference` |
 | `dargstack document` (=`docs`) | generate `artifacts/docs/README.md` from compose + comments |
 | `dargstack profiles` | list discovered profiles |
-| `dargstack prune` | remove stopped containers and unused images (never volumes), as offered after a production deploy |
+| `dargstack prune` | remove stopped containers and unused images on all swarm nodes (never volumes), as offered after a production deploy |
 | `dargstack initialize` (=`init`) | bootstrap a project; `--configuration-only`, `--target` |
 | `dargstack clone [url]` | clone an existing project; `--target` |
 | `dargstack update` | self-update the binary |

@@ -33,7 +33,7 @@ dargstack - simplified, approachable Docker Swarm stack management.
 * [dargstack document](dargstack_document.md)	 - Generate the stack documentation
 * [dargstack initialize](dargstack_initialize.md)	 - Bootstrap a new dargstack project
 * [dargstack profiles](dargstack_profiles.md)	 - List discovered deploy profiles
-* [dargstack prune](dargstack_prune.md)	 - Remove stopped containers and unused images
+* [dargstack prune](dargstack_prune.md)	 - Remove stopped containers and unused images on all swarm nodes
 * [dargstack remove](dargstack_remove.md)	 - Remove the deployed stack
 * [dargstack schema](dargstack_schema.md)	 - Print the dargstack.yaml JSON Schema
 * [dargstack secret](dargstack_secret.md)	 - Manage stack secrets

@@ -449,7 +449,7 @@ The active platform is auto-detected via `runtime.GOOS`, or overridden with `--p
 | [dargstack document](docs/dargstack_document.md)     | Generate the stack documentation       |
 | [dargstack initialize](docs/dargstack_initialize.md) | Bootstrap a new dargstack project      |
 | [dargstack profiles](docs/dargstack_profiles.md)     | List discovered deploy profiles        |
-| [dargstack prune](docs/dargstack_prune.md)           | Remove stopped containers and unused images |
+| [dargstack prune](docs/dargstack_prune.md)           | Remove stopped containers and unused images on all swarm nodes |
 | [dargstack remove](docs/dargstack_remove.md)         | Remove the deployed stack              |
 | [dargstack secret](docs/dargstack_secret.md)         | Manage stack secrets                   |
 | [dargstack update](docs/dargstack_update.md)         | Update dargstack to the latest version |
