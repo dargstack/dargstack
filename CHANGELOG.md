@@ -1,3 +1,9 @@
+## [4.26.3](https://github.com/dargstack/dargstack/compare/v4.26.2...v4.26.3) (2026-11-25)
+
+### Bug Fixes
+
+* **deploy:** stop waiting for retries of failed job tasks ([#180](https://github.com/dargstack/dargstack/issues/180)) ([b6b4adb](https://github.com/dargstack/dargstack/commit/b6b4adb89902da534c626577286485475125b4d7))
+
 ## [4.26.2](https://github.com/dargstack/dargstack/compare/v4.26.1...v4.26.2) (2026-11-25)
 
 ### Performance Improvements
