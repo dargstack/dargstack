@@ -12,9 +12,15 @@ const (
 	pruneImage = "docker:cli"
 )
 
-// PruneOtherNodes removes stopped containers and unused images on every ready swarm node except the one dargstack talks to.
+// pruneScript is the shell form of PruneImagesKeeping, run by busybox sh in docker:cli.
+// It is passed as one argument to `sh -c`, so the Go template braces reach the remote docker CLI untouched.
+const pruneScript = `docker container prune -f >/dev/null
+keep=$( { for r in $DARGSTACK_KEEP; do docker image inspect --format '{{.Id}}' "$r" 2>/dev/null; done; docker ps -aq | xargs -r docker inspect --format '{{.Image}}' 2>/dev/null; } | sort -u)
+for id in $(docker image ls -aq --no-trunc | sort -u); do printf '%s\n' "$keep" | grep -qxF "$id" || docker image rm -f "$id" >/dev/null 2>&1 || true; done`
+
+// PruneOtherNodes removes stopped containers and unused images except those in keep on every ready swarm node except the one dargstack talks to.
 // It does nothing when that node is no swarm manager, as `docker node ls` fails there.
-func PruneOtherNodes(exec *Executor, stack string, timeout time.Duration) (pruned, failures []string, err error) {
+func PruneOtherNodes(exec *Executor, stack string, keep []string, timeout time.Duration) (pruned, failures []string, err error) {
 	out, lsErr := exec.Run("node", "ls", "--format", "{{.ID}}\t{{.Self}}\t{{.Status}}\t{{.Availability}}")
 	if lsErr != nil {
 		return nil, nil, nil
@@ -46,12 +52,13 @@ func PruneOtherNodes(exec *Executor, stack string, timeout time.Duration) (prune
 		"--mode", "global-job",
 		"--restart-condition", "none",
 		"--mount", "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock",
+		"--env", "DARGSTACK_KEEP=" + strings.Join(keep, " "),
 		"--entrypoint", "sh",
 	}
 	if selfID != "" {
 		args = append(args, "--constraint", "node.id!="+selfID)
 	}
-	args = append(args, pruneImage, "-c", "docker container prune -f && docker image prune -af")
+	args = append(args, pruneImage, "-c", pruneScript)
 
 	results, err := runJobs(exec, pruneLabel, stack, []jobSpec{{name: name, createArgs: args}}, timeout)
 	if err != nil {
