@@ -1,3 +1,9 @@
+## [4.26.2](https://github.com/dargstack/dargstack/compare/v4.26.1...v4.26.2) (2026-11-25)
+
+### Performance Improvements
+
+* **deploy:** create pull jobs in parallel without resolving digests ([#179](https://github.com/dargstack/dargstack/issues/179)) ([e80bf1c](https://github.com/dargstack/dargstack/commit/e80bf1c651adecd40dd350cf67fcda57184b0624))
+
 ## [4.26.1](https://github.com/dargstack/dargstack/compare/v4.26.0...v4.26.1) (2026-11-25)
 
 ### Bug Fixes
