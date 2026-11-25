@@ -112,7 +112,7 @@ func runJobs(exec *Executor, label, stack string, specs []jobSpec, timeout time.
 			}
 			r.tasks, r.running = parseTasks(out)
 			switch {
-			case len(r.tasks) == 0:
+			case len(r.tasks) == 0 && len(r.running) == 0:
 				if time.Since(r.created) >= pullNoTaskGrace {
 					r.noTasks, r.done = true, true
 				}
@@ -137,12 +137,16 @@ func runJobs(exec *Executor, label, stack string, specs []jobSpec, timeout time.
 	return results, nil
 }
 
-// parseTasks parses `service ps` output into tasks, with the state reduced to its lowercase first word.
-// running lists the nodes whose task is not terminal yet.
+// parseTasks reduces `service ps` output to one task per node, the first terminal one listed, with the
+// state reduced to its lowercase first word. Swarm keeps retrying a failed job task despite
+// --restart-condition none, so a node counts as done once any of its tasks ended; removing the job stops
+// the retries. running lists the nodes without a terminal task yet.
 func parseTasks(out string) (tasks []jobTask, running []string) {
 	if out == "" {
 		return nil, nil
 	}
+	ended := make(map[string]bool)
+	var nodes []string
 	for _, line := range strings.Split(out, "\n") {
 		parts := strings.SplitN(line, "\t", 3)
 		for len(parts) < 3 {
@@ -153,12 +157,22 @@ func parseTasks(out string) (tasks []jobTask, running []string) {
 		if len(state) > 0 {
 			word = strings.ToLower(state[0])
 		}
+		if _, seen := ended[node]; !seen {
+			ended[node] = false
+			nodes = append(nodes, node)
+		}
 		switch word {
 		case "complete", "failed", "rejected", "shutdown", "orphaned", "remove":
-		default:
-			running = append(running, node)
+			if !ended[node] {
+				ended[node] = true
+				tasks = append(tasks, jobTask{node: node, state: word, errMsg: errMsg})
+			}
 		}
-		tasks = append(tasks, jobTask{node: node, state: word, errMsg: errMsg})
+	}
+	for _, n := range nodes {
+		if !ended[n] {
+			running = append(running, n)
+		}
 	}
 	return tasks, running
 }
