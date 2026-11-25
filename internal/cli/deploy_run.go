@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v4"
@@ -433,9 +434,74 @@ func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun
 			}
 			return nil, fmt.Errorf("one or more images are not accessible: fix registry credentials or image references before deploying")
 		}
+
+		if err := pullImagesOnNodes(executor, composeData, dryRun); err != nil {
+			return nil, err
+		}
 	}
 
 	return composeData, nil
+}
+
+// nodePullTimeout bounds the node pull check; large images on slow links can take minutes.
+const nodePullTimeout = 15 * time.Minute
+
+// groupPullTargets merges services with the same image and constraint set into one target.
+func groupPullTargets(placements []compose.ServicePlacement) []docker.PullTarget {
+	byKey := make(map[string]*docker.PullTarget)
+	var keys []string
+	for _, p := range placements {
+		key := p.Image + "\x00" + strings.Join(p.Constraints, "\x00")
+		if t, ok := byKey[key]; ok {
+			t.Services = append(t.Services, p.Service)
+			continue
+		}
+		byKey[key] = &docker.PullTarget{Image: p.Image, Constraints: p.Constraints, Services: []string{p.Service}}
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	targets := make([]docker.PullTarget, 0, len(keys))
+	for _, k := range keys {
+		targets = append(targets, *byKey[k])
+	}
+	return targets
+}
+
+// pullImagesOnNodes verifies that every swarm node that may run a service can pull its image, before the deploy stops running tasks.
+func pullImagesOnNodes(executor *docker.Executor, composeData []byte, dryRun bool) error {
+	targets := groupPullTargets(compose.ExtractServicePlacements(composeData))
+	if len(targets) == 0 {
+		return nil
+	}
+	if dryRun {
+		logger.L.Info("[dry-run] Would pull images on every eligible swarm node")
+		return nil
+	}
+
+	var failures []string
+	var runErr error
+	pull := func() {
+		failures, runErr = docker.PullOnNodes(executor, cfg.Metadata.Name, targets, nodePullTimeout)
+	}
+	if verbose {
+		logger.L.Info("Pulling images on swarm nodes")
+		pull()
+	} else if err := prompt.Spin("Pulling images on swarm nodes", func(context.Context) error {
+		pull()
+		return nil
+	}); err != nil {
+		return err
+	}
+	if runErr != nil {
+		return runErr
+	}
+	for _, f := range failures {
+		logger.L.Error(f)
+	}
+	if len(failures) > 0 {
+		return fmt.Errorf("one or more images cannot be pulled on every swarm node that may run them: fix registry access on those nodes or the placement constraints before deploying")
+	}
+	return nil
 }
 
 // deployExecute prints deploy messaging, saves the audit snapshot, and runs docker stack deploy.
