@@ -72,6 +72,42 @@ func TestPullOnNodesFailedTaskCountsAsPulled(t *testing.T) {
 	}
 }
 
+func TestPullOnNodesSkipsResolvingDigests(t *testing.T) {
+	logPath := filepath.Join(t.TempDir(), "log")
+	exec := fakeSwarmDocker(t, logPath)
+	t.Setenv("DARGSTACK_TEST_PS_stk_pull_0", "node1\tComplete 1 second ago\t")
+	t.Setenv("DARGSTACK_TEST_PS_stk_pull_1", "node1\tComplete 1 second ago\t")
+
+	targets := []PullTarget{
+		{Image: "x:1@sha256:abc", Services: []string{"a"}},
+		{Image: "y:1", Services: []string{"b"}},
+	}
+	if failures, err := PullOnNodes(exec, "stk", targets, time.Second); err != nil || len(failures) != 0 {
+		t.Fatalf("failures = %v, err = %v", failures, err)
+	}
+
+	b, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var creates int
+	for _, line := range strings.Split(string(b), "\n") {
+		if !strings.HasPrefix(line, "service create") {
+			continue
+		}
+		creates++
+		if strings.HasSuffix(line, "x:1@sha256:abc") != strings.Contains(line, "--no-resolve-image") {
+			t.Errorf("--no-resolve-image must be set exactly for the digest-pinned image: %s", line)
+		}
+	}
+	if creates != 2 {
+		t.Errorf("created %d jobs, want 2:\n%s", creates, b)
+	}
+	if !strings.Contains(string(b), "service rm stk_pull-0 stk_pull-1") {
+		t.Errorf("jobs not removed in one call:\n%s", b)
+	}
+}
+
 func TestPullOnNodesNoTasksFails(t *testing.T) {
 	exec := fakeSwarmDocker(t, filepath.Join(t.TempDir(), "log"))
 	pullNoTaskGrace = 0

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -66,20 +67,35 @@ func runJobs(exec *Executor, label, stack string, specs []jobSpec, timeout time.
 		}
 	}
 
+	// Creating jobs one by one made each wait for the previous registry round trip. The leftover check above
+	// already ran any sudo prompt, so the parallel runs below cannot contend for stdin.
+	results = make([]*jobResult, len(specs))
+	createErrs := make([]error, len(specs))
+	var wg sync.WaitGroup
+	for i, spec := range specs {
+		wg.Go(func() {
+			args := append([]string{"service", "create", "--detach", "--quiet", "--name", spec.name, "--label", label + "=" + stack}, spec.createArgs...)
+			_, createErrs[i] = exec.Run(args...)
+			results[i] = &jobResult{created: time.Now()}
+		})
+	}
+	wg.Wait()
+
 	var created []string
+	for i, spec := range specs {
+		if createErrs[i] == nil {
+			created = append(created, spec.name)
+		}
+	}
 	defer func() {
-		for _, n := range created {
-			_, _ = exec.Run("service", "rm", n)
+		if len(created) > 0 {
+			_, _ = exec.Run(append([]string{"service", "rm"}, created...)...)
 		}
 	}()
-
-	for _, spec := range specs {
-		args := append([]string{"service", "create", "--detach", "--quiet", "--name", spec.name, "--label", label + "=" + stack}, spec.createArgs...)
-		if _, err := exec.Run(args...); err != nil {
-			return nil, fmt.Errorf("create %s job %s: %w", kind, spec.name, err)
+	for i, spec := range specs {
+		if createErrs[i] != nil {
+			return nil, fmt.Errorf("create %s job %s: %w", kind, spec.name, createErrs[i])
 		}
-		created = append(created, spec.name)
-		results = append(results, &jobResult{created: time.Now()})
 	}
 
 	deadline := time.Now().Add(timeout)
@@ -162,6 +178,11 @@ func PullOnNodes(exec *Executor, stack string, targets []PullTarget, timeout tim
 			"--restart-condition", "none",
 			"--with-registry-auth",
 			"--entrypoint", "true",
+		}
+		// A digest-pinned reference needs no tag lookup at the registry, and nodes that already hold the digest
+		// skip the pull for it, which is what keeps repeated deploys fast.
+		if strings.Contains(t.Image, "@") {
+			args = append(args, "--no-resolve-image")
 		}
 		for _, c := range t.Constraints {
 			args = append(args, "--constraint", c)
