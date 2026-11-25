@@ -3,12 +3,28 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"go.yaml.in/yaml/v4"
 
+	"github.com/dargstack/dargstack/v4/internal/compose"
 	"github.com/dargstack/dargstack/v4/internal/docker"
 )
+
+func TestGroupPullTargets(t *testing.T) {
+	got := groupPullTargets([]compose.ServicePlacement{
+		{Service: "a", Image: "x", Constraints: []string{"c1"}},
+		{Service: "b", Image: "x", Constraints: []string{"c1"}},
+		{Service: "c", Image: "x", Constraints: []string{"c2"}},
+	})
+	if len(got) != 2 {
+		t.Fatalf("got %+v", got)
+	}
+	if strings.Join(got[0].Services, ",") != "a,b" || strings.Join(got[1].Services, ",") != "c" {
+		t.Errorf("got %+v", got)
+	}
+}
 
 // fakeDockerOnPath puts a stub `docker` binary on PATH for the duration of the
 // test. `docker image inspect` always fails (no image is "local"); `docker
