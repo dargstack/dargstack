@@ -1,3 +1,9 @@
+## [4.25.2](https://github.com/dargstack/dargstack/compare/v4.25.1...v4.25.2) (2026-11-25)
+
+### Performance Improvements
+
+* **deploy:** probe the registry only on dry runs ([#176](https://github.com/dargstack/dargstack/issues/176)) ([2c6809e](https://github.com/dargstack/dargstack/commit/2c6809e0b6319731dc9ec62be35fa7251c75c1d7))
+
 ## [4.25.1](https://github.com/dargstack/dargstack/compare/v4.25.0...v4.25.1) (2026-11-25)
 
 ### Bug Fixes
