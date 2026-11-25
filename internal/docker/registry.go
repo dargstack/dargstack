@@ -1,6 +1,9 @@
 package docker
 
-import "sync"
+import (
+	"strings"
+	"sync"
+)
 
 // CheckImagesAccessible probes the registry for each image by inspecting its manifest without pulling any layers.
 // Images already present locally are treated as accessible without any registry call: Swarm's default pull policy only pulls an image when it is missing locally, and a manifest inspect counts against a registry's pull rate limit the same as an actual pull, so skipping it for images we already have avoids needless rate-limit pressure.
@@ -25,7 +28,7 @@ func CheckImagesAccessible(exec *Executor, images []string) map[string]error {
 	}
 
 	first, rest := toCheck[0], toCheck[1:]
-	if _, err := exec.Run("manifest", "inspect", first); err != nil {
+	if _, err := exec.Run("manifest", "inspect", manifestReference(first)); err != nil {
 		failed[first] = err
 	}
 
@@ -36,7 +39,7 @@ func CheckImagesAccessible(exec *Executor, images []string) map[string]error {
 		wg.Add(1)
 		go func(img string) {
 			defer wg.Done()
-			if _, err := exec.Run("manifest", "inspect", img); err != nil {
+			if _, err := exec.Run("manifest", "inspect", manifestReference(img)); err != nil {
 				mu.Lock()
 				failed[img] = err
 				mu.Unlock()
@@ -46,6 +49,19 @@ func CheckImagesAccessible(exec *Executor, images []string) map[string]error {
 	wg.Wait()
 
 	return failed
+}
+
+// manifestReference drops the tag from a reference pinned by both tag and digest, so `name:tag@digest` becomes `name@digest`.
+// `docker manifest inspect` resolves such a reference by its tag and then verifies the result against the digest, which fails with "manifest verification failed" once the tag has moved on, e.g. after an official image rebuild, although the pinned digest is still pullable and is what Swarm deploys.
+func manifestReference(image string) string {
+	name, digest, ok := strings.Cut(image, "@")
+	if !ok {
+		return image
+	}
+	if i := strings.LastIndex(name, ":"); i > strings.LastIndex(name, "/") {
+		name = name[:i]
+	}
+	return name + "@" + digest
 }
 
 // ImageExistsLocally reports whether an image is already present in the local Docker image store.

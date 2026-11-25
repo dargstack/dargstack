@@ -83,3 +83,17 @@ func TestCheckImagesAccessibleSkipsLocalImages(t *testing.T) {
 		}
 	}
 }
+
+func TestManifestReference(t *testing.T) {
+	for in, want := range map[string]string{
+		"redis:8-alpine":                      "redis:8-alpine",
+		"redis:8-alpine@sha256:abc":           "redis@sha256:abc",
+		"redis@sha256:abc":                    "redis@sha256:abc",
+		"registry:5000/org/app:v1@sha256:abc": "registry:5000/org/app@sha256:abc",
+		"registry:5000/org/app@sha256:abc":    "registry:5000/org/app@sha256:abc",
+	} {
+		if got := manifestReference(in); got != want {
+			t.Errorf("manifestReference(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
