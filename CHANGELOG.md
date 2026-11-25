@@ -1,3 +1,9 @@
+## [4.25.1](https://github.com/dargstack/dargstack/compare/v4.25.0...v4.25.1) (2026-11-25)
+
+### Bug Fixes
+
+* **docker:** probe digest-pinned images by digest only ([#174](https://github.com/dargstack/dargstack/issues/174)) ([2f0c92f](https://github.com/dargstack/dargstack/commit/2f0c92f9f1067f5ec71a70cdf057e6913f65a000))
+
 ## [4.25.0](https://github.com/dargstack/dargstack/compare/v4.24.0...v4.25.0) (2026-11-25)
 
 ### Features
