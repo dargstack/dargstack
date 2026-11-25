@@ -1,3 +1,9 @@
+## [4.26.1](https://github.com/dargstack/dargstack/compare/v4.26.0...v4.26.1) (2026-11-25)
+
+### Bug Fixes
+
+* **prune:** keep the stack's images on every node ([#178](https://github.com/dargstack/dargstack/issues/178)) ([0a4b35b](https://github.com/dargstack/dargstack/commit/0a4b35b7686a120b5ad7fc01b7c589d051e39243))
+
 ## [4.26.0](https://github.com/dargstack/dargstack/compare/v4.25.2...v4.26.0) (2026-11-25)
 
 ### Features
