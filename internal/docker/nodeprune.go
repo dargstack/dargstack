@@ -14,7 +14,7 @@ const (
 
 // PruneOtherNodes removes stopped containers and unused images on every ready swarm node except the one dargstack talks to.
 // It does nothing when that node is no swarm manager, as `docker node ls` fails there.
-func PruneOtherNodes(exec *Executor, stack string, timeout time.Duration) (pruned []string, failures []string, err error) {
+func PruneOtherNodes(exec *Executor, stack string, timeout time.Duration) (pruned, failures []string, err error) {
 	out, lsErr := exec.Run("node", "ls", "--format", "{{.ID}}\t{{.Self}}\t{{.Status}}\t{{.Availability}}")
 	if lsErr != nil {
 		return nil, nil, nil
