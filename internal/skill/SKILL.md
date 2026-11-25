@@ -248,7 +248,7 @@ Deploy with `--profiles <name>`.
 - rewrites `file:` secrets to `external: true`, strips `dargstack.development.*` labels, and remaps dev bind-mount paths to mirrored prod paths
 - requires all env vars and secrets set; blocks on `insecure_default`/third-party placeholders
 - includes production-only services; blocks a major version bump unless `--major`
-- blocks on images the registry does not serve (skipped for images present on the deploying node), then makes every Swarm node a service may run on pull its image through one-off `global-job` services named `<stack>_pull-<n>` (removed afterwards), blocking when a node rejects the pull, no node matches the placement constraints, or pulls exceed 15 minutes; `--offline` skips both checks, dry runs skip the node pull
+- makes every Swarm node a service may run on pull its image through one-off `global-job` services named `<stack>_pull-<n>` (removed afterwards), blocking when a node rejects the pull, no node matches the placement constraints, or pulls exceed 15 minutes; dry runs instead only ask the registry from the deploying node (skipped for images present there); `--offline` skips both checks
 
 ## Platform Overrides
 

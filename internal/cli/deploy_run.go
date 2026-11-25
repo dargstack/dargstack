@@ -384,7 +384,8 @@ func deployPrepareDevelopment(ctx context.Context, dockerClient *docker.Client, 
 }
 
 // deployPreDeployChecks validates production image accessibility.
-// Runs for real under dry-run too when a Docker executor is available, since it only reads local image state and registry manifests; skipped (not just narrated) when executor is nil, matching deployValidateComposeConfig's soft-dependency pattern.
+// A deploy pulls the images on every eligible swarm node, which covers the registry check, so the registry is only probed from this machine on dry runs, where creating pull jobs is not allowed; each probe counts against registry pull rate limits.
+// Skipped (not just narrated) when executor is nil, matching deployValidateComposeConfig's soft-dependency pattern.
 func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun bool) ([]byte, error) {
 	images := compose.ExtractServiceImages(composeData)
 	switch {
@@ -398,11 +399,12 @@ func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun
 		if len(images) > 0 {
 			logger.L.Info("Skipping image accessibility check (--offline)")
 		}
-	case len(images) > 0:
-		title := "Checking image accessibility"
-		if dryRun {
-			title = "[dry-run] Checking image accessibility"
+	case !dryRun:
+		if err := pullImagesOnNodes(executor, composeData, false); err != nil {
+			return nil, err
 		}
+	case len(images) > 0:
+		title := "[dry-run] Checking image accessibility"
 		if verbose {
 			logger.L.Info(fmt.Sprintf("%s for %d image(s) in parallel: %s", title, len(images), strings.Join(images, ", ")))
 		}
@@ -435,7 +437,7 @@ func deployPreDeployChecks(executor *docker.Executor, composeData []byte, dryRun
 			return nil, fmt.Errorf("one or more images are not accessible: fix registry credentials or image references before deploying")
 		}
 
-		if err := pullImagesOnNodes(executor, composeData, dryRun); err != nil {
+		if err := pullImagesOnNodes(executor, composeData, true); err != nil {
 			return nil, err
 		}
 	}

@@ -9,6 +9,7 @@ import (
 	"go.yaml.in/yaml/v4"
 
 	"github.com/dargstack/dargstack/v4/internal/compose"
+	"github.com/dargstack/dargstack/v4/internal/config"
 	"github.com/dargstack/dargstack/v4/internal/docker"
 )
 
@@ -60,6 +61,31 @@ func TestDeployPreDeployChecks_NilExecutorSkipsSilently(t *testing.T) {
 `
 	if _, err := deployPreDeployChecks(nil, []byte(composeYAML), true); err != nil {
 		t.Fatalf("expected nil executor to skip the check rather than fail, got: %v", err)
+	}
+}
+
+func TestDeployPreDeployChecks_DeploySkipsRegistryCheck(t *testing.T) {
+	fakeDockerOnPath(t)
+	t.Setenv("DARGSTACK_TEST_FAIL_IMAGES", "example/unreachable:latest")
+
+	executor, err := docker.NewExecutor("never")
+	if err != nil {
+		t.Fatalf("NewExecutor: %v", err)
+	}
+
+	composeYAML := `services:
+  app:
+    image: example/unreachable:latest
+`
+
+	origCfg := cfg
+	cfg = &config.Config{}
+	t.Cleanup(func() { cfg = origCfg })
+
+	// The fake docker fails `service create`, so reaching the node pull proves the registry check did not run first.
+	_, err = deployPreDeployChecks(executor, []byte(composeYAML), false)
+	if err == nil || !strings.Contains(err.Error(), "create pull job") {
+		t.Fatalf("expected the deploy to go straight to the node pull, got: %v", err)
 	}
 }
 
