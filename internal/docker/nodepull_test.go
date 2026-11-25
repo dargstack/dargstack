@@ -108,6 +108,25 @@ func TestPullOnNodesSkipsResolvingDigests(t *testing.T) {
 	}
 }
 
+func TestPullOnNodesIgnoresRetries(t *testing.T) {
+	exec := fakeSwarmDocker(t, filepath.Join(t.TempDir(), "log"))
+	// node1 retries its failed task, node2 still prepares its first one, so only node1 is done.
+	t.Setenv("DARGSTACK_TEST_PS_stk_pull_0", "node1\tStarting 1 second ago\t\nnode1\tFailed 5 seconds ago\tstarting container failed\nnode1\tFailed 9 seconds ago\tstarting container failed\nnode2\tPreparing 9 seconds ago\t")
+
+	failures, err := PullOnNodes(exec, "stk", []PullTarget{{Image: "x", Services: []string{"a"}}}, 50*time.Millisecond)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(failures) != 1 || !strings.Contains(failures[0], "timed out") || !strings.Contains(failures[0], "node2") || strings.Contains(failures[0], "node1") {
+		t.Fatalf("failures = %v, want only node2 to time out", failures)
+	}
+
+	t.Setenv("DARGSTACK_TEST_PS_stk_pull_0", "node1\tStarting 1 second ago\t\nnode1\tFailed 5 seconds ago\tstarting container failed")
+	if failures, err := PullOnNodes(exec, "stk", []PullTarget{{Image: "x", Services: []string{"a"}}}, time.Second); err != nil || len(failures) != 0 {
+		t.Fatalf("a retrying node whose first task got past the pull must count as pulled: failures = %v, err = %v", failures, err)
+	}
+}
+
 func TestPullOnNodesNoTasksFails(t *testing.T) {
 	exec := fakeSwarmDocker(t, filepath.Join(t.TempDir(), "log"))
 	pullNoTaskGrace = 0
